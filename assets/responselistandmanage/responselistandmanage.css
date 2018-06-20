@@ -1,0 +1,41 @@
+.grid-view th strong{display:block}
+.grid-view th small{display:block}
+.grid-view .table th > .sort-link {font-weight:normal}
+.grid-view .table th  {font-weight:normal}
+.grid-view .data-column{min-width:12em}
+.grid-view .column-yes-no{min-width:6em}
+.grid-view .column-id{min-width:4em}
+.grid-view .column-completed{min-width:4em}
+
+.grid-view tbody td{max-height:1.4em;}
+.grid-view {position:relative;}
+.grid-view > .row-fluid{position:relative;}
+.grid-view > .row{
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background:#fff;
+}
+.grid-view .table-condensed{margin-bottom:0.5em}
+.grid-view .pager,.grid-view .pagination{margin:0.5em 0}
+.grid-view .summary{padding:0.5em 0}
+
+#modal-survey-update{width:100%;}
+#modal-survey-update iframe{border:0 none;width:100%;height:100%}
+#modal-survey-update .modal-body
+{
+  height:auto;
+  width:auto;
+  max-height:100%;
+  box-sizing:border-box;
+  overflow-y:show;
+  overflow-x:show;
+  padding:0;
+}
+#modal-survey-update .modal-footer{margin-top:0}
+#modal-survey-update .modal-dialog{width:100%;margin: 0 auto;}
+
+.btn-link:focus, .btn-link:hover {
+    color: inherit;
+}
+.responses-grid{padding-bottom:4em}

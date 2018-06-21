@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 0.11.0
+ * @version 0.12.2
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -228,9 +228,13 @@ class responseListAndManage extends PluginBase {
         /* Must fix rights */
         $userHaveRight = false;
         if (Permission::model()->hasSurveyPermission($surveyId, 'responses', 'read')) {
+            if(App()->getRequest()->isPostRequest && App()->getRequest()->getPost('login_submit')) {
+                /* redirect to avoid CRSF when reload */
+                Yii::app()->getController()->redirect(array("plugins/direct", 'plugin' => get_class(),'sid'=>$surveyId));
+            }
             $userHaveRight = true;
         }
-        if($oSurvey->getHasTokensTable() && App()->getRequest()->getParam('token')) {
+        if(!$userHaveRight && $oSurvey->getHasTokensTable() && App()->getRequest()->getParam('token')) {
             $userHaveRight = true;
         }
         if(!$userHaveRight) {
@@ -646,7 +650,6 @@ class responseListAndManage extends PluginBase {
      * @param string $sEscapeMode
      * @param string $sLanguage
      * @return string
-     */
      */
     private function _translate($string, $sEscapeMode = 'unescaped', $sLanguage = null) {
         return $this->gT($string, $sEscapeMode, $sLanguage);

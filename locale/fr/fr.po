@@ -1,0 +1,84 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: responseListAndManage\n"
+"POT-Creation-Date: 2018-06-21 17:21+0200\n"
+"PO-Revision-Date: 2018-06-21 17:28+0200\n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 2.0.8\n"
+"X-Poedit-Basepath: ..\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+"X-Poedit-KeywordsList: _translate\n"
+"Last-Translator: \n"
+"Language: fr\n"
+"X-Poedit-SearchPath-0: .\n"
+"X-Poedit-SearchPathExcluded-0: locale\n"
+
+#: responseListAndManage.php:102
+msgid "Response alternate management"
+msgstr "Gestion alternatives des réponses"
+
+#: responseListAndManage.php:106
+msgid "Token attributes to show in management"
+msgstr "Attributs des invitations à montrer"
+
+#: responseListAndManage.php:120
+msgid "Survey columns to be show in management"
+msgstr "Colonne du questionnaire à montrer"
+
+#: responseListAndManage.php:139
+msgid "Token attributes for group"
+msgstr "Attribut d‘invitation pour le groupe"
+
+#: responseListAndManage.php:142 responseListAndManage.php:151
+msgid "None"
+msgstr "Aucun"
+
+#: responseListAndManage.php:148
+msgid "Token attributes for group manager"
+msgstr "Attribut d‘invitation pour les droits de gestion du groupe"
+
+#: responseListAndManage.php:157
+msgid "User of group can see and manage all group response"
+msgstr "Les utilisateurs d‘un groupe peuvent voir et gérer toutes les réponses du groupe"
+
+#: responseListAndManage.php:158
+msgid "Else only group manager can manage other group response."
+msgstr "Sinon, seul les gestionnaires de groupes pourront gérer les réponses de l‘ensemble du groupe."
+
+#: responseListAndManage.php:163
+msgid "Allow deletion of response"
+msgstr "Permettre la suppression rapide de réponse"
+
+#: responseListAndManage.php:176
+msgid "Allow add response"
+msgstr "Permettre l‘ajout de réponse"
+
+#: responseListAndManage.php:308 responseListAndManage.php:314
+#: responseListAndManage.php:325 responseListAndManage.php:332
+msgid "Create an new response"
+msgstr "Créer une nouvelle réponse"
+
+#: responseListAndManage.php:388
+msgid "Delete"
+msgstr "Supprimer"
+
+#: responseListAndManage.php:415
+msgid "No right to delete this reponse."
+msgstr "Pas les droits suffisants pour supprimer cette réponse."
+
+#: responseListAndManage.php:419
+msgid "Invalid response id."
+msgstr "Identifiant de réponse invalide."
+
+#: responseListAndManage.php:448
+#, php-format
+msgid "Access link for survey listing : %s."
+msgstr "Lien d‘accès à la liste des questionnaires : %s."
+
+#: responseListAndManage.php:457
+msgid "Template to be used"
+msgstr "Modèle public à utiliser"

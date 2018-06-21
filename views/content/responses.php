@@ -37,12 +37,24 @@ $this->widget('bootstrap.widgets.TbGridView', array(
         <iframe id="survey-update" name="survey-update" src="" frameborder="0"></iframe>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-warning" data-dismiss="modal"><?= $lang['Close'] ?></button>
-        <!--<button type="button" class="btn btn-danger" disabled="disabled" data-action="clearall"><?= $lang['Delete'] ?></button>-->
-        <button type="button" class="btn btn-default" disabled="disabled" data-action="moveprevious"><?= $lang['Previous'] ?></button>
-        <!--<button type="button" class="btn btn-default" disabled="disabled" data-action="saveall"><?= $lang['Save'] ?></button>--> <!-- Only if token ? -->
-        <button type="button" class="btn btn-primary" disabled="disabled" data-action="movenext"><?= $lang['Next'] ?></button>
-        <button type="button" class="btn btn-primary" disabled="disabled" data-action="movesubmit"><?= $lang['Submit'] ?></button>
+        <?php
+          echo CHtml::htmlButton($lang['Close'],array('type'=>'button','class'=>"btn btn-warning",'data-dismiss'=>"modal"));
+          if(!empty($lang['Delete'])) {
+            echo CHtml::htmlButton($lang['Delete'],array('type'=>'button','class'=>"btn btn-danger",'data-action'=>"clearall",'disabled'=>true));
+          }
+          if(!empty($lang['Previous'])) {
+            echo CHtml::htmlButton($lang['Previous'],array('type'=>'button','class'=>"btn btn-default",'data-action'=>"moveprevious",'disabled'=>true));
+          }
+          if(!empty($lang['Save'])) {
+            echo CHtml::htmlButton($lang['Save'],array('type'=>'button','class'=>"btn btn-info",'data-action'=>"saveall",'disabled'=>true));
+          }
+          if(!empty($lang['Next'])) {
+            echo CHtml::htmlButton($lang['Next'],array('type'=>'button','class'=>"btn btn-primary",'data-action'=>"movenext",'disabled'=>true));
+          }
+          if(!empty($lang['Submit'])) {
+            echo CHtml::htmlButton($lang['Submit'],array('type'=>'button','class'=>"btn btn-success",'data-action'=>"movesubmit",'disabled'=>true));
+          }
+        ?>
       </div>
     </div><!-- /.modal-content -->
   </div><!-- /.modal-dialog -->

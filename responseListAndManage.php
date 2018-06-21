@@ -1,11 +1,11 @@
 <?php
 /**
- * responses List And Manage
+ * Responses List And Manage
  *
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 0.12.2
+ * @version 0.12.3
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -234,11 +234,11 @@ class responseListAndManage extends PluginBase {
             }
             $userHaveRight = true;
         }
-        if(!$userHaveRight && $oSurvey->getHasTokensTable() && App()->getRequest()->getParam('token')) {
+        if(!$userHaveRight && $this->_allowTokenLink($oSurvey) && App()->getRequest()->getParam('token')) {
             $userHaveRight = true;
         }
         if(!$userHaveRight) {
-            if($oSurvey->getHasTokensTable() && !Yii::app()->getRequest()->getParam('admin')) {
+            if($this->_allowTokenLink($oSurvey) && !Yii::app()->getRequest()->getParam('admin')) {
                 $this->_showTokenForm($surveyId);
             } else {
                 $this->_doLogin();
@@ -345,12 +345,12 @@ class responseListAndManage extends PluginBase {
         /* Contruct column */
         /* Put the button here, more easy */
         $updateButtonUrl = 'App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"srid"=>$data["id"],"newtest"=>"Y"))';
-        if($oSurvey->getHasTokensTable() && !$oSurvey->getIsAnonymized()) {
+        if($this->_allowTokenLink($oSurvey)) {
             $updateButtonUrl = 'App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"token"=>$data["token"],"delete"=>$data["id"],"newtest"=>"Y"))';
         }
         
         $deleteButtonUrl = 'App()->createUrl("plugins/direct",array("plugin"=>"'.get_class().'","sid"=>'.$surveyId.',"delete"=>$data["id"]))';
-        if($oSurvey->getHasTokensTable() && !$oSurvey->getIsAnonymized()) {
+        if($this->_allowTokenLink($oSurvey) && !$oSurvey->getIsAnonymized()) {
             $deleteButtonUrl = 'App()->createUrl("plugins/direct",array("plugin"=>"'.get_class().'","sid"=>'.$surveyId.',"token"=>$data["token"],"delete"=>$data["id"]))';
         }
         $aColumns= array(
@@ -389,10 +389,16 @@ class responseListAndManage extends PluginBase {
             $this->aRenderData['lang'] = array();
         }
         $this->aRenderData['lang']['Close'] = gT("Close");
-        $this->aRenderData['lang']['Delete'] = $this->_translate("Delete");
-        $this->aRenderData['lang']['Previous'] = $this->gT("Previous");
-        $this->aRenderData['lang']['Save'] = $this->gT("Save");
-        $this->aRenderData['lang']['Next'] = $this->gT("Next");
+        //$this->aRenderData['lang']['Delete'] = $this->_translate("Delete");
+        if($oSurvey->allowprev == "Y") {
+            $this->aRenderData['lang']['Previous'] = $this->gT("Previous");
+        }
+        if($oSurvey->allowsave == "Y") { // We don't need to test token, we don't shown default save part …
+            $this->aRenderData['lang']['Save'] = $this->gT("Save");
+        }
+        if($oSurvey->format!="A") {
+            $this->aRenderData['lang']['Next'] = $this->gT("Next");
+        }
         $this->aRenderData['lang']['Submit'] = $this->gT("Submit");
 
         $this->aRenderData['model'] = $mResponse;
@@ -644,6 +650,15 @@ class responseListAndManage extends PluginBase {
     }
 
     /**
+     * Find is survey allow token link
+     * @param \Survey
+     * @return boolean
+     */
+    private function _allowTokenLink($oSurvey)
+    {
+        return $oSurvey->getHasTokensTable() && $oSurvey->anonymized != "Y";
+    }
+    /**
      * Translation : use another function name for poedit, and set escape mode to needed one
      * @see parent::gT
      * @param string $sToTranslate The message that are being translated
@@ -652,6 +667,8 @@ class responseListAndManage extends PluginBase {
      * @return string
      */
     private function _translate($string, $sEscapeMode = 'unescaped', $sLanguage = null) {
+
         return $this->gT($string, $sEscapeMode, $sLanguage);
     }
+
 }

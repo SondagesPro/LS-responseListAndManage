@@ -1,6 +1,6 @@
 <?php
 /**
- * Chaining survey
+ * responses List And Manage
  *
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>

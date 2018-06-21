@@ -99,11 +99,11 @@ class responseListAndManage extends PluginBase {
             'settings' => array(
                 'link'=>array(
                     'type'=>'info',
-                    'content'=> CHtml::link($this->gT("Response alternate management"),$accesUrl),
+                    'content'=> CHtml::link($this->_translate("Response alternate management"),$accesUrl),
                 ),
                 'tokenAttributes' => array(
                     'type'=>'select',
-                    'label'=>$this->gT('Token attributes to show in management'),
+                    'label'=>$this->_translate('Token attributes to show in management'),
                     'options'=>$this->_getTokensAttributeList($iSurveyId,'tokens.'),
                     'htmlOptions'=>array(
                         'multiple'=>true,
@@ -117,7 +117,7 @@ class responseListAndManage extends PluginBase {
                 ),
                 'surveyAttributes' => array(
                     'type'=>'select',
-                    'label'=>$this->gT('Survey columns to be show in management'),
+                    'label'=>$this->_translate('Survey columns to be show in management'),
                     'options'=>$aQuestionList['data'],
                     'htmlOptions'=>array(
                         'multiple'=>true,
@@ -136,52 +136,52 @@ class responseListAndManage extends PluginBase {
                 ),
                 'tokenAttributeGroup' => array(
                     'type'=>'select',
-                    'label'=>$this->gT('Token attributes for group'),
+                    'label'=>$this->_translate('Token attributes for group'),
                     'options'=>$this->_getTokensAttributeList($iSurveyId,''),
                     'htmlOptions'=>array(
-                        'empty'=>$this->gT("None"),
+                        'empty'=>$this->_translate("None"),
                     ),
                     'current'=>$this->get('tokenAttributeGroup','Survey',$iSurveyId)
                 ),
                 'tokenAttributeGroupManager' => array(
                     'type'=>'select',
-                    'label'=>$this->gT('Token attributes for group manager'),
+                    'label'=>$this->_translate('Token attributes for group manager'),
                     'options'=>$this->_getTokensAttributeList($iSurveyId,''),
                     'htmlOptions'=>array(
-                        'empty'=>$this->gT("None"),
+                        'empty'=>$this->_translate("None"),
                     ),
                     'current'=>$this->get('tokenAttributeGroupManager','Survey',$iSurveyId)
                 ),
                 'tokenAttributeGroupWhole' => array(
                     'type'=>'boolean',
-                    'label'=>$this->gT('User of group can see and manage all group response'),
-                    'help'=>$this->gT('Else only group manager can manage other group response.'),
+                    'label'=>$this->_translate('User of group can see and manage all group response'),
+                    'help'=>$this->_translate('Else only group manager can manage other group response.'),
                     'current'=>$this->get('tokenAttributeGroupWhole','Survey',$iSurveyId,1)
                 ),
                 'allowDelete' => array(
                     'type'=>'select',
-                    'label'=>$this->gT('Allow deletion of response'),
+                    'label'=>$this->_translate('Allow deletion of response'),
                     'options'=>array(
                         'admin'=>gT("Only for administrator"),
                         'all'=>gT("Yes"),
                     ),
                     'htmlOptions'=>array(
-                        'empty'=>$this->gT("No"),
+                        'empty'=>gT("No"),
                     ),
-                    //~ 'help'=>$this->gT('Else only group manager can manage other group response.'),
+                    //~ 'help'=>$this->_translate('Else only group manager can manage other group response.'),
                     'current'=>$this->get('allowDelete','Survey',$iSurveyId,'admin')
                 ),
                 'allowAdd' => array(
                     'type'=>'select',
-                    'label'=>$this->gT('Allow add response'),
+                    'label'=>$this->_translate('Allow add response'),
                     'options'=>array(
                         'admin'=>gT("Only for administrator"),
                         'all'=>gT("Yes"),
                     ),
                     'htmlOptions'=>array(
-                        'empty'=>$this->gT("No"),
+                        'empty'=>gT("No"),
                     ),
-                    //~ 'help'=>$this->gT('Else only group manager can manage other group response.'),
+                    //~ 'help'=>$this->_translate('Else only group manager can manage other group response.'),
                     'current'=>$this->get('allowAdd','Survey',$iSurveyId,'admin')
                 ),
             )
@@ -238,7 +238,7 @@ class responseListAndManage extends PluginBase {
                 $this->_showTokenForm($surveyId);
             } else {
                 $this->_doLogin();
-                //throw new CHttpException(401,$this->gT("Sorry, no access on this survey."));
+                //throw new CHttpException(401,$this->_translate("Sorry, no access on this survey."));
             }
         }
         $oSurvey = Survey::model()->findByPk($surveyId);
@@ -305,13 +305,13 @@ class responseListAndManage extends PluginBase {
             }
         }
         if(!$tokenList) {
-            $addNew = CHtml::link("<i class='fa fa-plus-circle' aria-hidden='true'></i>".$this->gT("Create an new response"),
+            $addNew = CHtml::link("<i class='fa fa-plus-circle' aria-hidden='true'></i>".$this->_translate("Create an new response"),
                 array("survey/index",'sid'=>$surveyId,'newtest'=>"Y"),
                 array('class'=>'btn btn-default addnew')
             );
         }
         if($tokenList && count($tokenList) == 1) {
-            $addNew = CHtml::link("<i class='fa fa-plus-circle' aria-hidden='true'></i>".$this->gT("Create an new response"),
+            $addNew = CHtml::link("<i class='fa fa-plus-circle' aria-hidden='true'></i>".$this->_translate("Create an new response"),
                 array("survey/index",'sid'=>$surveyId,'newtest'=>"Y",'srid'=>'new'),
                 array('class'=>'btn btn-default addnew')
             );
@@ -322,14 +322,14 @@ class responseListAndManage extends PluginBase {
             $addNew .= CHtml::hiddenField('newtest',"Y");
             if(count($tokenList) == 1) {
                 $addNew .= CHtml::hiddenField('token',array_shift(array_keys($tokenList)));
-                $addNew .= CHtml::htmlButton("<i class='fa fa-plus-circle' aria-hidden='true'></i>".$this->gT("Create an new response"),
+                $addNew .= CHtml::htmlButton("<i class='fa fa-plus-circle' aria-hidden='true'></i>".$this->_translate("Create an new response"),
                     array("type"=>'submit','name'=>'srid','value'=>'new','class'=>'btn btn-default addnew')
                 );
             }
             if(count($tokenList) > 1) {
                 //~ $addNew .= '<div class="form-group"><div class="input-group">';
                 $addNew .= CHtml::dropDownList('token',$currentToken,$tokenList,array('class'=>'form-control'));
-                $addNew .= CHtml::htmlButton("<i class='fa fa-plus-circle' aria-hidden='true'></i>".$this->gT("Create an new response"),
+                $addNew .= CHtml::htmlButton("<i class='fa fa-plus-circle' aria-hidden='true'></i>".$this->_translate("Create an new response"),
                     array("type"=>'submit','name'=>'srid','value'=>'new','class'=>'btn btn-default addnew')
                 );
                 //~ $addNew .= '</div></div>';
@@ -384,8 +384,8 @@ class responseListAndManage extends PluginBase {
         if(empty($this->aRenderData['lang'])) {
             $this->aRenderData['lang'] = array();
         }
-        $this->aRenderData['lang']['Close'] = $this->gT("Close");
-        $this->aRenderData['lang']['Delete'] = $this->gT("Delete");
+        $this->aRenderData['lang']['Close'] = gT("Close");
+        $this->aRenderData['lang']['Delete'] = $this->_translate("Delete");
         $this->aRenderData['lang']['Previous'] = $this->gT("Previous");
         $this->aRenderData['lang']['Save'] = $this->gT("Save");
         $this->aRenderData['lang']['Next'] = $this->gT("Next");
@@ -412,11 +412,11 @@ class responseListAndManage extends PluginBase {
             }
         }
         if(!$allowed) {
-            throw new CHttpException(401, $this->gT('No right to delete this reponse.'));
+            throw new CHttpException(401, $this->_translate('No right to delete this reponse.'));
         }
         $oResponse = Response::model($surveyId)->findByPk($srid);
         if(!$oResponse) {
-            throw new CHttpException(401, $this->gT("Invalid response id."));
+            throw new CHttpException(401, $this->_translate("Invalid response id."));
         }
         if(!Response::model($surveyId)->deleteByPk($srid)) {
             throw new CHttpException(500, CHtml::errorSummary(Response::model($surveyId)));
@@ -445,7 +445,7 @@ class responseListAndManage extends PluginBase {
         $pluginSettings= parent::getPluginSettings($getValues);
         $accesUrl = Yii::app()->createUrl("plugins/direct", array('plugin' => get_class()));
         $accesHtmlUrl = CHtml::link($accesUrl,$accesUrl);
-        $pluginSettings['information']['content'] = sprintf($this->gT("Access link for survey listing : %s."),$accesHtmlUrl);
+        $pluginSettings['information']['content'] = sprintf($this->_translate("Access link for survey listing : %s."),$accesHtmlUrl);
         $oTemplates = TemplateConfiguration::model()->findAll(array(
             'condition'=>'sid IS NULL',
             'order'=>'template_name',
@@ -454,7 +454,7 @@ class responseListAndManage extends PluginBase {
         $pluginSettings['template'] = array_merge($pluginSettings['template'],array(
             'type' => 'select',
             'options'=>$aTemplates,
-            'label'=> $this->gT('Template to be used'),
+            'label'=> $this->_translate('Template to be used'),
         ));
         return $pluginSettings;
     }
@@ -519,7 +519,7 @@ class responseListAndManage extends PluginBase {
         }
         $this->aRenderData['pluginContent'] = $pluginContent;
         $this->aRenderData['summary'] = $aResult['summary'];
-        $this->aRenderData['subtitle'] = $this->gT('Log in');
+        $this->aRenderData['subtitle'] = gT('Log in');
         /* Bad hack … */
         header("HTTP/1.1 401 Unauthorized");
         $this->_render('login');
@@ -540,7 +540,7 @@ class responseListAndManage extends PluginBase {
             $lang = $oSurvey->language;
         }
         App()->setLanguage($lang);
-        $this->aRenderData['subtitle'] = $this->gT("If you have been issued a token, please enter it in the box below and click continue.");
+        $this->aRenderData['subtitle'] = gT("If you have been issued a token, please enter it in the box below and click continue.");
         $this->aRenderData['adminLoginUrl'] = Yii::app()->createUrl("plugins/direct", array('plugin' => get_class(),'sid'=>$surveyid,'admin'=>1));
         $this->_render('token');
     }
@@ -637,5 +637,18 @@ class responseListAndManage extends PluginBase {
             $aTokens[$prefix.$attribute] = empty($information['description']) ? $attribute : $information['description'];
         }
         return $aTokens;
+    }
+
+    /**
+     * Translation : use another function name for poedit, and set escape mode to needed one
+     * @see parent::gT
+     * @param string $sToTranslate The message that are being translated
+     * @param string $sEscapeMode
+     * @param string $sLanguage
+     * @return string
+     */
+     */
+    private function _translate($string, $sEscapeMode = 'unescaped', $sLanguage = null) {
+        return $this->gT($string, $sEscapeMode, $sLanguage);
     }
 }

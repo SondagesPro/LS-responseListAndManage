@@ -242,7 +242,7 @@ class responseListAndManage extends PluginBase {
         if (Permission::model()->hasSurveyPermission($surveyId, 'responses', 'read')) {
             if(App()->getRequest()->isPostRequest && App()->getRequest()->getPost('login_submit')) {
                 /* redirect to avoid CRSF when reload */
-                Yii::app()->getController()->redirect(array("plugins/direct", 'plugin' => get_class(),'sid'=>$surveyId));
+                //~ Yii::app()->getController()->redirect(array("plugins/direct", 'plugin' => get_class(),'sid'=>$surveyId));
             }
             $userHaveRight = true;
         }
@@ -274,6 +274,10 @@ class responseListAndManage extends PluginBase {
                 $mResponse->setAttribute('completed', $filters['completed']);
             }
         }
+        $tokensFilter = Yii::app()->request->getParam('TokenDynamic');
+        if (!empty($tokensFilter)) {
+            $mResponse->setTokenAttributes($tokensFilter);
+        }
         /* Access with token */
         $isManager = false;
         $currentToken = App()->getRequest()->getParam('token');
@@ -293,11 +297,7 @@ class responseListAndManage extends PluginBase {
             }
             $mResponse->setAttribute('token', $aTokens);
         }
-        
-        $tokensFilter = Yii::app()->request->getParam('TokenDynamic');
-        if (!empty($tokensFilter)) {
-            $mResponse->setTokenAttributes($tokensFilter);
-        }
+
         
         Yii::app()->user->setState('pageSize',intval(Yii::app()->request->getParam('pageSize',Yii::app()->user->getState('pageSize',10))));
         /* Add a new */
@@ -329,7 +329,7 @@ class responseListAndManage extends PluginBase {
         if($tokenList && count($tokenList) == 1) {
             $addNew = CHtml::link("<i class='fa fa-plus-circle' aria-hidden='true'></i>".$this->_translate("Create an new response"),
                 array("survey/index",'sid'=>$surveyId,'newtest'=>"Y",'srid'=>'new'),
-                array('class'=>'btn btn-default addnew')
+                array('class'=>'btn btn-default btn-sm addnew')
             );
         }
         if($tokenList && count($tokenList) > 1) {
@@ -339,14 +339,14 @@ class responseListAndManage extends PluginBase {
             if(count($tokenList) == 1) {
                 $addNew .= CHtml::hiddenField('token',array_shift(array_keys($tokenList)));
                 $addNew .= CHtml::htmlButton("<i class='fa fa-plus-circle' aria-hidden='true'></i>".$this->_translate("Create an new response"),
-                    array("type"=>'submit','name'=>'srid','value'=>'new','class'=>'btn btn-default addnew')
+                    array("type"=>'submit','name'=>'srid','value'=>'new','class'=>'btn btn-default btn-sm addnew')
                 );
             }
             if(count($tokenList) > 1) {
                 //~ $addNew .= '<div class="form-group"><div class="input-group">';
-                $addNew .= CHtml::dropDownList('token',$currentToken,$tokenList,array('class'=>'form-control'));
+                $addNew .= CHtml::dropDownList('token',$currentToken,$tokenList,array('class'=>'form-control input-sm','empty'=>gT("Please choose...")));
                 $addNew .= CHtml::htmlButton("<i class='fa fa-plus-circle' aria-hidden='true'></i>".$this->_translate("Create an new response"),
-                    array("type"=>'submit','name'=>'srid','value'=>'new','class'=>'btn btn-default addnew')
+                    array("type"=>'button','name'=>'srid','value'=>'new','class'=>'btn btn-default btn-sm addnew')
                 );
                 //~ $addNew .= '</div></div>';
             }
@@ -396,7 +396,14 @@ class responseListAndManage extends PluginBase {
             
         }
 
-        $this->aRenderData['allowAdd'] = $isManager || Permission::model()->hasSurveyPermission($surveyId, 'token', 'create');
+        $this->aRenderData['allowAddUSer'] = $isManager || Permission::model()->hasSurveyPermission($surveyId, 'token', 'create');
+        $this->aRenderData['addUserData'] = array();
+        $this->aRenderData['addUSer'] = '';
+        if(false && $this->aRenderData['allowAddUSer']) {
+            $this->aRenderData['addUSer'] = CHtml::htmlButton("<i class='fa fa-user-plus ' aria-hidden='true'></i>".$this->_translate("Create an new user"),
+                    array("type"=>'button','name'=>'adduser','value'=>'new','class'=>'btn btn-default btn-sm addnewuser')
+                );
+        }
         if(empty($this->aRenderData['lang'])) {
             $this->aRenderData['lang'] = array();
         }
@@ -412,7 +419,6 @@ class responseListAndManage extends PluginBase {
             $this->aRenderData['lang']['Next'] = $this->gT("Next");
         }
         $this->aRenderData['lang']['Submit'] = $this->gT("Submit");
-
         $this->aRenderData['model'] = $mResponse;
         $this->aRenderData['columns'] = $aColumns;
         $this->_render('responses');
@@ -464,12 +470,21 @@ class responseListAndManage extends PluginBase {
             return;
         }
         if(!$this->_isUsable()){
+            $warningMessage = "";
+            $haveGetQuestionInformation = Yii::getPathOfAlias('getQuestionInformation');
+            if(!$haveGetQuestionInformation) {
+                $warningMessage .= CHtml::tag("p",array(),sprintf($this->_translate("Unable to use this plugin, you need %s plugin."),CHtml::link("getQuestionInformation","https://gitlab.com/SondagesPro/coreAndTools/getQuestionInformation")));
+            }
+            $haveReloadAnyResponse = Yii::getPathOfAlias('reloadAnyResponse');
+            if(!$haveReloadAnyResponse) {
+                $warningMessage .= CHtml::tag("p",array(),sprintf($this->_translate("Unable to use this plugin, you need %s plugin."),CHtml::link("getQuestionInformation","https://gitlab.com/SondagesPro/coreAndTools/getQuestionInformation")));
+            }
             $this->settings = array(
                 'unable'=> array(
                     'type' => 'info',
                     'content' => CHtml::tag("div",
                         array('class'=>'alert alert-warning'),
-                        sprintf($this->_translate("Unable to use this plugin, you need %s plugin."),CHtml::link("getQuestionInformation","https://gitlab.com/SondagesPro/coreAndTools/getQuestionInformation"))
+                        $warningMessage
                     ),
                 ),
             );
@@ -477,6 +492,7 @@ class responseListAndManage extends PluginBase {
         }
         $this->settings['template']['default'] = App()->getConfig('defaulttheme');
         $pluginSettings= parent::getPluginSettings($getValues);
+        /* @todo : return if not needed */
         $accesUrl = Yii::app()->createUrl("plugins/direct", array('plugin' => get_class()));
         $accesHtmlUrl = CHtml::link($accesUrl,$accesUrl);
         $pluginSettings['information']['content'] = sprintf($this->_translate("Access link for survey listing : %s."),$accesHtmlUrl);
@@ -616,12 +632,14 @@ class responseListAndManage extends PluginBase {
             $content = Yii::app()->getController()->renderPartial(get_class($this).".views.content.".$fileRender,$this->aRenderData,true);
             $templateName = Template::templateNameFilter($this->get('template',null,null,Yii::app()->getConfig('defaulttheme')));
             Template::model()->getInstance($templateName, null);
+            Template::model()->getInstance($templateName, null)->oOptions->ajaxmode = 'off';
+            Template::model()->getInstance($templateName, null)->oOptions->container = 'off';
+            //~ tracevar(Template::model()->getInstance($templateName, null));
             $renderTwig['aSurveyInfo'] = array(
                 'surveyls_title' => App()->getConfig('sitename'),
                 'name' => App()->getConfig('sitename'),
             );
             $renderTwig['aSurveyInfo']['active'] = 'Y'; // Didn't show the default warning
-            $renderTwig['aSurveyInfo']['options']['ajaxmode'] = "off"; // Try to disable ajax mode
             $renderTwig['aSurveyInfo']['content'] = $content;
             $renderTwig['aSurveyInfo']['include_content'] = 'content';
             $assetUrl = Yii::app()->assetManager->publish(dirname(__FILE__) . '/assets/responselistandmanage');
@@ -706,7 +724,11 @@ class responseListAndManage extends PluginBase {
         if(!$haveGetQuestionInformation) {
             $this->log("You need getQuestionInformation plugin",'error');
         }
-        return $haveGetQuestionInformation;
+        $haveReloadAnyResponse = Yii::getPathOfAlias('reloadAnyResponse');
+        if(!$haveReloadAnyResponse) {
+            $this->log("You need reloadAnyResponse plugin",'error');
+        }
+        return $haveGetQuestionInformation && $haveReloadAnyResponse;
     }
     /**
      * Log message
@@ -715,7 +737,7 @@ class responseListAndManage extends PluginBase {
     public function log($message, $level = \CLogger::LEVEL_TRACE)
     {
         if(is_callable("parent::log")) {
-            parent::log($message, $level);
+            //parent::log($message, $level);
         }
         Yii::log("[".get_class($this)."] ".$message, $level, 'vardump');
     }

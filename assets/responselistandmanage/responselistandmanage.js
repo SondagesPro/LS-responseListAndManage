@@ -28,6 +28,11 @@ $(document).on("click","a.addnew",function(event){
 });
 $(document).on("click","button.addnew",function(event){
     event.preventDefault();
+    if(!$("#token").val()) {
+        $("#token").focus()
+        // TODO : show a warning error
+        return;
+    }
     var href = $(this).closest('form').attr('action');
     href += (href.indexOf('?') > -1) ? '&' : '?';
     href += 'sid='+$("#sid").val();

@@ -236,7 +236,7 @@ class ResponseExtended extends LSActiveRecord
         $tokensAttributes = $this->tokenRelated->getAttributes();
         //~ unset($tokensAttributes['token']);
         foreach($tokensAttributes as $attribute=>$value) {
-            //$criteria->compare('tokens.'.$attribute, $value, true);
+            $criteria->compare('tokens.'.$attribute, $value, true);
         }
     }
     /**
@@ -315,25 +315,30 @@ class ResponseExtended extends LSActiveRecord
             'header' => '<strong>[token]</strong><small>'.gT('Token').'</small>',
             'name' => 'tokens.token',
             'value' => 'empty($data->tokens) ? "" : $data->tokens->token;',
-            'filter' => CHtml::activeTextField($this->tokenRelated,"token"),
+            'htmlOptions' => array('class' => 'data-column column-token-token'),
+            'filter' => CHtml::activeTextField($this->tokenRelated,"token",array('class'=>'form-control input-sm filter-token-token')),
         );
         $aColumns['tokens.email']=array(
             'header' => '<strong>[email]</strong><small>'.gT('Email').'</small>',
             'name' => 'tokens.email',
             'value' => 'empty($data->tokens) ? "" : $data->tokens->email;',
-            'filter' => CHtml::activeTextField($this->tokenRelated,"email"),
+            'htmlOptions' => array('class' => 'data-column column-token-email'),
+            'filter' => CHtml::activeTextField($this->tokenRelated,"email",array('class'=>'form-control input-sm filter-token-email')),
         );
         $aColumns['tokens.firstname']=array(
             'header' => '<strong>[firstname]</strong><small>'.gT('First name').'</small>',
             'name' => 'tokens.firstname',
+            'type' => 'raw',
             'value' => 'empty($data->tokens) ? "" : $data->tokens->firstname;',
-            'filter' => CHtml::activeTextField($this->tokenRelated,"firstname"),
+            'htmlOptions' => array('class' => 'data-column column-token-firstname'),
+            'filter' => CHtml::activeTextField($this->tokenRelated,"firstname",array('class'=>'form-control input-sm filter-token-firstname')),
         );
         $aColumns['tokens.lastname']=array(
             'header' => '<strong>[lastname]</strong><small>'.gT('Last name').'</small>',
             'name' => 'tokens.lastname',
             'value' => 'empty($data->tokens) ? "" : $data->tokens->lastname;',
-            'filter' => CHtml::activeTextField($this->tokenRelated,"lastname"),
+            'htmlOptions' => array('class' => 'data-column column-token-lastname'),
+            'filter' => CHtml::activeTextField($this->tokenRelated,"lastname",array('class'=>'form-control input-sm filter-token-lastname')),
         );
         $tokenAttributes = self::$survey->getTokenAttributes();
         foreach($tokenAttributes as $attribute=>$aDescrition) {
@@ -341,7 +346,8 @@ class ResponseExtended extends LSActiveRecord
                 'header' => '<strong>['.$attribute.']</strong><small>'.$aDescrition['description'].'</small>',
                 'name' => 'tokens.'.$attribute,
                 'value' => 'empty($data->tokens) ? "" : $data->tokens->'.$attribute.';',
-                'filter' => CHtml::activeTextField($this->tokenRelated,$attribute),
+                'htmlOptions' => array('class' => 'data-column column-token-attribute'),
+                'filter' => CHtml::activeTextField($this->tokenRelated,$attribute,array('class'=>'form-control input-sm filter-token-attribute')),
             );
         }
         return $aColumns;

@@ -62,6 +62,9 @@ class responseListAndManage extends PluginBase {
      */
     public function beforeSurveyPage()
     {
+        if(!$this->_isUsable()) {
+            return;
+        }
         if(Yii::app()->session['responseListAndManage'] != $this->getEvent()->get('surveyId')) {
             return;
         }
@@ -86,6 +89,9 @@ class responseListAndManage extends PluginBase {
     /** @inheritdoc **/
     public function beforeSurveySettings()
     {
+        if(!$this->_isUsable()) {
+            return;
+        }
         /* @Todo move this to own page */
         $oEvent = $this->getEvent();
         $iSurveyId = $this->getEvent()->get('survey');
@@ -193,6 +199,9 @@ class responseListAndManage extends PluginBase {
     */
     public function newSurveySettings()
     {
+        if(!$this->_isUsable()) {
+            return;
+        }
         $event = $this->event;
         foreach ($event->get('settings') as $name => $value) {
             $this->set($name, $value, 'Survey', $event->get('survey'));
@@ -202,6 +211,9 @@ class responseListAndManage extends PluginBase {
     /** @inheritdoc **/
     public function newDirectRequest()
     {
+        if(!$this->_isUsable()) {
+            return;
+        }
         if($this->getEvent()->get('target') != get_class($this)) {
             return;
         }
@@ -346,7 +358,7 @@ class responseListAndManage extends PluginBase {
         /* Put the button here, more easy */
         $updateButtonUrl = 'App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"srid"=>$data["id"],"newtest"=>"Y"))';
         if($this->_allowTokenLink($oSurvey)) {
-            $updateButtonUrl = 'App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"token"=>$data["token"],"delete"=>$data["id"],"newtest"=>"Y"))';
+            $updateButtonUrl = 'App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"token"=>$data["token"],"srid"=>$data["id"],"newtest"=>"Y"))';
         }
         
         $deleteButtonUrl = 'App()->createUrl("plugins/direct",array("plugin"=>"'.get_class().'","sid"=>'.$surveyId.',"delete"=>$data["id"]))';
@@ -450,6 +462,18 @@ class responseListAndManage extends PluginBase {
     {
         if(Yii::app() instanceof CConsoleApplication) {
             return;
+        }
+        if(!$this->_isUsable()){
+            $this->settings = array(
+                'unable'=> array(
+                    'type' => 'info',
+                    'content' => CHtml::tag("div",
+                        array('class'=>'alert alert-warning'),
+                        sprintf($this->_translate("Unable to use this plugin, you need %s plugin."),CHtml::link("getQuestionInformation","https://gitlab.com/SondagesPro/coreAndTools/getQuestionInformation"))
+                    ),
+                ),
+            );
+            return $this->settings;
         }
         $this->settings['template']['default'] = App()->getConfig('defaulttheme');
         $pluginSettings= parent::getPluginSettings($getValues);
@@ -671,4 +695,28 @@ class responseListAndManage extends PluginBase {
         return $this->gT($string, $sEscapeMode, $sLanguage);
     }
 
+    /**
+     * Check if getQuestionInformation plugin is here and activated
+     * Log as error if not
+     * @return boolean
+     */
+    private function _isUsable()
+    {
+        $haveGetQuestionInformation = Yii::getPathOfAlias('getQuestionInformation');
+        if(!$haveGetQuestionInformation) {
+            $this->log("You need getQuestionInformation plugin",'error');
+        }
+        return $haveGetQuestionInformation;
+    }
+    /**
+     * Log message
+     * @return void
+     */
+    public function log($message, $level = \CLogger::LEVEL_TRACE)
+    {
+        if(is_callable("parent::log")) {
+            parent::log($message, $level);
+        }
+        Yii::log("[".get_class($this)."] ".$message, $level, 'vardump');
+    }
 }

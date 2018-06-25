@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 0.12.5
+ * @version 0.12.6
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -298,7 +298,6 @@ class responseListAndManage extends PluginBase {
             $mResponse->setAttribute('token', $aTokens);
         }
 
-        
         Yii::app()->user->setState('pageSize',intval(Yii::app()->request->getParam('pageSize',Yii::app()->user->getState('pageSize',10))));
         /* Add a new */
         $tokenList = null;
@@ -350,7 +349,6 @@ class responseListAndManage extends PluginBase {
                 );
                 //~ $addNew .= '</div></div>';
             }
-
             $addNew .= CHtml::endForm();
         }
         $this->aRenderData['addNew'] = $addNew;
@@ -396,13 +394,14 @@ class responseListAndManage extends PluginBase {
             
         }
 
-        $this->aRenderData['allowAddUSer'] = $isManager || Permission::model()->hasSurveyPermission($surveyId, 'token', 'create');
+        $this->aRenderData['allowAddUser'] = $isManager || Permission::model()->hasSurveyPermission($surveyId, 'token', 'create');
         $this->aRenderData['addUserData'] = array();
         $this->aRenderData['addUSer'] = '';
-        if(false && $this->aRenderData['allowAddUSer']) {
-            $this->aRenderData['addUSer'] = CHtml::htmlButton("<i class='fa fa-user-plus ' aria-hidden='true'></i>".$this->_translate("Create an new user"),
-                    array("type"=>'button','name'=>'adduser','value'=>'new','class'=>'btn btn-default btn-sm addnewuser')
-                );
+        if(false && $this->aRenderData['allowAddUser']) {
+            $this->aRenderData['addUserButton'] = CHtml::htmlButton("<i class='fa fa-user-plus ' aria-hidden='true'></i>".$this->_translate("Create an new user"),
+                array("type"=>'button','name'=>'adduser','value'=>'new','class'=>'btn btn-default btn-sm addnewuser')
+            );
+            $this->aRenderData['addUser']['action'] = Yii::app()->createUrl("plugins/direct", array('plugin' => get_class(),'sid'=>$surveyId,'action'=>'adduser'));
         }
         if(empty($this->aRenderData['lang'])) {
             $this->aRenderData['lang'] = array();

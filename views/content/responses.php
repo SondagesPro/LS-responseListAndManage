@@ -9,7 +9,7 @@ $this->widget('bootstrap.widgets.TbGridView', array(
     //~ 'ajaxUpdate' => false,
     //~ 'htmlOptions'   => array('class'=>'grid-view table-responsive'),
     'ajaxType'      => 'POST',
-    'template'      => "{items}\n<div class='row'><div class='col-sm-4 tools-form'>{$addNew} {$addUSer}</div><div class='col-sm-4'>{pager}</div><div class='col-sm-4'>{summary}</div></div>",
+    'template'      => "{items}\n<div class='row'><div class='col-sm-4 tools-form'>{$addNew} {$addUserButton}</div><div class='col-sm-4'>{pager}</div><div class='col-sm-4'>{summary}</div></div>",
     'summaryText'   => gT('Displaying {start}-{end} of {count} result(s).').' '.
         sprintf(gT('%s rows per page'),
             CHtml::dropDownList(
@@ -27,6 +27,6 @@ $this->widget('bootstrap.widgets.TbGridView', array(
 ));
 
 Yii::app()->getController()->renderPartial("responseListAndManage.views.content.subContent.modalSurvey",array('lang'=>$lang));
-if($allowAddUSer) {
-    Yii::app()->getController()->renderPartial("responseListAndManage.views.content.subContent.modalSurvey",array('lang'=>$lang,'addUserData'=>$addUserData));
+if($allowAddUser) {
+    Yii::app()->getController()->renderPartial("responseListAndManage.views.content.subContent.modalUser",array('lang'=>$lang,'addUser'=>$addUser));
 }

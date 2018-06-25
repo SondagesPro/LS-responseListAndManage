@@ -13,6 +13,9 @@ $(function() {
   });
   $("#responses-grid").css("padding-bottom",$("#responses-grid > .row").height()+"px");
 });
+$(document).on("ajaxUpdated","#responses-grid",function(event){
+    $(this).css('padding-bottom',$(this).children('.row').height()+'px');
+});
 $(document).on("click","a.update",function(event){
     event.preventDefault();
     $("iframe#survey-update").attr("src",$(this).attr("href"));
@@ -26,6 +29,7 @@ $(document).on("click","a.addnew",function(event){
     $("#modal-survey-update").modal('show');
     updateHeightModalbody("#modal-survey-update");
 });
+
 $(document).on("click","button.addnew",function(event){
     event.preventDefault();
     if(!$("#token").val()) {
@@ -42,6 +46,12 @@ $(document).on("click","button.addnew",function(event){
     $("iframe#survey-update").attr("src",href);
     $("#modal-survey-update").modal('show');
     updateHeightModalbody("#modal-survey-update");
+});
+
+$(document).on("click","[name='adduser']",function(event){
+    event.preventDefault();
+    $("#modal-create-token").modal('show');
+    //~ updateHeightModalbody("#modal-survey-update");
 });
 
 function updateHeightModalbody(modal)

@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 0.12.6
+ * @version 0.12.7
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -395,9 +395,9 @@ class responseListAndManage extends PluginBase {
         }
 
         $this->aRenderData['allowAddUser'] = $isManager || Permission::model()->hasSurveyPermission($surveyId, 'token', 'create');
-        $this->aRenderData['addUserData'] = array();
-        $this->aRenderData['addUSer'] = '';
-        if(false && $this->aRenderData['allowAddUser']) {
+        $this->aRenderData['addUser'] = array();
+        $this->aRenderData['addUserButton'] = '';
+        if($this->aRenderData['allowAddUser']) {
             $this->aRenderData['addUserButton'] = CHtml::htmlButton("<i class='fa fa-user-plus ' aria-hidden='true'></i>".$this->_translate("Create an new user"),
                 array("type"=>'button','name'=>'adduser','value'=>'new','class'=>'btn btn-default btn-sm addnewuser')
             );

@@ -40,3 +40,9 @@
     color: inherit;
 }
 .responses-grid{padding-bottom:4em}
+
+/* For wisywig editor */
+.wysihtml5-toolbar .btn{
+
+}
+

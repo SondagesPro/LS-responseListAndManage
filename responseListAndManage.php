@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 0.12.7
+ * @version 0.13.0
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -38,6 +38,8 @@ class responseListAndManage extends PluginBase {
         ),
     );
 
+    protected $mailError;
+    protected $mailDebug;
     //public $iSurveyId;
     
     /**
@@ -169,7 +171,7 @@ class responseListAndManage extends PluginBase {
                     'label'=>$this->_translate('Allow deletion of response'),
                     'options'=>array(
                         'admin'=>gT("Only for administrator"),
-                        'all'=>gT("Yes"),
+                        'all'=>gT("All user in group"),
                     ),
                     'htmlOptions'=>array(
                         'empty'=>gT("No"),
@@ -219,8 +221,12 @@ class responseListAndManage extends PluginBase {
         }
         $this->_setConfig();
         $surveyId = App()->getRequest()->getQuery('sid');
-        if(App()->getRequest()->getQuery('sid') && App()->getRequest()->getQuery('delete') ) {
+        if($surveyId && App()->getRequest()->getQuery('delete') ) {
             $this->_deleteResponseSurvey($surveyId,App()->getRequest()->getQuery('delete'));
+            App()->end(); // Not needed but more clear
+        }
+        if($surveyId && App()->getRequest()->getQuery('action')=='adduser' ) {
+            $this->_addUserForSurvey($surveyId);
             App()->end(); // Not needed but more clear
         }
         if($surveyId) {
@@ -263,6 +269,8 @@ class responseListAndManage extends PluginBase {
             $language = $oSurvey->language;
         }
         App()->setLanguage($language);
+        $this->aRenderData['aSurveyInfo'] = getSurveyInfo($surveyId, $language);
+
         Yii::app()->session['responseListAndManage'] = $surveyId;
         Yii::import(get_class($this).'.models.ResponseExtended');
         $mResponse = ResponseExtended::model($surveyId);
@@ -327,7 +335,7 @@ class responseListAndManage extends PluginBase {
         }
         if($tokenList && count($tokenList) == 1) {
             $addNew = CHtml::link("<i class='fa fa-plus-circle' aria-hidden='true'></i>".$this->_translate("Create an new response"),
-                array("survey/index",'sid'=>$surveyId,'newtest'=>"Y",'srid'=>'new'),
+                array("survey/index",'sid'=>$surveyId,'newtest'=>"Y",'srid'=>'new','token'=>array_values($tokenList)[0]),
                 array('class'=>'btn btn-default btn-sm addnew')
             );
         }
@@ -401,7 +409,7 @@ class responseListAndManage extends PluginBase {
             $this->aRenderData['addUserButton'] = CHtml::htmlButton("<i class='fa fa-user-plus ' aria-hidden='true'></i>".$this->_translate("Create an new user"),
                 array("type"=>'button','name'=>'adduser','value'=>'new','class'=>'btn btn-default btn-sm addnewuser')
             );
-            $this->aRenderData['addUser']['action'] = Yii::app()->createUrl("plugins/direct", array('plugin' => get_class(),'sid'=>$surveyId,'action'=>'adduser'));
+            $this->aRenderData['addUser'] = $this->_addUserDataForm($surveyId,$currentToken);
         }
         if(empty($this->aRenderData['lang'])) {
             $this->aRenderData['lang'] = array();
@@ -431,11 +439,32 @@ class responseListAndManage extends PluginBase {
         if($this->get('allowDelete','Survey',$surveyId,'admin') && Permission::model()->hasSurveyPermission($surveyId, 'response', 'delete')) {
             $allowed = true;
         }
-        if(!$allowed && $this->get('allowDelete','Survey',$surveyId,'admin') == 'all' && $oSurvey->getHasTokenTable()) {
+        if(!$allowed && $this->get('allowDelete','Survey',$surveyId,'admin') && $oSurvey->getHasTokenTable()) {
+            $whoIsAllowed = $this->get('allowDelete','Survey',$surveyId,'admin');
             $token = App()->getRequest()->getParam('token');
+            $tokenAttributeGroup = $this->get('tokenAttributeGroup','Survey',$surveyId,null);
+            $tokenAttributeGroupManager = $this->get('tokenAttributeGroupManager','Survey',$surveyId,null);
+            $tokenGroup = null;
+            $tokenAdmin = null;
+            if($token && $this->_allowTokenLink($oSurvey)) {
+                $oToken =  Token::model($surveyId)->findByToken($token);
+                $tokenGroup = (!empty($tokenAttributeGroup) && !empty($oToken->$tokenAttributeGroup)) ? $oToken->$tokenAttributeGroup : null;
+                $tokenAdmin = (!empty($tokenAttributeGroupManager) && !empty($oToken->$tokenAttributeGroupManager)) ? $oToken->$tokenAttributeGroupManager : null;
+            }
             $oResponse = Response::model($surveyId)->findByPk($srid);
-            if(!empty($oResponse->token) && $oResponse->token == $token) {
+            $responseToken = !(empty($oResponse->token)) ? $oResponse->token : null;
+            if($responseToken == $token) { /* Always allow same token */
                 $allowed = true;
+            }
+            if(!$allowed && !empty($tokenGroup)) {
+                $oResponseToken =  Token::model($surveyId)->findByToken($responseToken);
+                $oResponseTokenGroup = !(empty($oResponseToken->$tokenAttributeGroup)) ? $oResponseToken->$tokenAttributeGroup : null;
+                if($this->get('allowDelete','Survey',$surveyId,'admin') == 'all' && $oResponseTokenGroup  == $tokenGroup) {
+                    $allowed = true;
+                }
+                if($this->get('allowDelete','Survey',$surveyId,'admin') == 'admin' && $oResponseTokenGroup  == $tokenGroup && $tokenAdmin) {
+                    $allowed = true;
+                }
             }
         }
         if(!$allowed) {
@@ -449,6 +478,60 @@ class responseListAndManage extends PluginBase {
             throw new CHttpException(500, CHtml::errorSummary(Response::model($surveyId)));
         }
         return;
+    }
+
+    /**
+     * Adding a token user to a survey
+     */
+    private function _addUserForSurvey($surveyId) {
+        $oSurvey=Survey::model()->findByPk($surveyId);
+        $aResult = array(
+            'status' => null,
+        );
+        if(!$oSurvey) {
+            throw new CHttpException(404, $this->_translate('Invalid survey id.'));
+        }
+        if(!$this->_allowTokenLink($oSurvey)) {
+            throw new CHttpException(403, $this->_translate('Token creation is disable for this survey.'));
+        }
+        $token = App()->getRequest()->getParam('currenttoken');
+        $tokenGroup = null;
+        $tokenAdmin = null;
+        if($token) {
+            $tokenAttributeGroup = $this->get('tokenAttributeGroup','Survey',$surveyId,null);
+            $tokenAttributeGroupManager = $this->get('tokenAttributeGroupManager','Survey',$surveyId,null);
+            $tokenGroup = (!empty($tokenAttributeGroup) && !empty($oToken->$tokenAttributeGroup)) ? $oToken->$tokenAttributeGroup : null;
+            $tokenAdmin = (!empty($tokenAttributeGroupManager) && !empty($oToken->$tokenAttributeGroupManager)) ? $oToken->$tokenAttributeGroupManager : null;
+        }
+        if(!Permission::model()->hasSurveyPermission($surveyId, 'token', 'create')) {
+            if(empty($tokenAdmin)) {
+                throw new CHttpException(403, $this->_translate('No right to create new token in this survey.'));
+            }
+        }
+        $oToken = Token::create($surveyId);
+        $oToken->setAttributes(Yii::app()->getRequest()->getParam('token'));
+        if(!is_null($tokenGroup)) {
+            $oToken->$tokenAttributeGroup = $tokenGroup;
+            $oToken->$tokenAttributeGroupManager = null;
+        }
+        $resultToken = $oToken->save();
+        if(!$resultToken) {
+            $this->_returnJson(array(
+                'status'=>'error',
+                'html' => CHtml::errorSummary($oToken),
+            ));
+        }
+        $oToken->generateToken();
+        $oToken->save();
+        if(!$this->_sendMail($surveyId,$oToken)) {
+            $html = sprintf($this->gT("Token created but unable to send the email, token code is %s"),$oToken->token);
+            $html.= CHtml::tag("pre",array(),$this->mailError);
+            $this->_returnJson(array(
+                'status'=>'warning',
+                'html' => $html,
+            ));
+        }
+        $this->_returnJson(array('status'=>'success'));
     }
     /**
      * Managing list of Surveys
@@ -611,12 +694,173 @@ class responseListAndManage extends PluginBase {
     }
 
     /**
+     * get the data form for adding an user
+     */
+    private function _addUserDataForm($surveyId,$currentToken) {
+        $forcedGroup = null;
+        $tokenAttributeGroup = $this->get('tokenAttributeGroup','Survey',$surveyId);
+        $tokenAttributeGroupManager = $this->get('tokenAttributeGroupManager','Survey',$surveyId);
+        if(!Permission::model()->hasSurveyPermission($surveyId, 'responses', 'create')) {
+            $oToken = Token::model($surveyId)->findByToken($currentToken);
+            $forcedGroup = ($tokenAttributeGroup && !empty($oToken->$tokenAttributeGroup)) ? $oToken->$tokenAttributeGroup : "";
+        }
+        $addUser = array();
+        $addUser['action'] = Yii::app()->createUrl("plugins/direct", array('plugin' => get_class(),'sid'=>$surveyId,'action'=>'adduser'));
+        if(!Permission::model()->hasSurveyPermission($surveyId, 'responses', 'create')) {
+            $addUser['action'] = Yii::app()->createUrl("plugins/direct", array('plugin' => get_class(),'sid'=>$surveyId,'currenttoken'=>$currentToken,'action'=>'adduser'));
+        }
+        $oSurvey = Survey::model()->findByPk($surveyId);
+        $aSurveyInfo = getSurveyInfo($surveyId, Yii::app()->getLanguage());
+        $aAllAttributes = $aRegisterAttributes = $aSurveyInfo['attributedescriptions'];
+        foreach ($aRegisterAttributes as $key=>$aRegisterAttribute) {
+            if ($aRegisterAttribute['show_register'] != 'Y') {
+                unset($aRegisterAttributes[$key]);
+            } else {
+                $aRegisterAttributes[$key]['caption'] = ($aSurveyInfo['attributecaptions'][$key] ? $aSurveyInfo['attributecaptions'][$key] : ($aRegisterAttribute['description'] ? $aRegisterAttribute['description'] : $key));
+            }
+        }
+        unset($aRegisterAttributes[$tokenAttributeGroup]);
+        unset($aRegisterAttributes[$tokenAttributeGroupManager]);
+        $addUser['attributes'] = $aRegisterAttributes;
+        $addUser["attributeGroup"] = null;
+        $addUser["attributeGroupAdmin"] = null;
+        if(is_null($forcedGroup)) {
+            if($tokenAttributeGroup) {
+                $addUser["attributeGroup"] = $aAllAttributes[$tokenAttributeGroup];
+                $addUser["attributeGroup"]['attribute'] = $tokenAttributeGroup;
+                $addUser["attributeGroup"]['caption'] = ($aSurveyInfo['attributecaptions'][$tokenAttributeGroup] ? $aSurveyInfo['attributecaptions'][$tokenAttributeGroup] : ($aAllAttributes[$tokenAttributeGroup]['description'] ? $aAllAttributes[$tokenAttributeGroup]['description'] : $this->gT("Is a group manager")));
+            }
+            if($tokenAttributeGroupManager) {
+                $addUser["tokenAttributeGroupManager"] = $aAllAttributes[$tokenAttributeGroup];
+                $addUser["tokenAttributeGroupManager"]['attribute'] = $tokenAttributeGroup;
+                $addUser["tokenAttributeGroupManager"]['caption'] = ($aSurveyInfo['attributecaptions'][$tokenAttributeGroupManager] ? $aSurveyInfo['attributecaptions'][$tokenAttributeGroupManager] : ($aAllAttributes[$tokenAttributeGroupManager]['description'] ? $aAllAttributes[$tokenAttributeGroupManager]['description'] : $this->gT("Is a group manager")));
+            }
+        }
+        $emailType = 'register';
+        $addUser['email'] = array(
+            'subject' => $aSurveyInfo['email_'.$emailType.'_subj'],
+            'body' => $aSurveyInfo['email_'.$emailType],
+            'help' => sprintf($this->gT("You can use token information like %s or %s, %s was replaced by the url for managing response."),"{FIRSTNAME}","{ATTRIBUTE_1}","{SURVEYURL}"),
+        );
+        
+        return $addUser;
+    }
+    /**
     * Add needed alias and put it in autoloader
     * @return void
     */
     private function _setConfig()
     {
         Yii::setPathOfAlias(get_class($this), dirname(__FILE__));
+    }
+
+    /**
+     * sned the email wit replacing SURVEYURL by the manage url
+     */
+    private function _sendMail($surveyId,$oToken,$sSubject="",$sMessage="")
+    {
+        $emailType = 'register';
+        $sLanguage = App()->language;
+        $aSurveyInfo = getSurveyInfo($surveyId, $sLanguage);
+
+        $aMail = array();
+        $aMail['subject'] = $sSubject;
+        if(trim($sSubject) == "") {
+            $aMail['subject'] = $aSurveyInfo['email_'.$emailType.'_subj'];
+        }
+        $aMail['message'] = $sMessage;
+        if(trim($sMessage) == "") {
+            $aMail['message'] = $aSurveyInfo['email_'.$emailType];
+        }
+        $aReplacementFields = array();
+        $aReplacementFields["{ADMINNAME}"] = $aSurveyInfo['adminname'];
+        $aReplacementFields["{ADMINEMAIL}"] = empty($aSurveyInfo['adminemail']) ? App()->getConfig('siteadminemail') : $aSurveyInfo['adminemail'];
+        $aReplacementFields["{SURVEYNAME}"] = $aSurveyInfo['name'];
+        $aReplacementFields["{SURVEYDESCRIPTION}"] = $aSurveyInfo['description'];
+        $aReplacementFields["{EXPIRY}"] = $aSurveyInfo["expiry"];
+        foreach ($oToken->attributes as $attribute=>$value) {
+            $aReplacementFields["{".strtoupper($surveyId)."}"] = $value;
+        }
+        $sToken = $oToken->token;
+        $useHtmlEmail = (getEmailFormat($surveyId) == 'html');
+        $aMail['subject'] = preg_replace("/{TOKEN:([A-Z0-9_]+)}/", "{"."$1"."}", $aMail['subject']);
+        $aMail['message'] = preg_replace("/{TOKEN:([A-Z0-9_]+)}/", "{"."$1"."}", $aMail['message']);
+        $aReplacementFields["{SURVEYURL}"] = Yii::app()->getController()->createAbsoluteUrl("plugins/direct", array('plugin' => get_class(),'sid'=>$surveyId,'token'=>$sToken));
+        $aReplacementFields["{OPTOUTURL}"] = "";
+        $aReplacementFields["{OPTINURL}"] = "";
+        foreach (array('OPTOUT', 'OPTIN', 'SURVEY') as $key) {
+            $url = $aReplacementFields["{{$key}URL}"];
+            if ($useHtmlEmail) {
+                $aReplacementFields["{{$key}URL}"] = "<a href='{$url}'>".htmlspecialchars($url).'</a>';
+            }
+            $aMail['subject'] = str_replace("@@{$key}URL@@", $url, $aMail['subject']);
+            $aMail['message'] = str_replace("@@{$key}URL@@", $url, $aMail['message']);
+        }
+        // Replace the fields
+        $aMail['subject'] = ReplaceFields($aMail['subject'], $aReplacementFields);
+        $aMail['message'] = ReplaceFields($aMail['message'], $aReplacementFields);
+
+        $sFrom = $aReplacementFields["{ADMINEMAIL}"];
+        if(!empty($aReplacementFields["{ADMINNAME}"])) {
+            $sFrom = $aReplacementFields["{ADMINNAME}"]."<".$aReplacementFields["{ADMINEMAIL}"].">";
+        }
+        
+        $sBounce = getBounceEmail($surveyId);
+        $sTo = $oToken->email;
+        $sitename = Yii::app()->getConfig('sitename');
+        // Plugin event for email handling (Same than admin token but with register type)
+        //~ $event = new PluginEvent('beforeTokenEmail');
+        //~ $event->set('survey', $surveyId);
+        //~ $event->set('type', 'register');
+        //~ $event->set('model', 'register');
+        //~ $event->set('subject', $aMail['subject']);
+        //~ $event->set('to', $sTo);
+        //~ $event->set('body', $aMail['message']);
+        //~ $event->set('from', $sFrom);
+        //~ $event->set('bounce', $sBounce);
+        //~ $event->set('token', $oToken->attributes);
+        //~ App()->getPluginManager()->dispatchEvent($event);
+        //~ $aMail['subject'] = $event->get('subject');
+        //~ $aMail['message'] = $event->get('body');
+        //~ $sTo = $event->get('to');
+        //~ $sFrom = $event->get('from');
+        //~ $sBounce = $event->get('bounce');
+
+        $aRelevantAttachments = array();
+        if (isset($aSurveyInfo['attachments'])) {
+            $aAttachments = unserialize($aSurveyInfo['attachments']);
+            if (!empty($aAttachments)) {
+                if (isset($aAttachments['registration'])) {
+                    LimeExpressionManager::singleton()->loadTokenInformation($aSurveyInfo['sid'], $sToken);
+
+                    foreach ($aAttachments['registration'] as $aAttachment) {
+                        if (LimeExpressionManager::singleton()->ProcessRelevance($aAttachment['relevance'])) {
+                            $aRelevantAttachments[] = $aAttachment['url'];
+                        }
+                    }
+                }
+            }
+        }
+        global $maildebug, $maildebugbody;
+        Yii::app()->setConfig("emailsmtpdebug",2);
+        if (false) { /* for event */
+            $this->sMessage = $event->get('message', $this->sMailMessage); // event can send is own message
+            if ($event->get('error') == null) {
+                $today = dateShift(date("Y-m-d H:i:s"), "Y-m-d H:i", Yii::app()->getConfig('timeadjust'));
+                $oToken->sent = $today;
+                $oToken->save();
+                return true;
+            }
+        } elseif (SendEmailMessage($aMail['message'], $aMail['subject'], $sTo, $sFrom, $sitename, $useHtmlEmail, $sBounce, $aRelevantAttachments)) {
+            $today = dateShift(date("Y-m-d H:i:s"), "Y-m-d H:i", Yii::app()->getConfig('timeadjust'));
+            $oToken->sent = $today;
+            $oToken->save();
+            return true;
+        }
+        /* todo : add error of email */
+        $this->mailError = $maildebug;
+        $this->mailDebug = $sFrom;
+        return false;
     }
 
     /**
@@ -632,12 +876,16 @@ class responseListAndManage extends PluginBase {
             $templateName = Template::templateNameFilter($this->get('template',null,null,Yii::app()->getConfig('defaulttheme')));
             Template::model()->getInstance($templateName, null);
             Template::model()->getInstance($templateName, null)->oOptions->ajaxmode = 'off';
-            Template::model()->getInstance($templateName, null)->oOptions->container = 'off';
+            if(!empty($this->aRenderData['aSurveyInfo'])) {
+                Template::model()->getInstance($templateName, null)->oOptions->container = 'off';
+            }
             //~ tracevar(Template::model()->getInstance($templateName, null));
-            $renderTwig['aSurveyInfo'] = array(
-                'surveyls_title' => App()->getConfig('sitename'),
-                'name' => App()->getConfig('sitename'),
-            );
+            if(empty($this->aRenderData['aSurveyInfo'])) {
+                $renderTwig['aSurveyInfo'] = array(
+                    'surveyls_title' => App()->getConfig('sitename'),
+                    'name' => App()->getConfig('sitename'),
+                );
+            }
             $renderTwig['aSurveyInfo']['active'] = 'Y'; // Didn't show the default warning
             $renderTwig['aSurveyInfo']['content'] = $content;
             $renderTwig['aSurveyInfo']['include_content'] = 'content';
@@ -676,7 +924,7 @@ class responseListAndManage extends PluginBase {
      * @param string $prefix
      * @return array
      */
-    private function _getTokensAttributeList($surveyId,$prefix="") {
+    private function _getTokensAttributeList($surveyId,$prefix="",$register=false) {
         $oSurvey = Survey::model()->findByPk($surveyId);
         $aTokens = array(
             $prefix.'firstname'=>gT("First name"),
@@ -728,6 +976,13 @@ class responseListAndManage extends PluginBase {
             $this->log("You need reloadAnyResponse plugin",'error');
         }
         return $haveGetQuestionInformation && $haveReloadAnyResponse;
+    }
+
+    private function _returnJson($data)
+    {
+        header('Content-Type: application/json');
+        echo json_encode($data);
+        Yii::app()->end();
     }
     /**
      * Log message

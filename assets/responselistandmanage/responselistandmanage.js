@@ -33,7 +33,7 @@ $(document).on("click","a.addnew",function(event){
 $(document).on("click","button.addnew",function(event){
     event.preventDefault();
     if(!$("#token").val()) {
-        $("#token").focus()
+        $("#token").focus();
         // TODO : show a warning error
         return;
     }
@@ -50,10 +50,63 @@ $(document).on("click","button.addnew",function(event){
 
 $(document).on("click","[name='adduser']",function(event){
     event.preventDefault();
+    $(".wysihtml5-toolbar .btn").each(function(){ /* bad hack */
+        $(this).addClass("btn-default btn-xs");
+    });
+    $(".wysihtml5-toolbar .icon-pencil").addClass("fa fa-edit");
     $("#modal-create-token").modal('show');
-    //~ updateHeightModalbody("#modal-survey-update");
 });
-
+$(document).on("click","#modal-create-token button:submit",function(event,data){
+    data = $.extend({source:null}, data);
+    if(data.source == 'control') {
+        return;
+    }
+    event.preventDefault();
+    var $form = $("#modal-create-token form")[0];
+    if (!$form.checkValidity()) {
+        $('#modal-create-token button:submit').trigger('click',{source:'control'});
+        return;
+    }
+    var url = $("#modal-create-token form").attr("action");
+    var params = $("#modal-create-token form").serializeArray();
+    $.ajax({
+       url : url,
+       type : 'GET',
+       data : params,
+       dataType : 'json'
+    })
+    .done(function(data) {
+        data = $.extend({}, {status:'warning'}, data);
+        if(data.status == "success") {
+            $.fn.yiiGridView.update('responses-grid');
+            $("#modal-create-token").modal('hide');
+            $("#modal-create-token form").find("input:text,textarea").each(function(){
+                $(this).val("");
+                if($(this).data("default")) {
+                    $(this).val($(this).data("default"));
+                }
+            });
+            return;
+        }
+        if(data.html) {
+            var className = data.status;
+            if(data.status == 'error') {
+                className = 'danger';
+            }
+            var htmlAlert = "<div class='alert alert-"+className+"'>"+data.html+"</div>";
+            $("#create-token-errors").html(htmlAlert);
+            $('#modal-create-token').animate({
+                scrollTop: $("#create-token-errors").position().top
+            }, 500);
+            return;
+        }
+    })
+    .fail(function( jqXHR, textStatus ) {
+        //console.log([jqXHR,textStatus]);
+        $("#create-token-errors").html(jqXHR.responseText);
+    });
+    
+});
 function updateHeightModalbody(modal)
 {
     var navbarFixed=0;
@@ -104,3 +157,4 @@ $(document).on('click',"button[data-action]:not('disabled')",function(e) {
     //~ }
     $("#survey-update").contents().find("form#limesurvey button:submit[value='"+$(this).data('action')+"']").last().click();
 });
+

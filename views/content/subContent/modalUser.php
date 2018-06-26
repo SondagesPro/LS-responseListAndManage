@@ -22,41 +22,57 @@
                             )
                         );
                     }?>
+                    <?php if($addUser["attributeGroup"]) {
+                        echo CHtml::tag("li",array('class'=>"form-group"),
+                            CHtml::label($addUser["attributeGroup"],'token_'.$addUser["attributeGroup"]["attribute"],array('class'=>"col-sm-4 control-label"))
+                            . CHtml::tag("div",array('class'=>"col-sm-7"),
+                                CHtml::textField('token['.$addUser["attributeGroup"]["attribute"].']','',array('class'=>'form-control','required'=>($addUser["attributeGroup"]['mandatory'] == 'Y')))
+                            )
+                        );
+                    }?>
+                    <?php if($addUser["tokenAttributeGroupManager"]) {
+                        echo CHtml::tag("li",array('class'=>"form-group"),
+                            CHtml::label($addUser["tokenAttributeGroupManager"],'token_'.$addUser["tokenAttributeGroupManager"]["attribute"],array('class'=>"col-sm-4 control-label"))
+                            . CHtml::tag("div",array('class'=>"col-sm-7"),
+                                CHtml::checkBox('token['.$addUser["tokenAttributeGroupManager"]["attribute"].']',false,array('class'=>'form-control'))
+                            )
+                        );
+                    }?>
                 </ul>
             </fieldset>
             <fieldset>
                 <legend>Email to send</legend>
                 <ul class='list-unstyled'>
                     <li class="form-group"><?php
-                        echo CHtml::label(gT("Subject"),'email_subject',array('class'=>"col-sm-4 control-label"))
+                        echo CHtml::label(gT("Subject"),'emailsubject',array('class'=>"col-sm-4 control-label"))
                             . CHtml::tag("div",
                                 array('class'=>"col-sm-7"),
-                                CHtml::textField('email[subject]',$addUser['email']['subject'],array('class'=>'form-control','data-default'=>$addUser['email']['subject']))
+                                CHtml::textField('emailsubject',$addUser['email']['subject'],array('class'=>'form-control','data-default'=>$addUser['email']['subject']))
                             );
                     ?></li>
                     <li class="form-group">
                         <?php
                             $textArea = Yii::app()->getController()->widget('yiiwheels.widgets.html5editor.WhHtml5Editor', array(
-                                'name' => 'email[body]',
-                                //~ 'class'=> 'form-control',
-                                'value' => "Default value",
+                                'name' => 'emailbody',
+                                'value' => $addUser['email']['body'],
                                 'pluginOptions' => array(
-                                    'html' => true,
+                                    'html' => $addUser['email']['html'],
                                     'lists' => false,
                                     'image'=>false,
                                     'link'=>false,
                                 ),
                                 'htmlOptions' => array(
                                     'class'=> 'form-control',
-                                    'data-default'=>"Default value",
+                                    'data-default'=>$addUser['email']['body'],
                                 ),
                             ),true);
-                            $textArea = Chtml::textArea('email[body]',$addUser['email']['body'],array('class'=> 'form-control','data-default'=>$addUser['email']['body']));
-                            echo CHtml::label(gT("Body"),'email_body',array('class'=>"col-sm-4 control-label")) .
+                            //$textArea = Chtml::textArea('email[body]',$addUser['email']['body'],array('class'=> 'form-control','data-default'=>$addUser['email']['body']));
+                            echo CHtml::label(gT("Body"),'emailbody',array('class'=>"col-sm-4 control-label")) .
                             CHtml::tag("div",array('class'=>"col-sm-7"),
-                            $textArea . "<p class='help-block'>Some help about {URL} etc ….</p>");
+                            $textArea . "<p class='help-block'>".$addUser['email']['help']."</p>");
                         ?>
                     </li>
+
                 </ul>
             </fieldset>
             <div class="form-group">

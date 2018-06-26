@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 0.13.0
+ * @version 0.13.1
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -523,7 +523,8 @@ class responseListAndManage extends PluginBase {
         }
         $oToken->generateToken();
         $oToken->save();
-        if(!$this->_sendMail($surveyId,$oToken)) {
+
+        if(!$this->_sendMail($surveyId,$oToken,App()->getRequest()->getParam('emailsubject'),App()->getRequest()->getParam('emailbody'))) {
             $html = sprintf($this->gT("Token created but unable to send the email, token code is %s"),$oToken->token);
             $html.= CHtml::tag("pre",array(),$this->mailError);
             $this->_returnJson(array(
@@ -723,7 +724,7 @@ class responseListAndManage extends PluginBase {
         unset($aRegisterAttributes[$tokenAttributeGroupManager]);
         $addUser['attributes'] = $aRegisterAttributes;
         $addUser["attributeGroup"] = null;
-        $addUser["attributeGroupAdmin"] = null;
+        $addUser["tokenAttributeGroupManager"] = null;
         if(is_null($forcedGroup)) {
             if($tokenAttributeGroup) {
                 $addUser["attributeGroup"] = $aAllAttributes[$tokenAttributeGroup];
@@ -741,6 +742,7 @@ class responseListAndManage extends PluginBase {
             'subject' => $aSurveyInfo['email_'.$emailType.'_subj'],
             'body' => $aSurveyInfo['email_'.$emailType],
             'help' => sprintf($this->gT("You can use token information like %s or %s, %s was replaced by the url for managing response."),"{FIRSTNAME}","{ATTRIBUTE_1}","{SURVEYURL}"),
+            'html' => $oSurvey->htmlemail == "Y",
         );
         
         return $addUser;

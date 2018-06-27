@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 0.13.1
+ * @version 0.13.2
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -318,6 +318,9 @@ class responseListAndManage extends PluginBase {
 
             }
             if($currentToken) {
+                if(is_array($currentToken)) {
+                    $currentToken = array_shift(array_values($currentToken));
+                }
                 $tokenList = array($currentToken=>$currentToken);
                 if($isManager) {
                     $tokenList = CHtml::listData($oTokenGroup,'token',function($oToken){
@@ -330,13 +333,13 @@ class responseListAndManage extends PluginBase {
         if(!$tokenList) {
             $addNew = CHtml::link("<i class='fa fa-plus-circle' aria-hidden='true'></i>".$this->_translate("Create an new response"),
                 array("survey/index",'sid'=>$surveyId,'newtest'=>"Y"),
-                array('class'=>'btn btn-default addnew')
+                array('class'=>'btn btn-default btn-xs  addnew')
             );
         }
         if($tokenList && count($tokenList) == 1) {
             $addNew = CHtml::link("<i class='fa fa-plus-circle' aria-hidden='true'></i>".$this->_translate("Create an new response"),
                 array("survey/index",'sid'=>$surveyId,'newtest'=>"Y",'srid'=>'new','token'=>array_values($tokenList)[0]),
-                array('class'=>'btn btn-default btn-sm addnew')
+                array('class'=>'btn btn-default btn-xs addnew')
             );
         }
         if($tokenList && count($tokenList) > 1) {
@@ -346,14 +349,14 @@ class responseListAndManage extends PluginBase {
             if(count($tokenList) == 1) {
                 $addNew .= CHtml::hiddenField('token',array_shift(array_keys($tokenList)));
                 $addNew .= CHtml::htmlButton("<i class='fa fa-plus-circle' aria-hidden='true'></i>".$this->_translate("Create an new response"),
-                    array("type"=>'submit','name'=>'srid','value'=>'new','class'=>'btn btn-default btn-sm addnew')
+                    array("type"=>'submit','name'=>'srid','value'=>'new','class'=>'btn btn-default btn-xs addnew')
                 );
             }
             if(count($tokenList) > 1) {
                 //~ $addNew .= '<div class="form-group"><div class="input-group">';
-                $addNew .= CHtml::dropDownList('token',$currentToken,$tokenList,array('class'=>'form-control input-sm','empty'=>gT("Please choose...")));
+                $addNew .= CHtml::dropDownList('token',$currentToken,$tokenList,array('class'=>'form-control input-xs','empty'=>gT("Please choose...")));
                 $addNew .= CHtml::htmlButton("<i class='fa fa-plus-circle' aria-hidden='true'></i>".$this->_translate("Create an new response"),
-                    array("type"=>'button','name'=>'srid','value'=>'new','class'=>'btn btn-default btn-sm addnew')
+                    array("type"=>'button','name'=>'srid','value'=>'new','class'=>'btn btn-default btn-xs addnew')
                 );
                 //~ $addNew .= '</div></div>';
             }
@@ -407,7 +410,7 @@ class responseListAndManage extends PluginBase {
         $this->aRenderData['addUserButton'] = '';
         if($this->aRenderData['allowAddUser']) {
             $this->aRenderData['addUserButton'] = CHtml::htmlButton("<i class='fa fa-user-plus ' aria-hidden='true'></i>".$this->_translate("Create an new user"),
-                array("type"=>'button','name'=>'adduser','value'=>'new','class'=>'btn btn-default btn-sm addnewuser')
+                array("type"=>'button','name'=>'adduser','value'=>'new','class'=>'btn btn-default btn-xs addnewuser')
             );
             $this->aRenderData['addUser'] = $this->_addUserDataForm($surveyId,$currentToken);
         }

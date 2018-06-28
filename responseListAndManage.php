@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 0.13.7
+ * @version 0.13.8
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -99,7 +99,18 @@ class responseListAndManage extends PluginBase {
         $iSurveyId = $this->getEvent()->get('survey');
         $oSurvey = Survey::model()->findByPk($iSurveyId);
         App()->getClientScript()->registerScriptFile(Yii::app()->assetManager->publish(dirname(__FILE__) . '/assets/settings/responselistandmanage.js'),CClientScript::POS_BEGIN);
-
+        $stateInfo = "<ul class='list-inline'>";
+        if($this->_allowTokenLink($oSurvey)) {
+            $stateInfo .= CHtml::tag("li",array("class"=>'text-success'),$this->_translate("Token link and creation work in managing."));
+        } else {
+            $stateInfo .= CHtml::tag("li",array("class"=>'text-warning'),$this->_translate("No Token link and creation can be done in managing."));
+        }
+        if($this->_allowMultipleResponse($oSurvey)) {
+            $stateInfo .= CHtml::tag("li",array("class"=>'text-success'),$this->_translate("You can create new response for all token."));
+        } else {
+            $stateInfo .= CHtml::tag("li",array("class"=>'text-warning'),$this->_translate("You can not create new response for all token."));
+        }
+        $stateInfo .= "</ul>";
         $aQuestionList = \getQuestionInformation\helpers\surveyColumnsInformation::getAllQuestionListData($iSurveyId,App()->getLanguage());
         $accesUrl = Yii::app()->createUrl("plugins/direct", array('plugin' => get_class(),'sid'=>$iSurveyId));
         $this->getEvent()->set("surveysettings.{$this->id}", array(
@@ -108,6 +119,10 @@ class responseListAndManage extends PluginBase {
                 'link'=>array(
                     'type'=>'info',
                     'content'=> CHtml::link($this->_translate("Response alternate management"),$accesUrl,array("target"=>'_blank','class'=>'h4 btn btn-block btn-default btn-lg')),
+                ),
+                'infoList' => array(
+                    'type'=>'info',
+                    'content'=> CHtml::tag("div",array('class'=>'well'),$stateInfo),
                 ),
                 'tokenAttributes' => array(
                     'type'=>'select',

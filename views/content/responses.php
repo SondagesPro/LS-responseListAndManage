@@ -17,7 +17,7 @@ $this->widget('bootstrap.widgets.TbGridView', array(
                 Yii::app()->user->getState('pageSize'),
                 Yii::app()->params['pageSizeOptions'],
                 array(
-                    'class'=>'changePageSize form-control',
+                    'class'=>'changePageSize form-control input-sm',
                     'style'=>'display: inline; width: auto',
                     'onchange'=>"$.fn.yiiGridView.update('responses-grid',{ data:{pageSize: $(this).val() }})",
                 ))

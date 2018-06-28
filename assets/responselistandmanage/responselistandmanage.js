@@ -129,7 +129,7 @@ $(document).on("hide.bs.modal","#modal-create-token",function(e) {
             $(this).val($(this).data("default"));
         }
     });
-    $("#emailbody").
+    $("#emailbody").data("wysihtml5").editor.setValue($("#emailbody").data("default"))
     $("#create-token-errors").html("");
 });
 

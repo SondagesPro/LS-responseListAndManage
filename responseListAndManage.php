@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 0.13.3
+ * @version 0.13.5
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -528,8 +528,10 @@ class responseListAndManage extends PluginBase {
         $oToken->save();
 
         if(!$this->_sendMail($surveyId,$oToken,App()->getRequest()->getParam('emailsubject'),App()->getRequest()->getParam('emailbody'))) {
-            $html = sprintf($this->gT("Token created but unable to send the email, token code is %s"),$oToken->token);
-            $html.= CHtml::tag("pre",array(),$this->mailError);
+            $html = sprintf($this->gT("Token created but unable to send the email, token code is %s"),CHtml::tag('code',array(),$oToken->token));
+            $html.= CHtml::tag("hr");
+            $html.= CHtml::tag("strong",array('class'=>'block'),$this->gT('Error return by mailer:'));
+            $html.= CHtml::tag("div",array(),$this->mailError);
             $this->_returnJson(array(
                 'status'=>'warning',
                 'html' => $html,
@@ -743,7 +745,7 @@ class responseListAndManage extends PluginBase {
         $emailType = 'register';
         $addUser['email'] = array(
             'subject' => $aSurveyInfo['email_'.$emailType.'_subj'],
-            'body' => $aSurveyInfo['email_'.$emailType],
+            'body' => str_replace("<br />","<br>",$aSurveyInfo['email_'.$emailType]),
             'help' => sprintf($this->gT("You can use token information like %s or %s, %s was replaced by the url for managing response."),"{FIRSTNAME}","{ATTRIBUTE_1}","{SURVEYURL}"),
             'html' => $oSurvey->htmlemail == "Y",
         );
@@ -847,7 +849,7 @@ class responseListAndManage extends PluginBase {
             }
         }
         global $maildebug, $maildebugbody;
-        Yii::app()->setConfig("emailsmtpdebug",2);
+        Yii::app()->setConfig("emailsmtpdebug",0);
         if (false) { /* for event */
             $this->sMessage = $event->get('message', $this->sMailMessage); // event can send is own message
             if ($event->get('error') == null) {

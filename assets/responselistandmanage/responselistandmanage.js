@@ -80,12 +80,6 @@ $(document).on("click","#modal-create-token button:submit",function(event,data){
         if(data.status == "success") {
             $.fn.yiiGridView.update('responses-grid');
             $("#modal-create-token").modal('hide');
-            $("#modal-create-token form").find("input:text,textarea").each(function(){
-                $(this).val("");
-                if($(this).data("default")) {
-                    $(this).val($(this).data("default"));
-                }
-            });
             return;
         }
         if(data.html) {
@@ -127,6 +121,17 @@ $(document).on("hide.bs.modal","#modal-survey-update",function(e) {
     $.fn.yiiGridView.update('responses-grid');
     $("#survey-update").attr('src',"");
 });
+$(document).on("hide.bs.modal","#modal-create-token",function(e) {
+    console.log($("#modal-create-token form").find("input[type='email'],input:text,textarea"));
+    $("#modal-create-token form").find("input[type='email'],input:text,textarea").each(function(){
+        $(this).val("");
+        if($(this).data("default")) {
+            $(this).val($(this).data("default"));
+        }
+    });
+    $("#emailbody").
+    $("#create-token-errors").html("");
+});
 
 $(document).on('surveyiniframe:on',function(event,data) {
   $("#modal-survey-update .modal-footer button[data-action]").each(function(){
@@ -158,3 +163,45 @@ $(document).on('click',"button[data-action]:not('disabled')",function(e) {
     $("#survey-update").contents().find("form#limesurvey button:submit[value='"+$(this).data('action')+"']").last().click();
 });
 
+/* html(parser rules */
+var wysihtml5ParserRules = {
+  tags: {
+    strong: {},
+    b:      {
+        rename_tag: "strong"
+    },
+    em:     {},
+    i:      {
+        rename_tag: "em"
+    },
+    br:     {},
+    p:      {},
+    div:    {},
+    span:   {},
+    ul:     {},
+    ol:     {},
+    li:     {},
+    a:      {
+      set_attributes: {
+        target: "_blank"
+      },
+      check_attributes: {
+        href:   "url"
+      }
+    },
+    img: {
+        check_attributes: {
+            src: "url",
+            width : "numbers",
+            alt : "alt",
+            height : "numbers"
+        },
+    },
+    link: {
+        remove: 1
+    },
+    script: {
+        remove: 1
+    }
+  }
+};

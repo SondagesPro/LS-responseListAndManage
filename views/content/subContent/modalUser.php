@@ -11,30 +11,36 @@
             <fieldset>
                 <legend>User attribute</legend>
                 <ul class='list-unstyled'>
-                    <li class="form-group"><?php echo CHtml::label(gT("First name"),'token_firstname',array('class'=>"col-sm-4 control-label")) . CHtml::tag("div",array('class'=>"col-sm-7"),CHtml::textField('token[firstname]','',array('class'=>'form-control'))); ?></li>
-                    <li class="form-group"><?php echo CHtml::label(gT("Last name"),'token_lastname',array('class'=>"col-sm-4 control-label")) . CHtml::tag("div",array('class'=>"col-sm-7"),CHtml::textField('token[lastname]','',array('class'=>'form-control'))); ?></li>
-                    <li class="form-group"><?php echo CHtml::label(gT("Email"),'token_email',array('class'=>"col-sm-4 control-label")) . CHtml::tag("div",array('class'=>"col-sm-7"),CHtml::emailField('token[email]','',array('class'=>'form-control'))); ?></li>
+                    <li class="form-group"><?php echo CHtml::label(gT("First name"),'token_firstname',array('class'=>"col-sm-4 control-label")) . CHtml::tag("div",array('class'=>"col-sm-7"),CHtml::textField('token[firstname]','',array('class'=>'form-control','data-default'=>''))); ?></li>
+                    <li class="form-group"><?php echo CHtml::label(gT("Last name"),'token_lastname',array('class'=>"col-sm-4 control-label")) . CHtml::tag("div",array('class'=>"col-sm-7"),CHtml::textField('token[lastname]','',array('class'=>'form-control','data-default'=>''))); ?></li>
+                    <li class="form-group"><?php echo CHtml::label(gT("Email"),'token_email',array('class'=>"col-sm-4 control-label")) . CHtml::tag("div",array('class'=>"col-sm-7"),CHtml::emailField('token[email]','',array('class'=>'form-control','data-default'=>'','required'=>'required'))); ?></li>
                     <?php foreach($addUser['attributes'] as $attribute=>$aAttribute) {
                         echo CHtml::tag("li",array('class'=>"form-group"),
                             CHtml::label($aAttribute['caption'],'token_'.$attribute,array('class'=>"col-sm-4 control-label"))
                             . CHtml::tag("div",array('class'=>"col-sm-7"),
-                                CHtml::textField('token['.$attribute.']','',array('class'=>'form-control','required'=>($aAttribute['mandatory'] == 'Y')))
+                                CHtml::textField('token['.$attribute.']','',array('class'=>'form-control','data-default'=>'','required'=>($aAttribute['mandatory'] == 'Y')))
                             )
                         );
                     }?>
                     <?php if($addUser["attributeGroup"]) {
+                        $label = CHtml::label($addUser["attributeGroup"]["caption"],'token_'.$addUser["attributeGroup"]["attribute"],array('class'=>"col-sm-4 control-label"));
+                        $field = CHtml::textField('token['.$addUser["attributeGroup"]["attribute"].']','',array('class'=>'form-control','data-default'=>'','required'=>($addUser["attributeGroup"]['mandatory'] == 'Y')));
+                        echo CHtml::tag("hr");
                         echo CHtml::tag("li",array('class'=>"form-group"),
-                            CHtml::label($addUser["attributeGroup"],'token_'.$addUser["attributeGroup"]["attribute"],array('class'=>"col-sm-4 control-label"))
+                            $label
                             . CHtml::tag("div",array('class'=>"col-sm-7"),
-                                CHtml::textField('token['.$addUser["attributeGroup"]["attribute"].']','',array('class'=>'form-control','required'=>($addUser["attributeGroup"]['mandatory'] == 'Y')))
+                                $field
                             )
                         );
                     }?>
                     <?php if($addUser["tokenAttributeGroupManager"]) {
+                        //$field = CHtml::checkBox('token['.$addUser["tokenAttributeGroupManager"]["attribute"].']',false,array('class'=>''));
+                        $label = CHtml::label($addUser["tokenAttributeGroupManager"]["caption"],'token_',array('class'=>"col-sm-4 control-label"));
+                        $field = CHtml::textField('token['.$addUser["tokenAttributeGroupManager"]["attribute"].']','',array('class'=>'form-control','data-default'=>''));
                         echo CHtml::tag("li",array('class'=>"form-group"),
-                            CHtml::label($addUser["tokenAttributeGroupManager"],'token_'.$addUser["tokenAttributeGroupManager"]["attribute"],array('class'=>"col-sm-4 control-label"))
+                            $label
                             . CHtml::tag("div",array('class'=>"col-sm-7"),
-                                CHtml::checkBox('token['.$addUser["tokenAttributeGroupManager"]["attribute"].']',false,array('class'=>'form-control'))
+                                $field
                             )
                         );
                     }?>
@@ -60,6 +66,9 @@
                                     'lists' => false,
                                     'image'=>false,
                                     'link'=>false,
+                                    'useLineBreaks'=>false,// False broke reading …
+                                    'autoLink'=>true,
+                                    'parserRules'=>'js:wysihtml5ParserRules'
                                 ),
                                 'htmlOptions' => array(
                                     'class'=> 'form-control',

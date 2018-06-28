@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 0.13.5
+ * @version 0.13.7
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -107,7 +107,7 @@ class responseListAndManage extends PluginBase {
             'settings' => array(
                 'link'=>array(
                     'type'=>'info',
-                    'content'=> CHtml::link($this->_translate("Response alternate management"),$accesUrl),
+                    'content'=> CHtml::link($this->_translate("Response alternate management"),$accesUrl,array("target"=>'_blank','class'=>'h4 btn btn-block btn-default btn-lg')),
                 ),
                 'tokenAttributes' => array(
                     'type'=>'select',
@@ -288,13 +288,13 @@ class responseListAndManage extends PluginBase {
         }
         /* Access with token */
         $isManager = false;
-        $currentToken = App()->getRequest()->getParam('token');
+        $currentToken = strval(App()->getRequest()->getParam('token'));
         $tokenAttributeGroup = $this->get('tokenAttributeGroup','Survey',$surveyId);
         $tokenAttributeGroupManager = $this->get('tokenAttributeGroupManager','Survey',$surveyId);
         $tokenAttributeGroupWhole = $this->get('tokenAttributeGroupWhole','Survey',$surveyId,1);
         if($currentToken) {
-            $aTokens = (array) App()->getRequest()->getParam('token');
-            $oToken = Token::model($surveyId)->findByToken(App()->getRequest()->getParam('token'));
+            $aTokens = (array) $currentToken;
+            $oToken = Token::model($surveyId)->findByToken($currentToken);
             $tokenGroup = ($tokenAttributeGroup && !empty($oToken->$tokenAttributeGroup)) ? $oToken->$tokenAttributeGroup : null;
             if($tokenGroup) {
                 $isManager = !empty($oToken->$tokenAttributeGroupManager);
@@ -309,13 +309,17 @@ class responseListAndManage extends PluginBase {
         Yii::app()->user->setState('pageSize',intval(Yii::app()->request->getParam('pageSize',Yii::app()->user->getState('pageSize',10))));
         /* Add a new */
         $tokenList = null;
-        if($oSurvey->getHasTokensTable()) {
+        if($this->_allowTokenLink($oSurvey)) {
             if(Permission::model()->hasSurveyPermission($surveyId, 'responses', 'create')) {
-                $tokenList = CHtml::listData(Token::model($surveyId)->findAll(),'token',function($oToken){
+                if($this->_allowMultipleResponse($oSurvey)) {
+                    $oToken = Token::model($surveyId)->findAll("token is not null and token <> ''");
+                } else {
+                    $oToken = Token::model($surveyId)->with('responses')->findAll("t.token is not null and t.token <> '' and responses.id is null");
+                }
+                $tokenList = CHtml::listData($oToken,'token',function($oToken){
                     return CHtml::encode(trim($oToken->firstname.' '.$oToken->lastname.' ('.$oToken->token.')'));
                 },
                 $tokenAttributeGroup);
-
             }
             if($currentToken) {
                 if(is_array($currentToken)) {
@@ -328,6 +332,11 @@ class responseListAndManage extends PluginBase {
                     },
                     $tokenAttributeGroup);
                 }
+            }
+            if(!empty($tokenList) && !empty($tokenList[''])) {
+                $emptyTokenGroup = $tokenList[''];
+                unset($tokenList['']);
+                $tokenList = array_merge($emptyTokenGroup,$tokenList);
             }
         }
         if(!$tokenList) {
@@ -369,7 +378,6 @@ class responseListAndManage extends PluginBase {
         if($this->_allowTokenLink($oSurvey)) {
             $updateButtonUrl = 'App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"token"=>$data["token"],"srid"=>$data["id"],"newtest"=>"Y"))';
         }
-        
         $deleteButtonUrl = 'App()->createUrl("plugins/direct",array("plugin"=>"'.get_class().'","sid"=>'.$surveyId.',"delete"=>$data["id"]))';
         if($this->_allowTokenLink($oSurvey) && !$oSurvey->getIsAnonymized()) {
             $deleteButtonUrl = 'App()->createUrl("plugins/direct",array("plugin"=>"'.get_class().'","sid"=>'.$surveyId.',"token"=>$data["token"],"delete"=>$data["id"]))';
@@ -405,7 +413,7 @@ class responseListAndManage extends PluginBase {
             
         }
 
-        $this->aRenderData['allowAddUser'] = $isManager || Permission::model()->hasSurveyPermission($surveyId, 'token', 'create');
+        $this->aRenderData['allowAddUser'] = $this->_allowTokenLink($oSurvey) && ($isManager || Permission::model()->hasSurveyPermission($surveyId, 'token', 'create'));
         $this->aRenderData['addUser'] = array();
         $this->aRenderData['addUserButton'] = '';
         if($this->aRenderData['allowAddUser']) {
@@ -437,14 +445,23 @@ class responseListAndManage extends PluginBase {
     private function _deleteResponseSurvey($surveyId,$srid)
     {
         $oSurvey = Survey::model()->findByPk($surveyId);
+        if(!$oSurvey) {
+            throw new CHttpException(404, $this->_translate("Invalid survey id."));
+        }
+        $oResponse = Response::model($surveyId)->findByPk($srid);
+        if(!$oResponse) {
+            throw new CHttpException(404, $this->_translate("Invalid response id."));
+        }
         //echo "Work in progress";
         $allowed = false;
+        /* Is an admin */
         if($this->get('allowDelete','Survey',$surveyId,'admin') && Permission::model()->hasSurveyPermission($surveyId, 'response', 'delete')) {
             $allowed = true;
         }
+        /* Is not an admin */
         if(!$allowed && $this->get('allowDelete','Survey',$surveyId,'admin') && $oSurvey->getHasTokenTable()) {
             $whoIsAllowed = $this->get('allowDelete','Survey',$surveyId,'admin');
-            $token = App()->getRequest()->getParam('token');
+            $token = App()->getRequest()->getQuery('token');
             $tokenAttributeGroup = $this->get('tokenAttributeGroup','Survey',$surveyId,null);
             $tokenAttributeGroupManager = $this->get('tokenAttributeGroupManager','Survey',$surveyId,null);
             $tokenGroup = null;
@@ -472,10 +489,6 @@ class responseListAndManage extends PluginBase {
         }
         if(!$allowed) {
             throw new CHttpException(401, $this->_translate('No right to delete this reponse.'));
-        }
-        $oResponse = Response::model($surveyId)->findByPk($srid);
-        if(!$oResponse) {
-            throw new CHttpException(401, $this->_translate("Invalid response id."));
         }
         if(!Response::model($surveyId)->deleteByPk($srid)) {
             throw new CHttpException(500, CHtml::errorSummary(Response::model($surveyId)));
@@ -512,10 +525,10 @@ class responseListAndManage extends PluginBase {
             }
         }
         $oToken = Token::create($surveyId);
-        $oToken->setAttributes(Yii::app()->getRequest()->getParam('token'));
+        $oToken->setAttributes(Yii::app()->getRequest()->getParam('tokenattribute'));
         if(!is_null($tokenGroup)) {
             $oToken->$tokenAttributeGroup = $tokenGroup;
-            $oToken->$tokenAttributeGroupManager = null;
+            $oToken->$tokenAttributeGroupManager = '';
         }
         $resultToken = $oToken->save();
         if(!$resultToken) {
@@ -946,13 +959,22 @@ class responseListAndManage extends PluginBase {
     }
 
     /**
-     * Find is survey allow token link
+     * Find if survey allow token link
      * @param \Survey
      * @return boolean
      */
     private function _allowTokenLink($oSurvey)
     {
         return $oSurvey->getHasTokensTable() && $oSurvey->anonymized != "Y";
+    }
+    /**
+     * Find if survey allow multiple response for token
+     * @param \Survey
+     * @return boolean
+     */
+    private function _allowMultipleResponse($oSurvey)
+    {
+        return $this->_allowTokenLink($oSurvey) && $oSurvey->alloweditaftercompletion == "Y" && $oSurvey->tokenanswerspersistence != "Y";
     }
     /**
      * Translation : use another function name for poedit, and set escape mode to needed one

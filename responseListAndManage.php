@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 0.13.8
+ * @version 0.13.10
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -903,7 +903,9 @@ class responseListAndManage extends PluginBase {
      */
     private function _render($fileRender)
     {
-        if(floatval(Yii::app()->getConfig('versionnumber')> 3.10)) {
+        $versionNumber = Yii::app()->getConfig('versionnumber');
+        $aVersion = array(0,0,0)+explode(".",$versionNumber);
+        if(($aVersion[0]>=3 && $aVersion[0]>=10)) {
             $this->aRenderData['pluginName'] = $pluginName = get_class($this);
             $this->aRenderData['plugin'] = $this;
             $this->aRenderData['username'] = Permission::getUserId() ? Yii::app()->user->getName() : null;
@@ -938,9 +940,8 @@ class responseListAndManage extends PluginBase {
         $this->aRenderData['oTemplate'] = $oTemplate  = Template::model()->getInstance(App()->getConfig('defaulttheme'));
         Yii::app()->clientScript->registerPackage($oTemplate->sPackageName, LSYii_ClientScript::POS_BEGIN);
         
-        
         $this->aRenderData['title'] = isset($this->aRenderData['title']) ? $this->aRenderData['title'] : App()->getConfig('sitename');
-        
+        $pluginName = get_class($this);
         Yii::setPathOfAlias($pluginName, dirname(__FILE__));
         //$oEvent=$this->event;
         Yii::app()->controller->layout='bare'; // bare don't have any HTML
@@ -948,6 +949,8 @@ class responseListAndManage extends PluginBase {
         $this->aRenderData['subview']="content.{$fileRender}";
         $this->aRenderData['showAdminSurvey'] = false; // @todo Permission::model()->hasSurveyPermission($this->iSurveyId,'surveysettings','update');
         $this->aRenderData['showAdmin'] = false; // What can be the best solution ?
+        $this->aRenderData['pluginName'] = $pluginName;
+        $this->aRenderData['username'] = false;
         
         Yii::app()->controller->render($pluginName.".views.layout",$this->aRenderData);
         Yii::app()->end();

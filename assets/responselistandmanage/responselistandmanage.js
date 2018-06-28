@@ -122,14 +122,15 @@ $(document).on("hide.bs.modal","#modal-survey-update",function(e) {
     $("#survey-update").attr('src',"");
 });
 $(document).on("hide.bs.modal","#modal-create-token",function(e) {
-    console.log($("#modal-create-token form").find("input[type='email'],input:text,textarea"));
     $("#modal-create-token form").find("input[type='email'],input:text,textarea").each(function(){
         $(this).val("");
         if($(this).data("default")) {
             $(this).val($(this).data("default"));
         }
     });
-    $("#emailbody").data("wysihtml5").editor.setValue($("#emailbody").data("default"))
+    if($("#emailbody").data("wysihtml5")) {
+        $("#emailbody").data("wysihtml5").editor.setValue($("#emailbody").data("default"));
+    }
     $("#create-token-errors").html("");
 });
 

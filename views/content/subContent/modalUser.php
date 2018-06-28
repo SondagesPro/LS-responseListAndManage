@@ -58,24 +58,26 @@
                     ?></li>
                     <li class="form-group">
                         <?php
-                            $textArea = Yii::app()->getController()->widget('yiiwheels.widgets.html5editor.WhHtml5Editor', array(
-                                'name' => 'emailbody',
-                                'value' => $addUser['email']['body'],
-                                'pluginOptions' => array(
-                                    'html' => $addUser['email']['html'],
-                                    'lists' => false,
-                                    'image'=>false,
-                                    'link'=>false,
-                                    'useLineBreaks'=>false,// False broke reading …
-                                    'autoLink'=>true,
-                                    'parserRules'=>'js:wysihtml5ParserRules'
-                                ),
-                                'htmlOptions' => array(
-                                    'class'=> 'form-control',
-                                    'data-default'=>$addUser['email']['body'],
-                                ),
-                            ),true);
-                            //$textArea = Chtml::textArea('email[body]',$addUser['email']['body'],array('class'=> 'form-control','data-default'=>$addUser['email']['body']));
+                            $textArea = Chtml::textArea('email[body]',$addUser['email']['body'],array('rows'=>20,'class'=> 'form-control','data-default'=>$addUser['email']['body']));
+                            if($addUser['email']['html']) {
+                                $textArea = Yii::app()->getController()->widget('yiiwheels.widgets.html5editor.WhHtml5Editor', array(
+                                    'name' => 'emailbody',
+                                    'value' => $addUser['email']['body'],
+                                    'pluginOptions' => array(
+                                        'html' => true,
+                                        'lists' => false,
+                                        'image'=>false,
+                                        'link'=>false,
+                                        'useLineBreaks'=>false,// False broke reading …
+                                        'autoLink'=>true,
+                                        'parserRules'=>'js:wysihtml5ParserRules'
+                                    ),
+                                    'htmlOptions' => array(
+                                        'class'=> 'form-control',
+                                        'data-default'=>$addUser['email']['body'],
+                                    ),
+                                ),true);
+                            }
                             echo CHtml::label(gT("Body"),'emailbody',array('class'=>"col-sm-4 control-label")) .
                             CHtml::tag("div",array('class'=>"col-sm-7"),
                             $textArea . "<p class='help-block'>".$addUser['email']['help']."</p>");

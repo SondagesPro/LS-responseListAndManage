@@ -101,12 +101,12 @@ class responseListAndManage extends PluginBase {
         App()->getClientScript()->registerScriptFile(Yii::app()->assetManager->publish(dirname(__FILE__) . '/assets/settings/responselistandmanage.js'),CClientScript::POS_BEGIN);
         $stateInfo = "<ul class='list-inline'>";
         if($this->_allowTokenLink($oSurvey)) {
-            $stateInfo .= CHtml::tag("li",array("class"=>'text-success'),$this->_translate("Token link and creation work in the manager. User with token can edit their repopnse and manager can create new token."));
+            $stateInfo .= CHtml::tag("li",array("class"=>'text-success'),$this->_translate("Token link and creation work in managing."));
         } else {
             $stateInfo .= CHtml::tag("li",array("class"=>'text-warning'),$this->_translate("No Token link and creation can be done in managing. Survey is anonymous or token table didn‘t exist."));
         }
         if($this->_allowMultipleResponse($oSurvey)) {
-            $stateInfo .= CHtml::tag("li",array("class"=>'text-success'),$this->_translate("You can create new response for all token. Same for user with a token."));
+            $stateInfo .= CHtml::tag("li",array("class"=>'text-success'),$this->_translate("You can create new response for all token."));
         } else {
             $stateInfo .= CHtml::tag("li",array("class"=>'text-warning'),$this->_translate("You can not create new response for all token. Only one response is available for each token (see participation setting panel)."));
         }

@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 0.13.10
+ * @version 0.14.0
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -50,8 +50,8 @@ class responseListAndManage extends PluginBase {
     public function init() {
         $this->subscribe('newDirectRequest');
         $this->subscribe('beforeSurveySettings');
-        $this->subscribe('newSurveySettings');
-
+        //~ $this->subscribe('newSurveySettings');
+        $this->subscribe('beforeToolsMenuRender');
         /* API dependant */
         $this->subscribe('getPluginTwigPath');
 
@@ -97,8 +97,109 @@ class responseListAndManage extends PluginBase {
         /* @Todo move this to own page */
         $oEvent = $this->getEvent();
         $iSurveyId = $this->getEvent()->get('survey');
-        $oSurvey = Survey::model()->findByPk($iSurveyId);
-        App()->getClientScript()->registerScriptFile(Yii::app()->assetManager->publish(dirname(__FILE__) . '/assets/settings/responselistandmanage.js'),CClientScript::POS_BEGIN);
+        $accesUrl = Yii::app()->createUrl("plugins/direct", array('plugin' => get_class(),'sid'=>$iSurveyId));
+        $managementUrl = Yii::app()->createUrl('admin/pluginhelper',
+            array(
+                'sa' => 'sidebody',
+                'plugin' => get_class($this),
+                'method' => 'actionSettings',
+                'surveyId' => $iSurveyId
+            )
+        );
+
+        $this->getEvent()->set("surveysettings.{$this->id}", array(
+            'name' => get_class($this),
+            'settings' => array(
+                'link'=>array(
+                    'type'=>'info',
+                    'content'=> CHtml::link($this->_translate("Access to response alternate management"),$accesUrl,array("target"=>'_blank','class'=>'btn btn-block btn-default btn-lg')),
+                ),
+                'linkManagement'=>array(
+                    'type'=>'info',
+                    'content'=> CHtml::link($this->_translate("Managing response alternate management"),$accesUrl,array("target"=>'_blank','class'=>'btn btn-block btn-default btn-lg')),
+                ),
+            )
+        ));
+    }
+
+    /**
+     * see beforeToolsMenuRender event
+     *
+     * @return void
+     */
+    public function beforeToolsMenuRender()
+    {
+        $event = $this->getEvent();
+        $surveyId = $event->get('surveyId');
+        $aMenuItem = array(
+            'label' => $this->_translate('Managing Response management'),
+            'iconClass' => 'fa fa-list-alt ',
+            'href' => Yii::app()->createUrl(
+                'admin/pluginhelper',
+                array(
+                    'sa' => 'sidebody',
+                    'plugin' => get_class($this),
+                    'method' => 'actionSettings',
+                    'surveyId' => $surveyId
+                )
+            ),
+        );
+        if (class_exists("\LimeSurvey\Menu\MenuItem")) {
+            $menuItem = new \LimeSurvey\Menu\MenuItem($aMenuItem);
+        } else {
+            $menuItem = new \ls\menu\MenuItem($aMenuItem);
+        }
+        $event->append('menuItems', array($menuItem));
+
+        $aMenuItem = array(
+            'label' => $this->_translate('Response management'),
+            'iconClass' => 'fa fa-list-alt ',
+            'href' => Yii::app()->createUrl(
+                'plugins/direct',
+                array(
+                    'plugin' => get_class($this),
+                    'sid' => $surveyId
+                )
+            ),
+        );
+        if (class_exists("\LimeSurvey\Menu\MenuItem")) {
+            $menuItem = new \LimeSurvey\Menu\MenuItem($aMenuItem);
+        } else {
+            $menuItem = new \ls\menu\MenuItem($aMenuItem);
+        }
+
+        $event->append('menuItems', array($menuItem));
+    }
+
+    /**
+     * Main function to replace surveySetting
+     * @param int $surveyId Survey id
+     *
+     * @return string
+     */
+    public function actionSettings($surveyId)
+    {
+        $oSurvey=Survey::model()->findByPk($surveyId);
+        if(!$oSurvey) {
+            throw new CHttpException(404,gT("This survey does not seem to exist."));
+        }
+        if(!Permission::model()->hasSurveyPermission($surveyId,'surveysettings','update')){
+            throw new CHttpException(403);
+        }
+        if(App()->getRequest()->getPost('save'.get_class($this))) {
+            // Adding save part
+            $settings = array(
+                'tokenAttributes','surveyAttributes',
+                'tokenAttributeGroup', 'tokenAttributeGroupManager', 'tokenAttributeGroupWhole',
+                'allowSee','allowEdit','allowDelete', 'allowAdd'
+            );
+            foreach($settings as $setting) {
+                $this->set($setting, App()->getRequest()->getPost($setting), 'Survey', $surveyId);
+            }
+            if(App()->getRequest()->getPost('save'.get_class($this)=='redirect')) {
+                Yii::app()->getController()->redirect(Yii::app()->getController()->createUrl('admin/survey',array('sa'=>'view','surveyid'=>$surveyId)));
+            }
+        }
         $stateInfo = "<ul class='list-inline'>";
         if($this->_allowTokenLink($oSurvey)) {
             $stateInfo .= CHtml::tag("li",array("class"=>'text-success'),$this->_translate("Token link and creation work in managing."));
@@ -111,106 +212,142 @@ class responseListAndManage extends PluginBase {
             $stateInfo .= CHtml::tag("li",array("class"=>'text-warning'),$this->_translate("You can not create new response for all token. Only one response is available for each token (see participation setting panel)."));
         }
         $stateInfo .= "</ul>";
-        $aQuestionList = \getQuestionInformation\helpers\surveyColumnsInformation::getAllQuestionListData($iSurveyId,App()->getLanguage());
-        $accesUrl = Yii::app()->createUrl("plugins/direct", array('plugin' => get_class(),'sid'=>$iSurveyId));
-        $this->getEvent()->set("surveysettings.{$this->id}", array(
-            'name' => get_class($this),
-            'settings' => array(
-                'link'=>array(
-                    'type'=>'info',
-                    'content'=> CHtml::link($this->_translate("Response alternate management"),$accesUrl,array("target"=>'_blank','class'=>'h4 btn btn-block btn-default btn-lg')),
+        $aQuestionList = \getQuestionInformation\helpers\surveyColumnsInformation::getAllQuestionListData($surveyId,App()->getLanguage());
+        $accesUrl = Yii::app()->createUrl("plugins/direct", array('plugin' => get_class(),'sid'=>$surveyId));
+        $aSettings[$this->_translate('Response Management')] = array(
+            'link'=>array(
+                'type'=>'info',
+                'content'=> CHtml::link($this->_translate("Link to response alternate management"),$accesUrl,array("target"=>'_blank','class'=>'btn btn-block btn-default btn-lg')),
+            ),
+            'infoList' => array(
+                'type'=>'info',
+                'content'=> CHtml::tag("div",array('class'=>'well'),$stateInfo),
+            ),
+        );
+        $aSettings[$this->_translate('Response Management table')] = array(
+            'tokenAttributes' => array(
+                'type'=>'select',
+                'label'=>$this->_translate('Token attributes to show in management'),
+                'options'=>$this->_getTokensAttributeList($surveyId,'tokens.'),
+                'htmlOptions'=>array(
+                    'multiple'=>true,
+                    'placeholder'=>gT("All"),
+                    'unselectValue'=>"",
                 ),
-                'infoList' => array(
-                    'type'=>'info',
-                    'content'=> CHtml::tag("div",array('class'=>'well'),$stateInfo),
+                'selectOptions'=>array(
+                    'placeholder'=>gT("All"),
                 ),
-                'tokenAttributes' => array(
-                    'type'=>'select',
-                    'label'=>$this->_translate('Token attributes to show in management'),
-                    'options'=>$this->_getTokensAttributeList($iSurveyId,'tokens.'),
-                    'htmlOptions'=>array(
-                        'multiple'=>true,
-                        'placeholder'=>gT("All"),
-                        'unselectValue'=>"",
-                    ),
-                    'selectOptions'=>array(
-                        'placeholder'=>gT("All"),
-                    ),
-                    'current'=>$this->get('tokenAttributes','Survey',$iSurveyId)
+                'current'=>$this->get('tokenAttributes','Survey',$surveyId)
+            ),
+            'surveyAttributes' => array(
+                'type'=>'select',
+                'label'=>$this->_translate('Survey columns to be show in management'),
+                'options'=>$aQuestionList['data'],
+                'htmlOptions'=>array(
+                    'multiple'=>true,
+                    'placeholder'=>gT("All"),
+                    'unselectValue'=>"",
+                    'options'=>$aQuestionList['options'], // In dropdon, but not in select2
                 ),
-                'surveyAttributes' => array(
-                    'type'=>'select',
-                    'label'=>$this->_translate('Survey columns to be show in management'),
-                    'options'=>$aQuestionList['data'],
-                    'htmlOptions'=>array(
-                        'multiple'=>true,
-                        'placeholder'=>gT("All"),
-                        'unselectValue'=>"",
-                        'options'=>$aQuestionList['options'], // In dropdon, but not in select2
-                    ),
-                    'selectOptions'=>array(
-                        'placeholder'=>gT("All"),
-                        //~ 'templateResult'=>"formatQuestion",
-                    ),
-                    'controlOptions' => array(
-                        'class'=>'select2-withover ',
-                    ),
-                    'current'=>$this->get('surveyAttributes','Survey',$iSurveyId)
+                'selectOptions'=>array(
+                    'placeholder'=>gT("All"),
+                    //~ 'templateResult'=>"formatQuestion",
                 ),
-                'tokenAttributeGroup' => array(
-                    'type'=>'select',
-                    'label'=>$this->_translate('Token attributes for group'),
-                    'options'=>$this->_getTokensAttributeList($iSurveyId,''),
-                    'htmlOptions'=>array(
-                        'empty'=>$this->_translate("None"),
-                    ),
-                    'current'=>$this->get('tokenAttributeGroup','Survey',$iSurveyId)
+                'controlOptions' => array(
+                    'class'=>'select2-withover ',
                 ),
-                'tokenAttributeGroupManager' => array(
-                    'type'=>'select',
-                    'label'=>$this->_translate('Token attributes for group manager'),
-                    'options'=>$this->_getTokensAttributeList($iSurveyId,''),
-                    'htmlOptions'=>array(
-                        'empty'=>$this->_translate("None"),
-                    ),
-                    'current'=>$this->get('tokenAttributeGroupManager','Survey',$iSurveyId)
+                'current'=>$this->get('surveyAttributes','Survey',$surveyId)
+            ),
+        );
+        $aSettings[$this->_translate('Response Management token attribute usage')] = array(
+            'tokenAttributeGroup' => array(
+                'type'=>'select',
+                'label'=>$this->_translate('Token attributes for group'),
+                'options'=>$this->_getTokensAttributeList($surveyId,''),
+                'htmlOptions'=>array(
+                    'empty'=>$this->_translate("None"),
                 ),
-                'tokenAttributeGroupWhole' => array(
-                    'type'=>'boolean',
-                    'label'=>$this->_translate('User of group can see and manage all group response'),
-                    'help'=>$this->_translate('Else only group manager can manage other group response.'),
-                    'current'=>$this->get('tokenAttributeGroupWhole','Survey',$iSurveyId,1)
+                'current'=>$this->get('tokenAttributeGroup','Survey',$surveyId)
+            ),
+            'tokenAttributeGroupManager' => array(
+                'type'=>'select',
+                'label'=>$this->_translate('Token attributes for group manager'),
+                'options'=>$this->_getTokensAttributeList($surveyId,''),
+                'htmlOptions'=>array(
+                    'empty'=>$this->_translate("None"),
                 ),
-                'allowDelete' => array(
-                    'type'=>'select',
-                    'label'=>$this->_translate('Allow deletion of response'),
-                    'options'=>array(
-                        'admin'=>gT("Only for administrator"),
-                        'all'=>gT("All user in group"),
-                    ),
-                    'htmlOptions'=>array(
-                        'empty'=>gT("No"),
-                    ),
-                    //~ 'help'=>$this->_translate('Else only group manager can manage other group response.'),
-                    'current'=>$this->get('allowDelete','Survey',$iSurveyId,'admin')
+                'current'=>$this->get('tokenAttributeGroupManager','Survey',$surveyId)
+            ),
+            //~ 'tokenAttributeGroupWhole' => array(
+                //~ 'type'=>'boolean',
+                //~ 'label'=>$this->_translate('User of group can see and manage all group response'),
+                //~ 'help'=>$this->_translate('Else only group manager can manage other group response.'),
+                //~ 'current'=>$this->get('tokenAttributeGroupWhole','Survey',$surveyId,1)
+            //~ ),
+        );
+        $aSettings[$this->_translate('Response Management access and right')] = array(
+            'allowSee' => array(
+                'type'=>'select',
+                'label'=>$this->_translate('Allow view response of group'),
+                'options'=>array(
+                    'admin'=>gT("Only for administrator"),
+                    'all'=>gT("All user in group"),
                 ),
-                'allowAdd' => array(
-                    'type'=>'select',
-                    'label'=>$this->_translate('Allow add response'),
-                    'options'=>array(
-                        'admin'=>gT("Only for administrator"),
-                        'all'=>gT("Yes"),
-                    ),
-                    'htmlOptions'=>array(
-                        'empty'=>gT("No"),
-                    ),
-                    //~ 'help'=>$this->_translate('Else only group manager can manage other group response.'),
-                    'current'=>$this->get('allowAdd','Survey',$iSurveyId,'admin')
+                'htmlOptions'=>array(
+                    'empty'=>gT("No"),
                 ),
-            )
-        ));
+                //~ 'help'=>$this->_translate('Else only group manager can manage other group response.'),
+                'current'=>$this->get('allowSee','Survey',$surveyId,'all')
+            ),
+            'allowEdit' => array(
+                'type'=>'select',
+                'label'=>$this->_translate('Allow edit response of group'),
+                'options'=>array(
+                    'admin'=>gT("Only for administrator"),
+                    'all'=>gT("All user in group"),
+                ),
+                'htmlOptions'=>array(
+                    'empty'=>gT("No"),
+                ),
+                //~ 'help'=>$this->_translate('Else only group manager can manage other group response.'),
+                'current'=>$this->get('allowEdit','Survey',$surveyId,'admin')
+            ),
+            'allowDelete' => array(
+                'type'=>'select',
+                'label'=>$this->_translate('Allow deletion of response'),
+                'options'=>array(
+                    'admin'=>gT("Only for administrator"),
+                    'all'=>gT("All user in group"),
+                ),
+                'htmlOptions'=>array(
+                    'empty'=>gT("No"),
+                ),
+                //~ 'help'=>$this->_translate('Else only group manager can manage other group response.'),
+                'current'=>$this->get('allowDelete','Survey',$surveyId,'admin')
+            ),
+            'allowAdd' => array(
+                'type'=>'select',
+                'label'=>$this->_translate('Allow add response'),
+                'options'=>array(
+                    'admin'=>gT("Only for administrator"),
+                    'all'=>gT("Yes"),
+                ),
+                'htmlOptions'=>array(
+                    'empty'=>gT("No"),
+                ),
+                'help'=>$this->_translate('Related to current token for user, and for all token in group for administrator of group.'),
+                'current'=>$this->get('allowAdd','Survey',$surveyId,'admin')
+            ),
+        );
+        $aData['pluginClass']=get_class($this);
+        $aData['surveyId']=$surveyId;
+        $aData['title'] = "";
+        $aData['warningString'] = null;
+        $aData['aSettings']=$aSettings;
+        $aData['assetUrl']=Yii::app()->assetManager->publish(dirname(__FILE__) . '/assets/settings');
+        $content = $this->renderPartial('settings', $aData, true);
+        return $content;
     }
-
     /**
     * @see newSurveySettings
     */
@@ -306,14 +443,18 @@ class responseListAndManage extends PluginBase {
         $currentToken = strval(App()->getRequest()->getParam('token'));
         $tokenAttributeGroup = $this->get('tokenAttributeGroup','Survey',$surveyId);
         $tokenAttributeGroupManager = $this->get('tokenAttributeGroupManager','Survey',$surveyId);
-        $tokenAttributeGroupWhole = $this->get('tokenAttributeGroupWhole','Survey',$surveyId,1);
+        $allowSee = $this->get('allowSee','Survey',$surveyId,'all');
+        $allowEdit = $this->get('allowEdit','Survey',$surveyId,'admin');
+        $allowDelete = $this->get('allowDelete','Survey',$surveyId,'admin');
+        $allowAdd = $this->get('allowAdd','Survey',$surveyId,'admin');
+
         if($currentToken) {
             $aTokens = (array) $currentToken;
             $oToken = Token::model($surveyId)->findByToken($currentToken);
             $tokenGroup = ($tokenAttributeGroup && !empty($oToken->$tokenAttributeGroup)) ? $oToken->$tokenAttributeGroup : null;
             if($tokenGroup) {
                 $isManager = !empty($oToken->$tokenAttributeGroupManager);
-                if($tokenAttributeGroupWhole || $isManager) {
+                if(($allowSee=='all') || ($isManager && $allowSee == 'admin') ) {
                     $oTokenGroup = Token::model($surveyId)->findAll($tokenAttributeGroup."= :group",array(":group"=>$tokenGroup));
                     $aTokens = CHtml::listData($oTokenGroup,'token','token');
                 }
@@ -341,7 +482,7 @@ class responseListAndManage extends PluginBase {
                     $currentToken = array_shift(array_values($currentToken));
                 }
                 $tokenList = array($currentToken=>$currentToken);
-                if($isManager) {
+                if( $allowAdd == 'all' || ($isManager && $allowAdd == 'admin') ) {
                     $tokenList = CHtml::listData($oTokenGroup,'token',function($oToken){
                         return CHtml::encode(trim($oToken->firstname.' '.$oToken->lastname.' ('.$oToken->token.')'));
                     },
@@ -389,13 +530,36 @@ class responseListAndManage extends PluginBase {
         $this->aRenderData['addNew'] = $addNew;
         /* Contruct column */
         /* Put the button here, more easy */
-        $updateButtonUrl = 'App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"srid"=>$data["id"],"newtest"=>"Y"))';
-        if($this->_allowTokenLink($oSurvey)) {
-            $updateButtonUrl = 'App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"token"=>$data["token"],"srid"=>$data["id"],"newtest"=>"Y"))';
+        $updateButtonUrl = "";
+        if(Permission::model()->hasSurveyPermission($surveyId, 'responses', 'update')) {
+            $updateButtonUrl = 'App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"srid"=>$data["id"],"newtest"=>"Y"))';
         }
-        $deleteButtonUrl = 'App()->createUrl("plugins/direct",array("plugin"=>"'.get_class().'","sid"=>'.$surveyId.',"delete"=>$data["id"]))';
+        if($this->_allowTokenLink($oSurvey)) {
+            $updateButtonUrl = 'App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"srid"=>$data["id"],"newtest"=>"Y"))';
+            if($currentToken) {
+                if( $allowEdit == 'all' || ($isManager && $allowEdit == 'admin')) {
+                    $updateButtonUrl = 'App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"token"=>$data["token"],"srid"=>$data["id"],"newtest"=>"Y"))';
+                } else {
+                    $updateButtonUrl = '("'.$currentToken.'" == $data["token"]) ? App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"token"=>$data["token"],"srid"=>$data["id"],"newtest"=>"Y")) : null';
+                }
+            }
+            //~ if(Permission::model()->hasSurveyPermission($surveyId, 'responses', 'update')) {
+                //~ $updateButtonUrl = 'App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"srid"=>$data["id"],"newtest"=>"Y"))';
+            //~ }
+        }
+        $deleteButtonUrl = "";
+        if(Permission::model()->hasSurveyPermission($surveyId, 'responses', 'delete')) {
+            $deleteButtonUrl = 'App()->createUrl("plugins/direct",array("plugin"=>"'.get_class().'","sid"=>'.$surveyId.',"delete"=>$data["id"]))';
+        }
         if($this->_allowTokenLink($oSurvey) && !$oSurvey->getIsAnonymized()) {
             $deleteButtonUrl = 'App()->createUrl("plugins/direct",array("plugin"=>"'.get_class().'","sid"=>'.$surveyId.',"token"=>$data["token"],"delete"=>$data["id"]))';
+            if($currentToken) {
+                if( $allowDelete == 'all' || ($isManager && $allowDelete == 'admin')) {
+                    $deleteButtonUrl = 'App()->createUrl("plugins/direct",array("plugin"=>"'.get_class().'","sid"=>'.$surveyId.',"token"=>$data["token"],"delete"=>$data["id"]))';
+                } else {
+                    $deleteButtonUrl = '("'.$currentToken.'" == $data["token"]) ? App()->createUrl("plugins/direct",array("plugin"=>"'.get_class().'","sid"=>'.$surveyId.',"token"=>$data["token"],"delete"=>$data["id"])) : null';
+                }
+            }
         }
         $aColumns= array(
             'buttons'=>array(

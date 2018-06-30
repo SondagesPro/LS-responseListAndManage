@@ -22,10 +22,9 @@ $this->widget('bootstrap.widgets.TbGridView', array(
                     'onchange'=>"$.fn.yiiGridView.update('responses-grid',{ data:{pageSize: $(this).val() }})",
                 ))
         ),
-    'afterAjaxUpdate' => "js:function(id,data){ $('#'+id).css('padding-bottom',$('#'+id).children('.row').height()+'px'); }",
+    'afterAjaxUpdate' => "js:function(id,data){ $('#'+id).trigger('ajaxUpdated'); }",
     //~ 'selectableRows'=>2,
 ));
-
 Yii::app()->getController()->renderPartial("responseListAndManage.views.content.subContent.modalSurvey",array('lang'=>$lang));
 if($allowAddUser) {
     Yii::app()->getController()->renderPartial("responseListAndManage.views.content.subContent.modalUser",array('lang'=>$lang,'addUser'=>$addUser));

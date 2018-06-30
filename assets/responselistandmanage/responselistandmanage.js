@@ -12,11 +12,19 @@ $(function() {
         'left': $(window).scrollLeft()
   });
   $("#responses-grid").css("padding-bottom",$("#responses-grid > .row").height()+"px");
+    // $(document).off("click","#responses-grid a:not([href])");// Didn't work, disable uneeded js line
 });
 $(document).on("ajaxUpdated","#responses-grid",function(event){
     $(this).css('padding-bottom',$(this).children('.row').height()+'px');
+    // $(document).off("click","#responses-grid a:not([href])");// Didn't work, disable uneeded js line
 });
-$(document).on("click","a.update",function(event){
+// Didn't work, disable uneeded js line
+//~ $(document).on("click",".grid-view a:not([href])",function(event){
+    //~ $(document).off("click",".grid-view a:not([href])");
+    //~ event.preventDefault();
+    //~ return false;
+//~ });
+$(document).on("click","a.update[href]",function(event){
     event.preventDefault();
     $("iframe#survey-update").attr("src",$(this).attr("href"));
     $("#modal-survey-update").modal('show');

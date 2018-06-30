@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 0.14.0
+ * @version 0.15.0
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -200,7 +200,7 @@ class responseListAndManage extends PluginBase {
                 Yii::app()->getController()->redirect(Yii::app()->getController()->createUrl('admin/survey',array('sa'=>'view','surveyid'=>$surveyId)));
             }
         }
-        $stateInfo = "<ul class='list-inline'>";
+        $stateInfo = "<ul class='list'>";
         if($this->_allowTokenLink($oSurvey)) {
             $stateInfo .= CHtml::tag("li",array("class"=>'text-success'),$this->_translate("Token link and creation work in managing."));
         } else {
@@ -221,7 +221,7 @@ class responseListAndManage extends PluginBase {
             ),
             'infoList' => array(
                 'type'=>'info',
-                'content'=> CHtml::tag("div",array('class'=>'well'),$stateInfo),
+                'content'=> CHtml::tag("div",array('class'=>'well well-sm'),$stateInfo),
             ),
         );
         $aSettings[$this->_translate('Response Management table')] = array(
@@ -286,49 +286,62 @@ class responseListAndManage extends PluginBase {
             //~ ),
         );
         $aSettings[$this->_translate('Response Management access and right')] = array(
+            'infoRights' => array(
+                'type'=>'info',
+                'content'=>CHtml::tag("ul",array('class'=>'well well-sm list-unstyled'),
+                    CHtml::tag("li",array(),$this->_translate("Currently, for LimeSurvey admin user : only response access was used. Token access are not tested.")) .
+                    CHtml::tag("li",array(),$this->_translate("For user, except for No : they always have same rights than other, for example if you allow delete to admin user, an user with token can delete his response with token.")) .
+                    CHtml::tag("li",array(),$this->_translate("To disable access for user with token you can set this settings to No or only for LimeSurvey admin.")) .
+                    ""
+                ),
+            ),
             'allowSee' => array(
                 'type'=>'select',
                 'label'=>$this->_translate('Allow view response of group'),
                 'options'=>array(
+                    'limesurvey'=>gT("Only for LimeSurvey admin (According to LimeSurvey Permission)"),
                     'admin'=>gT("Only for administrator"),
                     'all'=>gT("All user in group"),
                 ),
                 'htmlOptions'=>array(
                     'empty'=>gT("No"),
                 ),
-                //~ 'help'=>$this->_translate('Else only group manager can manage other group response.'),
+                'help'=>$this->_translate('You can disable all access with token here.'),
                 'current'=>$this->get('allowSee','Survey',$surveyId,'all')
             ),
             'allowEdit' => array(
                 'type'=>'select',
                 'label'=>$this->_translate('Allow edit response of group'),
                 'options'=>array(
+                    'limesurvey'=>gT("Only for LimeSurvey admin (According to LimeSurvey Permission)"),
                     'admin'=>gT("Only for administrator"),
                     'all'=>gT("All user in group"),
                 ),
                 'htmlOptions'=>array(
                     'empty'=>gT("No"),
                 ),
-                //~ 'help'=>$this->_translate('Else only group manager can manage other group response.'),
+                'help'=>$this->_translate('Except with No, user with token can always edit his response.'),
                 'current'=>$this->get('allowEdit','Survey',$surveyId,'admin')
             ),
             'allowDelete' => array(
                 'type'=>'select',
                 'label'=>$this->_translate('Allow deletion of response'),
                 'options'=>array(
+                    'limesurvey'=>gT("Only for LimeSurvey admin (According to LimeSurvey Permission)"),
                     'admin'=>gT("Only for administrator"),
                     'all'=>gT("All user in group"),
                 ),
                 'htmlOptions'=>array(
                     'empty'=>gT("No"),
                 ),
-                //~ 'help'=>$this->_translate('Else only group manager can manage other group response.'),
+                'help'=>$this->_translate('Except with No, user with token can always delete his response.'),
                 'current'=>$this->get('allowDelete','Survey',$surveyId,'admin')
             ),
             'allowAdd' => array(
                 'type'=>'select',
                 'label'=>$this->_translate('Allow add response'),
                 'options'=>array(
+                    'limesurvey'=>gT("Only for LimeSurvey admin (According to LimeSurvey Permission)"),
                     'admin'=>gT("Only for administrator"),
                     'all'=>gT("Yes"),
                 ),
@@ -443,23 +456,39 @@ class responseListAndManage extends PluginBase {
         $currentToken = strval(App()->getRequest()->getParam('token'));
         $tokenAttributeGroup = $this->get('tokenAttributeGroup','Survey',$surveyId);
         $tokenAttributeGroupManager = $this->get('tokenAttributeGroupManager','Survey',$surveyId);
-        $allowSee = $this->get('allowSee','Survey',$surveyId,'all');
-        $allowEdit = $this->get('allowEdit','Survey',$surveyId,'admin');
-        $allowDelete = $this->get('allowDelete','Survey',$surveyId,'admin');
-        $allowAdd = $this->get('allowAdd','Survey',$surveyId,'admin');
 
+        /* Get the final allowed according to current token) */
+        $allowSee = $allowEdit = $allowDelete = $allowAdd = false;
+        $settingAllowSee = $this->get('allowSee','Survey',$surveyId,'all');
+        $settingAllowEdit = $this->get('allowEdit','Survey',$surveyId,'admin');
+        $settingAllowDelete = $this->get('allowDelete','Survey',$surveyId,'admin');
+        $settingAllowAdd = $this->get('allowAdd','Survey',$surveyId,'admin');
+        /* Set the default according to Permission */
+        if(Permission::getUserId()) { /* When testing is done move this after */
+            $allowSee = $settingAllowSee && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'read');
+            $allowEdit = $settingAllowEdit && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'update');
+            $allowDelete = $settingAllowDelete && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'delete');
+            $allowAdd = $settingAllowAdd && Permission::model()->hasSurveyPermission($surveyId, 'token', 'create');
+        }
         if($currentToken) {
             $aTokens = (array) $currentToken;
             $oToken = Token::model($surveyId)->findByToken($currentToken);
             $tokenGroup = ($tokenAttributeGroup && !empty($oToken->$tokenAttributeGroup)) ? $oToken->$tokenAttributeGroup : null;
             if($tokenGroup) {
-                $isManager = !empty($oToken->$tokenAttributeGroupManager);
-                if(($allowSee=='all') || ($isManager && $allowSee == 'admin') ) {
+                $isManager == ((bool) $tokenAdmin) && trim($tokenAdmin) !== '' && trim($tokenAdmin) !== '0';
+                if($allowSee) {
                     $oTokenGroup = Token::model($surveyId)->findAll($tokenAttributeGroup."= :group",array(":group"=>$tokenGroup));
                     $aTokens = CHtml::listData($oTokenGroup,'token','token');
                 }
             }
             $mResponse->setAttribute('token', $aTokens);
+            $allowSee = ($settingAllowSee == 'all') || ($settingAllowSee == 'admin' && $isManager);
+            $allowEdit = $allowSee && (($settingAllowEdit == 'all') || ($settingAllowEdit == 'admin' && $isManager));
+            $allowDelete = ($settingAllowDelete == 'all') || ($settingAllowDelete == 'admin' && $isManager);
+            $allowAdd = ($settingAllowAdd == 'all') || ($settingAllowAdd == 'admin' && $isManager);
+            if(!$allowSee && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'read')) {
+                throw new CHttpException(403, $this->_translate('You are not allowed to use reponse management with this token.'));
+            }
         }
 
         Yii::app()->user->setState('pageSize',intval(Yii::app()->request->getParam('pageSize',Yii::app()->user->getState('pageSize',10))));
@@ -482,7 +511,7 @@ class responseListAndManage extends PluginBase {
                     $currentToken = array_shift(array_values($currentToken));
                 }
                 $tokenList = array($currentToken=>$currentToken);
-                if( $allowAdd == 'all' || ($isManager && $allowAdd == 'admin') ) {
+                if( $allowAdd ) {
                     $tokenList = CHtml::listData($oTokenGroup,'token',function($oToken){
                         return CHtml::encode(trim($oToken->firstname.' '.$oToken->lastname.' ('.$oToken->token.')'));
                     },
@@ -501,30 +530,23 @@ class responseListAndManage extends PluginBase {
                 array('class'=>'btn btn-default btn-sm  addnew')
             );
         }
-        if($tokenList && count($tokenList) == 1) {
+        if($allowAdd && $tokenList && count($tokenList) == 1) {
             $addNew = CHtml::link("<i class='fa fa-plus-circle' aria-hidden='true'></i>".$this->_translate("Create an new response"),
                 array("survey/index",'sid'=>$surveyId,'newtest'=>"Y",'srid'=>'new','token'=>array_values($tokenList)[0]),
                 array('class'=>'btn btn-default btn-sm addnew')
             );
         }
-        if($tokenList && count($tokenList) > 1) {
+        if($allowAdd && $tokenList && count($tokenList) > 1) {
             $addNew  = CHtml::beginForm(array("survey/index"),'get',array('class'=>"form-inline"));
             $addNew .= CHtml::hiddenField('sid',$surveyId);
             $addNew .= CHtml::hiddenField('newtest',"Y");
-            if(count($tokenList) == 1) {
-                $addNew .= CHtml::hiddenField('token',array_shift(array_keys($tokenList)));
-                $addNew .= CHtml::htmlButton("<i class='fa fa-plus-circle' aria-hidden='true'></i>".$this->_translate("Create an new response"),
-                    array("type"=>'submit','name'=>'srid','value'=>'new','class'=>'btn btn-default btn-sm addnew')
-                );
-            }
-            if(count($tokenList) > 1) {
-                //~ $addNew .= '<div class="form-group"><div class="input-group">';
-                $addNew .= CHtml::dropDownList('token',$currentToken,$tokenList,array('class'=>'form-control input-sm','empty'=>gT("Please choose...")));
-                $addNew .= CHtml::htmlButton("<i class='fa fa-plus-circle' aria-hidden='true'></i>".$this->_translate("Create an new response"),
-                    array("type"=>'button','name'=>'srid','value'=>'new','class'=>'btn btn-default btn-sm addnew')
-                );
-                //~ $addNew .= '</div></div>';
-            }
+            //~ $addNew .= '<div class="form-group"><div class="input-group">';
+            $addNew .= CHtml::dropDownList('token',$currentToken,$tokenList,array('class'=>'form-control input-sm','empty'=>gT("Please choose...")));
+            $addNew .= CHtml::htmlButton("<i class='fa fa-plus-circle' aria-hidden='true'></i>".$this->_translate("Create an new response"),
+                array("type"=>'button','name'=>'srid','value'=>'new','class'=>'btn btn-default btn-sm addnew')
+            );
+            //~ $addNew .= '</div></div>';
+
             $addNew .= CHtml::endForm();
         }
         $this->aRenderData['addNew'] = $addNew;
@@ -537,15 +559,14 @@ class responseListAndManage extends PluginBase {
         if($this->_allowTokenLink($oSurvey)) {
             $updateButtonUrl = 'App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"srid"=>$data["id"],"newtest"=>"Y"))';
             if($currentToken) {
-                if( $allowEdit == 'all' || ($isManager && $allowEdit == 'admin')) {
+                if( $allowEdit ) {
                     $updateButtonUrl = 'App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"token"=>$data["token"],"srid"=>$data["id"],"newtest"=>"Y"))';
-                } else {
+                } elseif($settingAllowEdit) {
                     $updateButtonUrl = '("'.$currentToken.'" == $data["token"]) ? App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"token"=>$data["token"],"srid"=>$data["id"],"newtest"=>"Y")) : null';
+                } else {
+                    $updateButtonUrl = '';
                 }
             }
-            //~ if(Permission::model()->hasSurveyPermission($surveyId, 'responses', 'update')) {
-                //~ $updateButtonUrl = 'App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"srid"=>$data["id"],"newtest"=>"Y"))';
-            //~ }
         }
         $deleteButtonUrl = "";
         if(Permission::model()->hasSurveyPermission($surveyId, 'responses', 'delete')) {
@@ -554,10 +575,12 @@ class responseListAndManage extends PluginBase {
         if($this->_allowTokenLink($oSurvey) && !$oSurvey->getIsAnonymized()) {
             $deleteButtonUrl = 'App()->createUrl("plugins/direct",array("plugin"=>"'.get_class().'","sid"=>'.$surveyId.',"token"=>$data["token"],"delete"=>$data["id"]))';
             if($currentToken) {
-                if( $allowDelete == 'all' || ($isManager && $allowDelete == 'admin')) {
+                if( $allowDelete ) {
                     $deleteButtonUrl = 'App()->createUrl("plugins/direct",array("plugin"=>"'.get_class().'","sid"=>'.$surveyId.',"token"=>$data["token"],"delete"=>$data["id"]))';
-                } else {
+                } elseif($settingAllowDelete) {
                     $deleteButtonUrl = '("'.$currentToken.'" == $data["token"]) ? App()->createUrl("plugins/direct",array("plugin"=>"'.get_class().'","sid"=>'.$surveyId.',"token"=>$data["token"],"delete"=>$data["id"])) : null';
+                } else {
+                    $deleteButtonUrl = "";
                 }
             }
         }
@@ -580,6 +603,13 @@ class responseListAndManage extends PluginBase {
             $aRestrictedColumns = array();
             if(empty($tokenAttributes)) {
                 $tokenAttributes = array_keys($this->_getTokensAttributeList($surveyId,'tokens.'));
+                /* remove tokens.token if user didn't have right to edit */
+                if($currentToken) {
+                    if(!$allowEdit) {
+                        /* unset by value */
+                        $tokenAttributes = array_values(array_diff($tokenAttributes, array('tokens.token')));
+                    }
+                }
             }
             if(empty($surveyAttributes)) {
                 $surveyAttributes = \getQuestionInformation\helpers\surveyColumnsInformation::getAllQuestionListData($surveyId,App()->getLanguage());
@@ -692,14 +722,19 @@ class responseListAndManage extends PluginBase {
         $token = App()->getRequest()->getParam('currenttoken');
         $tokenGroup = null;
         $tokenAdmin = null;
+        $allowAdd = false;
         if($token) {
             $tokenAttributeGroup = $this->get('tokenAttributeGroup','Survey',$surveyId,null);
             $tokenAttributeGroupManager = $this->get('tokenAttributeGroupManager','Survey',$surveyId,null);
             $tokenGroup = (!empty($tokenAttributeGroup) && !empty($oToken->$tokenAttributeGroup)) ? $oToken->$tokenAttributeGroup : null;
             $tokenAdmin = (!empty($tokenAttributeGroupManager) && !empty($oToken->$tokenAttributeGroupManager)) ? $oToken->$tokenAttributeGroupManager : null;
+            $isAdmin == ((bool) $tokenAdmin) && trim($tokenAdmin) !== '' && trim($tokenAdmin) !== '0';
+            $settingAllowAdd = $this->get('allowAdd','Survey',$surveyId,'admin');
+            $allowAdd = ($settingAllowAdd == 'all' || ($settingAllowAdd == 'admin' && $isAdmin));
         }
+        
         if(!Permission::model()->hasSurveyPermission($surveyId, 'token', 'create')) {
-            if(empty($tokenAdmin)) {
+            if(!$allowAdd) {
                 throw new CHttpException(403, $this->_translate('No right to create new token in this survey.'));
             }
         }

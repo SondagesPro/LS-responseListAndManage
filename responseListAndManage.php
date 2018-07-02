@@ -454,6 +454,9 @@ class responseListAndManage extends PluginBase {
         /* Access with token */
         $isManager = false;
         $currentToken = strval(App()->getRequest()->getParam('token'));
+        if($currentToken) {
+            Yii::app()->user->setState('disableTokenPermission',true);
+        }
         $tokenAttributeGroup = $this->get('tokenAttributeGroup','Survey',$surveyId);
         $tokenAttributeGroupManager = $this->get('tokenAttributeGroupManager','Survey',$surveyId);
 
@@ -463,29 +466,36 @@ class responseListAndManage extends PluginBase {
         $settingAllowEdit = $this->get('allowEdit','Survey',$surveyId,'admin');
         $settingAllowDelete = $this->get('allowDelete','Survey',$surveyId,'admin');
         $settingAllowAdd = $this->get('allowAdd','Survey',$surveyId,'admin');
+        $tokenAttributeGroup = $this->get('tokenAttributeGroup','Survey',$surveyId,null);
+        $tokenAttributeGroupManager = $this->get('tokenAttributeGroupManager','Survey',$surveyId,null);
+        $tokenGroup = null;
+        $tokenAdmin = null;
+        $isManager = false;
         /* Set the default according to Permission */
         if(Permission::getUserId()) { /* When testing is done move this after */
             $allowSee = $settingAllowSee && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'read');
             $allowEdit = $settingAllowEdit && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'update');
             $allowDelete = $settingAllowDelete && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'delete');
-            $allowAdd = $settingAllowAdd && Permission::model()->hasSurveyPermission($surveyId, 'token', 'create');
+            $allowAdd = $settingAllowAdd && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'create');
         }
         if($currentToken) {
             $aTokens = (array) $currentToken;
             $oToken = Token::model($surveyId)->findByToken($currentToken);
-            $tokenGroup = ($tokenAttributeGroup && !empty($oToken->$tokenAttributeGroup)) ? $oToken->$tokenAttributeGroup : null;
+            $tokenGroup = (!empty($tokenAttributeGroup) && !empty($oToken->$tokenAttributeGroup)) ? $oToken->$tokenAttributeGroup : null;
+            $tokenAdmin = (!empty($tokenAttributeGroupManager) && !empty($oToken->$tokenAttributeGroupManager)) ? $oToken->$tokenAttributeGroupManager : null;
+            $isManager == ((bool) $tokenAdmin) && trim($tokenAdmin) !== '' && trim($tokenAdmin) !== '0';
+            $allowSee = ($settingAllowSee == 'all') || ($settingAllowSee == 'admin' && $isManager);
+            $allowEdit = $allowSee && (($settingAllowEdit == 'all') || ($settingAllowEdit == 'admin' && $isManager));
+            $allowDelete = ($settingAllowDelete == 'all') || ($settingAllowDelete == 'admin' && $isManager);
+            $allowAdd = ($settingAllowAdd == 'all') || ($settingAllowAdd == 'admin' && $isManager);
             if($tokenGroup) {
-                $isManager == ((bool) $tokenAdmin) && trim($tokenAdmin) !== '' && trim($tokenAdmin) !== '0';
                 if($allowSee) {
                     $oTokenGroup = Token::model($surveyId)->findAll($tokenAttributeGroup."= :group",array(":group"=>$tokenGroup));
                     $aTokens = CHtml::listData($oTokenGroup,'token','token');
                 }
             }
             $mResponse->setAttribute('token', $aTokens);
-            $allowSee = ($settingAllowSee == 'all') || ($settingAllowSee == 'admin' && $isManager);
-            $allowEdit = $allowSee && (($settingAllowEdit == 'all') || ($settingAllowEdit == 'admin' && $isManager));
-            $allowDelete = ($settingAllowDelete == 'all') || ($settingAllowDelete == 'admin' && $isManager);
-            $allowAdd = ($settingAllowAdd == 'all') || ($settingAllowAdd == 'admin' && $isManager);
+
             if(!$allowSee && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'read')) {
                 throw new CHttpException(403, $this->_translate('You are not allowed to use reponse management with this token.'));
             }
@@ -511,7 +521,15 @@ class responseListAndManage extends PluginBase {
                     $currentToken = array_shift(array_values($currentToken));
                 }
                 $tokenList = array($currentToken=>$currentToken);
-                if( $allowAdd ) {
+                if($allowAdd) { /* Adding for all group */
+                    $criteria = new CDbCriteria();
+                    if($this->_allowMultipleResponse($oSurvey)) {
+                        $criteria->condition = "token is not null and token <> ''";
+                    } else {
+                        $criteria->condition = "t.token is not null and t.token <> '' and responses.id is null";
+                    }
+                    $criteria->addInCondition('t.token',$aTokens);
+                    $oToken = Token::model($surveyId)->with('responses')->findAll($criteria);
                     $tokenList = CHtml::listData($oTokenGroup,'token',function($oToken){
                         return CHtml::encode(trim($oToken->firstname.' '.$oToken->lastname.' ('.$oToken->token.')'));
                     },
@@ -524,17 +542,20 @@ class responseListAndManage extends PluginBase {
                 $tokenList = array_merge($emptyTokenGroup,$tokenList);
             }
         }
-        if(!$tokenList) {
+        $addNew ='';
+        if($allowAdd && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'create')) {
             $addNew = CHtml::link("<i class='fa fa-plus-circle' aria-hidden='true'></i>".$this->_translate("Create an new response"),
                 array("survey/index",'sid'=>$surveyId,'newtest'=>"Y"),
                 array('class'=>'btn btn-default btn-sm  addnew')
             );
         }
         if($allowAdd && $tokenList && count($tokenList) == 1) {
-            $addNew = CHtml::link("<i class='fa fa-plus-circle' aria-hidden='true'></i>".$this->_translate("Create an new response"),
-                array("survey/index",'sid'=>$surveyId,'newtest'=>"Y",'srid'=>'new','token'=>array_values($tokenList)[0]),
-                array('class'=>'btn btn-default btn-sm addnew')
-            );
+            if($this->_allowMultipleResponse($oSurvey)) {
+                $addNew = CHtml::link("<i class='fa fa-plus-circle' aria-hidden='true'></i>".$this->_translate("Create an new response"),
+                    array("survey/index",'sid'=>$surveyId,'newtest'=>"Y",'srid'=>'new','token'=>array_values($tokenList)[0]),
+                    array('class'=>'btn btn-default btn-sm addnew')
+                );
+            }
         }
         if($allowAdd && $tokenList && count($tokenList) > 1) {
             $addNew  = CHtml::beginForm(array("survey/index"),'get',array('class'=>"form-inline"));
@@ -593,34 +614,29 @@ class responseListAndManage extends PluginBase {
                 'deleteButtonUrl'=>$deleteButtonUrl,
             ),
         );
-        $aColumns = array_merge($aColumns,$mResponse->getGridColumns());
+        $disableTokenPermission = (bool) $currentToken;
+        
+        $aColumns = array_merge($aColumns,$mResponse->getGridColumns($disableTokenPermission));
         /* Get the selected columns only */
         $tokenAttributes = $this->get('tokenAttributes','Survey',$surveyId);
         $surveyAttributes = $this->get('surveyAttributes','Survey',$surveyId);
-
         $filteredArr = array();
-        if(!empty($tokenAttributes) || !empty($surveyAttributes)) {
-            $aRestrictedColumns = array();
-            if(empty($tokenAttributes)) {
-                $tokenAttributes = array_keys($this->_getTokensAttributeList($surveyId,'tokens.'));
-                /* remove tokens.token if user didn't have right to edit */
-                if($currentToken) {
-                    if(!$allowEdit) {
-                        /* unset by value */
-                        $tokenAttributes = array_values(array_diff($tokenAttributes, array('tokens.token')));
-                    }
-                }
-            }
-            if(empty($surveyAttributes)) {
-                $surveyAttributes = \getQuestionInformation\helpers\surveyColumnsInformation::getAllQuestionListData($surveyId,App()->getLanguage());
-                $surveyAttributes = array_keys($surveyAttributes['data']);
-            }
-
-            $forcedColumns = array('buttons','id');
-            $aRestrictedColumns = array_merge($forcedColumns,$tokenAttributes,$surveyAttributes);
-            $aColumns = array_intersect_key( $aColumns, array_flip( $aRestrictedColumns ) );
-            
+        $aRestrictedColumns = array();
+        if(empty($tokenAttributes)) {
+            $tokenAttributes = array_keys($this->_getTokensAttributeList($surveyId,'tokens.'));
         }
+        /* remove tokens.token if user didn't have right to edit */
+        if($currentToken && !$allowEdit) {
+            /* unset by value */
+            $tokenAttributes = array_values(array_diff($tokenAttributes, array('tokens.token')));
+        }
+        if(empty($surveyAttributes)) {
+            $surveyAttributes = \getQuestionInformation\helpers\surveyColumnsInformation::getAllQuestionListData($surveyId,App()->getLanguage());
+            $surveyAttributes = array_keys($surveyAttributes['data']);
+        }
+        $forcedColumns = array('buttons','id');
+        $aRestrictedColumns = array_merge($forcedColumns,$tokenAttributes,$surveyAttributes);
+        $aColumns = array_intersect_key( $aColumns, array_flip( $aRestrictedColumns ) );
 
         $this->aRenderData['allowAddUser'] = $this->_allowTokenLink($oSurvey) && ($isManager || Permission::model()->hasSurveyPermission($surveyId, 'token', 'create'));
         $this->aRenderData['addUser'] = array();

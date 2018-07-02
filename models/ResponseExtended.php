@@ -117,12 +117,13 @@ class ResponseExtended extends LSActiveRecord
     }
 
     /**
+     * return if token column can be returned
      * @return bool
      */
     private function getHaveToken()
     {
         if (!isset($this->haveToken)) {
-            $this->haveToken = (self::$survey->anonymized != "Y") && tableExists('tokens_'.self::$sid) && Permission::model()->hasSurveyPermission(self::$sid, 'tokens', 'read'); // Boolean : show (or not) the token;
+            $this->haveToken = self::$survey->anonymized != "Y" && tableExists('tokens_'.self::$sid) && (Permission::model()->hasSurveyPermission(self::$sid, 'token', 'read') || Yii::app()->user->getState('disableTokenPermission')); // Boolean : show (or not) the token;
         }
         return $this->haveToken;
     }

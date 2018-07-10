@@ -276,7 +276,8 @@ class ResponseExtended extends LSActiveRecord
         if($this->getHaveToken()) {
             $aColumns = array_merge($aColumns,$this->getTokensColumns());
         }
-        $aColumns = array_merge($aColumns,\getQuestionInformation\helpers\surveyColumnsInformation::getAllQuestionsColumns(self::$sid,App()->getLanguage()));
+        $surveyColumnsInformation = new \getQuestionInformation\helpers\surveyColumnsInformation(self::$sid,App()->getLanguage());
+        $aColumns = array_merge($aColumns,$surveyColumnsInformation->allQuestionsColumns());
 
         return $aColumns;
     }

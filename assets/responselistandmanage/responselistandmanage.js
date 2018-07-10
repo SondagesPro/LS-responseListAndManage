@@ -11,15 +11,7 @@ $(function() {
   $('#responses-grid > .row-fluid').css({
         'left': $(window).scrollLeft()
   });
-  $("#responses-grid").css("padding-bottom",$("#responses-grid > .row").height()+"px");
-    $('#responses-grid thead small[title]').tooltip({
-        html:true,
-        placement:'bottom',
-        viewport: function() {
-            return $(this).closest('th');
-        }
-    });
-
+  $("#responses-grid").trigger('ajaxUpdated');
 });
 $(document).on("ajaxUpdated","#responses-grid",function(event){
     $(this).css('padding-bottom',$(this).children('.row').height()+'px');
@@ -27,10 +19,26 @@ $(document).on("ajaxUpdated","#responses-grid",function(event){
         html:true,
         placement:'bottom',
         viewport: function() {
-            return $(this).closest('th');
+            return this.$element[0];
+        }
+    });
+    $('#responses-grid .answer-value').popover({
+        html:true,
+        placement:'bottom',
+        viewport: function() {
+            return this.$element[0];
+        },
+        content: function() {
+            return $(this).html();
+        },
+        title : function() {
+            return null;
         }
     });
 });
+$(document).on('show.bs.popover','#responses-grid .answer-value', function () {
+    $('#responses-grid .answer-value').not(this).popover('hide');
+})
 $(document).on("click","a.update[href]",function(event){
     event.preventDefault();
     $("iframe#survey-update").attr("src",$(this).attr("href"));

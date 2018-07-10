@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 0.16.0
+ * @version 1.0.0
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -212,7 +212,8 @@ class responseListAndManage extends PluginBase {
             $stateInfo .= CHtml::tag("li",array("class"=>'text-warning'),$this->_translate("You can not create new response for all token. Only one response is available for each token (see participation setting panel)."));
         }
         $stateInfo .= "</ul>";
-        $aQuestionList = \getQuestionInformation\helpers\surveyColumnsInformation::getAllQuestionListData($surveyId,App()->getLanguage());
+        $surveyColumnsInformation = new \getQuestionInformation\helpers\surveyColumnsInformation($surveyId,App()->getLanguage());
+        $aQuestionList = $surveyColumnsInformation->allQuestionListData();
         $accesUrl = Yii::app()->createUrl("plugins/direct", array('plugin' => get_class(),'sid'=>$surveyId));
         $aSettings[$this->_translate('Response Management')] = array(
             'link'=>array(

@@ -6,10 +6,13 @@
       <h1 class="h3 panel-title"><?php echo $subtitle ?></h3>
     </div>
     <div class="panel-body">
+        <?php if(!empty($error)) {
+            echo CHtml::tag("p",array('class'=>'alert alert-danger'),$error);
+        } ?>
         <?php
-            echo CHtml::beginForm('','get');
+            echo CHtml::beginForm();
             echo CHtml::tag("div",array('class'=>"form-group"),
-                CHtml::textField('token','',array("class"=>'form-control','required'=>true))
+                CHtml::passwordField('token','',array("class"=>'form-control','required'=>true))
             );
             if(count($languageData) > 1) {
                 echo CHtml::tag("div",array('class'=>"form-group"),

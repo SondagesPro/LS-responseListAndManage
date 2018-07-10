@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 0.15.0
+ * @version 0.16.0
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -417,7 +417,19 @@ class responseListAndManage extends PluginBase {
             }
             $userHaveRight = true;
         }
-        if(!$userHaveRight && $this->_allowTokenLink($oSurvey) && App()->getRequest()->getParam('token')) {
+        if(!$userHaveRight && $this->_allowTokenLink($oSurvey) && App()->getRequest()->getPost('token')) {
+            $currentToken = App()->getRequest()->getPost('token');
+            $oToken = Token::model($surveyId)->findByToken($currentToken);
+            if($oToken) {
+                $this->_setCurrentToken($surveyId,$currentToken);
+                /* redirect to avoid CRSF when reload */
+                Yii::app()->getController()->redirect(array("plugins/direct", 'plugin' => get_class(),'sid'=>$surveyId));
+            } else {
+                $this->aRenderData['error'] = $this->_translate("This code is invalid.");
+            }
+        }
+        $currentToken = $this->_getCurrentToken($surveyId);
+        if(!$userHaveRight && $this->_allowTokenLink($oSurvey) && $currentToken) {
             $userHaveRight = true;
         }
         if(!$userHaveRight) {
@@ -453,7 +465,6 @@ class responseListAndManage extends PluginBase {
         }
         /* Access with token */
         $isManager = false;
-        $currentToken = strval(App()->getRequest()->getParam('token'));
         if($currentToken) {
             Yii::app()->user->setState('disableTokenPermission',true);
         }
@@ -488,9 +499,10 @@ class responseListAndManage extends PluginBase {
             $allowEdit = $allowSee && (($settingAllowEdit == 'all') || ($settingAllowEdit == 'admin' && $isManager));
             $allowDelete = ($settingAllowDelete == 'all') || ($settingAllowDelete == 'admin' && $isManager);
             $allowAdd = ($settingAllowAdd == 'all') || ($settingAllowAdd == 'admin' && $isManager);
+            $oTokenGroup = Token::model($surveyId)->findAll("token = :token",array(":token"=>$currentToken));
             if($tokenGroup) {
+                $oTokenGroup = Token::model($surveyId)->findAll($tokenAttributeGroup."= :group",array(":group"=>$tokenGroup));
                 if($allowSee) {
-                    $oTokenGroup = Token::model($surveyId)->findAll($tokenAttributeGroup."= :group",array(":group"=>$tokenGroup));
                     $aTokens = CHtml::listData($oTokenGroup,'token','token');
                 }
             }
@@ -1247,6 +1259,40 @@ class responseListAndManage extends PluginBase {
         return $haveGetQuestionInformation && $haveReloadAnyResponse;
     }
 
+    /**
+     * get the current token
+     * Order is : session, getQuery
+     * @param integer $surveyId
+     * @return string|null
+     */
+    private function _getCurrentToken($surveyId) {
+        if(Yii::app()->getRequest()->getQuery('token') && is_string(Yii::app()->getRequest()->getQuery('token')) ) {
+            return Yii::app()->getRequest()->getQuery('token');
+        }
+        $sessionToken = Yii::app()->session['responseListAndManageTokens'];
+        if(!empty($sessionToken[$surveyId])) {
+            return $sessionToken[$surveyId];
+        }
+    }
+
+    /**
+     * set the current token for this survey
+     * @param integer $surveyId
+     * @param string $token
+     * @return string|null
+     */
+    private function _setCurrentToken($surveyId,$token) {
+        $sessionTokens = Yii::app()->session['responseListAndManageTokens'];
+        if(empty($sessionTokens)) {
+            $sessionTokens = array();
+        }
+        $sessionTokens[$surveyId] = $token;
+        Yii::app()->session['responseListAndManageTokens'] = $sessionTokens;
+    }
+
+    /**
+     * Just a quickest and cleaner way to return json
+     */
     private function _returnJson($data)
     {
         header('Content-Type: application/json');

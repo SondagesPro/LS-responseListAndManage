@@ -247,7 +247,7 @@ class responseListAndManage extends PluginBase {
                     'multiple'=>true,
                     'placeholder'=>gT("All"),
                     'unselectValue'=>"",
-                    'options'=>$aQuestionList['options'], // In dropdon, but not in select2
+                    'options'=>$aQuestionList['options'], // In dropdown, but not in select2
                 ),
                 'selectOptions'=>array(
                     'placeholder'=>gT("All"),
@@ -504,12 +504,16 @@ class responseListAndManage extends PluginBase {
         Yii::app()->user->setState('pageSize',intval(Yii::app()->request->getParam('pageSize',Yii::app()->user->getState('pageSize',10))));
         /* Add a new */
         $tokenList = null;
+        $singleToken = null;
         if($this->_allowTokenLink($oSurvey)) {
             if(Permission::model()->hasSurveyPermission($surveyId, 'responses', 'create')) {
                 if($this->_allowMultipleResponse($oSurvey)) {
                     $oToken = Token::model($surveyId)->findAll("token is not null and token <> ''");
                 } else {
                     $oToken = Token::model($surveyId)->with('responses')->findAll("t.token is not null and t.token <> '' and responses.id is null");
+                }
+                if(count($oToken) == 1) {
+                    $singleToken = $oToken[0]->token;
                 }
                 $tokenList = CHtml::listData($oToken,'token',function($oToken){
                     return CHtml::encode(trim($oToken->firstname.' '.$oToken->lastname.' ('.$oToken->token.')'));
@@ -530,6 +534,9 @@ class responseListAndManage extends PluginBase {
                     }
                     $criteria->addInCondition('t.token',$aTokens);
                     $oToken = Token::model($surveyId)->with('responses')->findAll($criteria);
+                    if(count($oToken) == 1) {
+                        $singleToken = $oToken[0]->token;
+                    }
                     $tokenList = CHtml::listData($oTokenGroup,'token',function($oToken){
                         return CHtml::encode(trim($oToken->firstname.' '.$oToken->lastname.' ('.$oToken->token.')'));
                     },
@@ -543,21 +550,21 @@ class responseListAndManage extends PluginBase {
             }
         }
         $addNew ='';
-        if($allowAdd && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'create')) {
+        if(Permission::model()->hasSurveyPermission($surveyId, 'responses', 'create') && !$oSurvey->getHasTokensTable()) {
             $addNew = CHtml::link("<i class='fa fa-plus-circle' aria-hidden='true'></i>".$this->_translate("Create an new response"),
                 array("survey/index",'sid'=>$surveyId,'newtest'=>"Y"),
                 array('class'=>'btn btn-default btn-sm  addnew')
             );
         }
-        if($allowAdd && $tokenList && count($tokenList) == 1) {
+        if($allowAdd && $singleToken) {
             if($this->_allowMultipleResponse($oSurvey)) {
                 $addNew = CHtml::link("<i class='fa fa-plus-circle' aria-hidden='true'></i>".$this->_translate("Create an new response"),
-                    array("survey/index",'sid'=>$surveyId,'newtest'=>"Y",'srid'=>'new','token'=>array_values($tokenList)[0]),
+                    array("survey/index",'sid'=>$surveyId,'newtest'=>"Y",'srid'=>'new','token'=>$singleToken),
                     array('class'=>'btn btn-default btn-sm addnew')
                 );
             }
         }
-        if($allowAdd && $tokenList && count($tokenList) > 1) {
+        if($allowAdd && !empty($tokenList) && !$singleToken) {
             $addNew  = CHtml::beginForm(array("survey/index"),'get',array('class'=>"form-inline"));
             $addNew .= CHtml::hiddenField('sid',$surveyId);
             $addNew .= CHtml::hiddenField('newtest',"Y");

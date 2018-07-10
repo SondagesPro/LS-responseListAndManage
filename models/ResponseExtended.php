@@ -287,7 +287,6 @@ class ResponseExtended extends LSActiveRecord
 
     public static function getAnswerValue($data,$name,$type,$iQid) {
         return $data->$name;
-
     }
     public function getCompleted() {
         return (bool)$this->submitdate;

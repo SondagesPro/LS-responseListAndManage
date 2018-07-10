@@ -2,10 +2,10 @@
 .grid-view th small{display:block}
 .grid-view .table th > .sort-link {font-weight:normal}
 .grid-view .table th  {font-weight:normal}
-.grid-view .data-column{min-width:12em}
-.grid-view .column-yes-no{min-width:6em}
-.grid-view .column-id{min-width:4em}
-.grid-view .column-completed{min-width:4em}
+.grid-view .data-column{min-width:12rem;max-width:12rem;}
+.grid-view .column-yes-no{min-width:6rem}
+.grid-view .column-id{min-width:4rem}
+.grid-view .column-completed{min-width:4rem}
 
 .grid-view tbody td{max-height:1.4em;}
 .grid-view {position:relative;}
@@ -20,6 +20,9 @@
 .grid-view .table-condensed{margin-bottom:0.5em}
 .grid-view .pager,.grid-view .pagination{margin:0.5em 0}
 .grid-view .summary{padding:0.5em 0}
+.grid-view .table > thead > tr > th{vertical-align: top;}
+.grid-view th small{white-space: nowrap;overflow:hidden;max-width:12rem;
+text-overflow: ellipsis;}
 /*
 .grid-view a.update,.grid-view a.delete{opacity:0.3}
 .grid-view a.update:not([href]),.grid-view a.delete[href]{opacity:initial}

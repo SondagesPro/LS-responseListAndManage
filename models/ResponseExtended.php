@@ -277,6 +277,13 @@ class ResponseExtended extends LSActiveRecord
             $aColumns = array_merge($aColumns,$this->getTokensColumns());
         }
         $surveyColumnsInformation = new \getQuestionInformation\helpers\surveyColumnsInformation(self::$sid,App()->getLanguage());
+        $surveyColumnsInformation->downloadUrl = array(
+            'route' => "plugins/direct",
+            'params' => array(
+                'plugin' => "responseListAndManage",
+                'action' => 'download',
+            )
+        );
         $aColumns = array_merge($aColumns,$surveyColumnsInformation->allQuestionsColumns());
 
         return $aColumns;

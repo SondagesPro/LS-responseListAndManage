@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.0.0
+ * @version 1.1.0
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -379,10 +379,11 @@ class responseListAndManage extends PluginBase {
     /** @inheritdoc **/
     public function newDirectRequest()
     {
-        if(!$this->_isUsable()) {
+        if($this->getEvent()->get('target') != get_class($this)) {
             return;
         }
-        if($this->getEvent()->get('target') != get_class($this)) {
+        if(!$this->_isUsable()) {
+            // throw error ?
             return;
         }
         $this->_setConfig();
@@ -395,6 +396,10 @@ class responseListAndManage extends PluginBase {
             $this->_addUserForSurvey($surveyId);
             App()->end(); // Not needed but more clear
         }
+        if($surveyId && App()->getRequest()->getQuery('action')=='download' ) {
+            $this->_downloadFile($surveyId);
+            App()->end(); // Not needed but more clear
+        }
         if($surveyId) {
             $this->_doSurvey($surveyId);
             App()->end(); // Not needed but more clear
@@ -402,6 +407,55 @@ class responseListAndManage extends PluginBase {
         $this->_doListSurveys();
     }
 
+    /**
+     * Download a file by manager
+     */
+    private function _downloadFile($surveyId) {
+        $srid = Yii::app()->getRequest()->getParam('srid');
+        $qid = Yii::app()->getRequest()->getParam('qid');
+        $fileIndex = Yii::app()->getRequest()->getParam('fileindex');
+        $oSurvey = Survey::model()->findByPk($surveyId);
+        $oResponse = Response::model($surveyId)->findByPk($srid);
+        if(!$oResponse) {
+            throw new CHttpException(404);
+        }
+        if (Permission::model()->hasSurveyPermission($surveyId, 'responses', 'read')) {
+            if($this->_allowTokenLink($oSurvey)) {
+                throw new CHttpException(403);
+            }
+            $currentToken = $this->_getCurrentToken($surveyId);
+            if($currentToken) {
+                throw new CHttpException(403);
+            }
+            if($currentToken != $oResponse->token) {
+                throw new CHttpException(403);
+            }
+        }
+        $aQuestionFiles = $oResponse->getFiles($qid);
+        if (empty($aQuestionFiles[$fileIndex])) {
+            throw new CHttpException(404,gT("Sorry, this file was not found."));
+        }
+        $aFile = $aQuestionFiles[$fileIndex];
+        $sFileRealName = Yii::app()->getConfig('uploaddir')."/surveys/".$surveyId."/files/".$aFile['filename'];
+        if(!file_exists($sFileRealName)) {
+            throw new CHttpException(404,gT("Sorry, this file was not found."));
+        }
+        $mimeType = CFileHelper::getMimeType($sFileRealName, null, false);
+        if (is_null($mimeType)) {
+            $mimeType = "application/octet-stream";
+        }
+        @ob_clean();
+        header('Content-Description: File Transfer');
+        header('Content-Type: '.$mimeType);
+        header('Content-Disposition: attachment; filename="'.sanitize_filename(rawurldecode($aFile['name'])).'"');
+        header('Content-Transfer-Encoding: binary');
+        header('Expires: 0');
+        header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+        header('Pragma: public');
+        header('Content-Length: '.filesize($sFileRealName));
+        readfile($sFileRealName);
+        exit;
+    }
     /**
      * Managing access to survey
      */

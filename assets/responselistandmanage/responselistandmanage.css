@@ -25,6 +25,29 @@
 
 .grid-view th small{white-space: nowrap;overflow:hidden;max-width:12rem;
 text-overflow: ellipsis;}
+.grid-view .popover{min-width:12rem}
+.grid-view .column-upload-files .popover{min-width:25rem}
+.grid-view .file-list
+{
+margin: 0;
+padding: 0;
+width: 12em;
+}
+
+.grid-view .file-list dt
+{
+    float: left;
+    clear: left;
+    width: 12rem;
+    font-weight: normal;
+}
+
+.grid-view .file-list dd
+{
+    margin: 0 0 0 12rem;
+    padding: 0 0.5rem;
+    border-left: 1px solid #CCC;
+}
 /*
 .grid-view a.update,.grid-view a.delete{opacity:0.3}
 .grid-view a.update:not([href]),.grid-view a.delete[href]{opacity:initial}

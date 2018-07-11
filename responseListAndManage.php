@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.1.0
+ * @version 1.2.0
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -189,7 +189,7 @@ class responseListAndManage extends PluginBase {
         if(App()->getRequest()->getPost('save'.get_class($this))) {
             // Adding save part
             $settings = array(
-                'tokenAttributes','surveyAttributes',
+                'tokenAttributes','surveyAttributes','surveyAttributesPrimary',
                 'tokenAttributeGroup', 'tokenAttributeGroupManager', 'tokenAttributeGroupWhole',
                 'allowSee','allowEdit','allowDelete', 'allowAdd'
             );
@@ -258,6 +258,26 @@ class responseListAndManage extends PluginBase {
                     'class'=>'select2-withover ',
                 ),
                 'current'=>$this->get('surveyAttributes','Survey',$surveyId)
+            ),
+            'surveyAttributesPrimary' => array(
+                'type'=>'select',
+                'label'=> $this->_translate('Survey columns to be show at first'),
+                'help' => $this->_translate('This question are shown at first, just after the id of the reponse.'),
+                'options'=>$aQuestionList['data'],
+                'htmlOptions'=>array(
+                    'multiple'=>true,
+                    'placeholder'=>gT("None"),
+                    'unselectValue'=>"",
+                    'options'=>$aQuestionList['options'], // In dropdown, but not in select2
+                ),
+                'selectOptions'=>array(
+                    'placeholder'=>gT("None"),
+                    //~ 'templateResult'=>"formatQuestion",
+                ),
+                'controlOptions' => array(
+                    'class'=>'select2-withover ',
+                ),
+                'current'=>$this->get('surveyAttributesPrimary','Survey',$surveyId)
             ),
         );
         $aSettings[$this->_translate('Response Management token attribute usage')] = array(
@@ -694,6 +714,7 @@ class responseListAndManage extends PluginBase {
         /* Get the selected columns only */
         $tokenAttributes = $this->get('tokenAttributes','Survey',$surveyId);
         $surveyAttributes = $this->get('surveyAttributes','Survey',$surveyId);
+        $surveyAttributesPrimary = $this->get('surveyAttributesPrimary','Survey',$surveyId);
         $filteredArr = array();
         $aRestrictedColumns = array();
         if(empty($tokenAttributes)) {
@@ -708,10 +729,29 @@ class responseListAndManage extends PluginBase {
             $surveyAttributes = \getQuestionInformation\helpers\surveyColumnsInformation::getAllQuestionListData($surveyId,App()->getLanguage());
             $surveyAttributes = array_keys($surveyAttributes['data']);
         }
+        if(is_string($surveyAttributes)) {
+            $surveyAttributes = array($surveyAttributes);
+        }
+        if(empty($surveyAttributesPrimary)) {
+            $surveyAttributesPrimary = array();
+        }
+        if(is_string($surveyAttributesPrimary)) {
+            $surveyAttributesPrimary = array($surveyAttributesPrimary);
+        }
         $forcedColumns = array('buttons','id');
-        $aRestrictedColumns = array_merge($forcedColumns,$tokenAttributes,$surveyAttributes);
+        $aRestrictedColumns = array_merge($forcedColumns,$tokenAttributes,$surveyAttributes,$surveyAttributesPrimary);
         $aColumns = array_intersect_key( $aColumns, array_flip( $aRestrictedColumns ) );
-
+        if(!empty($surveyAttributesPrimary)) {
+            $surveyAttributesPrimary=array_reverse($surveyAttributesPrimary);// We add at inverse, the last must be first
+            $surveyAttributesPrimary=array_merge($surveyAttributesPrimary,array_reverse($forcedColumns)); // And need buttons and id at start
+            foreach($surveyAttributesPrimary as $columnKey) {
+                if(isset($aColumns[$columnKey])) {
+                    $aColumnPrimary = $aColumns[$columnKey];
+                    unset($aColumns[$columnKey]); // Is this needed ?
+                    array_unshift($aColumns,$aColumnPrimary);
+                }
+            }
+        }
         $this->aRenderData['allowAddUser'] = $this->_allowTokenLink($oSurvey) && ($isManager || Permission::model()->hasSurveyPermission($surveyId, 'token', 'create'));
         $this->aRenderData['addUser'] = array();
         $this->aRenderData['addUserButton'] = '';
@@ -737,6 +777,7 @@ class responseListAndManage extends PluginBase {
         }
         $this->aRenderData['lang']['Submit'] = $this->gT("Submit");
         $this->aRenderData['model'] = $mResponse;
+
         $this->aRenderData['columns'] = $aColumns;
         $this->_render('responses');
     }

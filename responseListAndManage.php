@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.2.2
+ * @version 1.2.1
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -390,7 +390,7 @@ class responseListAndManage extends PluginBase {
                 'htmlOptions'=>array(
                     'empty'=>gT("No"),
                 ),
-                'help'=>$this->_translate('Related to current token for user, and for all token in group for administrator of group.'),
+                'help'=>$this->_translate('Related to all tokens in group for user. User can always add new response if survey settings allow him to create a new response.'),
                 'current'=>$this->get('allowAdd','Survey',$surveyId,'admin')
             ),
         );
@@ -590,11 +590,11 @@ class responseListAndManage extends PluginBase {
             $oToken = Token::model($surveyId)->findByToken($currentToken);
             $tokenGroup = (!empty($tokenAttributeGroup) && !empty($oToken->$tokenAttributeGroup)) ? $oToken->$tokenAttributeGroup : null;
             $tokenAdmin = (!empty($tokenAttributeGroupManager) && !empty($oToken->$tokenAttributeGroupManager)) ? $oToken->$tokenAttributeGroupManager : null;
-            $isManager == ((bool) $tokenAdmin) && trim($tokenAdmin) !== '' && trim($tokenAdmin) !== '0';
+            $isManager = ((bool) $tokenAdmin) && trim($tokenAdmin) !== '0';
             $allowSee = ($settingAllowSee == 'all') || ($settingAllowSee == 'admin' && $isManager);
             $allowEdit = $allowSee && (($settingAllowEdit == 'all') || ($settingAllowEdit == 'admin' && $isManager));
             $allowDelete = ($settingAllowDelete == 'all') || ($settingAllowDelete == 'admin' && $isManager);
-            $allowAdd = ($settingAllowAdd == 'all') || ($settingAllowAdd == 'admin' && $isManager);
+            $allowAdd = ($settingAllowAdd == 'all') || ($settingAllowAdd == 'admin' && $isManager); // all add with any token (show token list)
             $oTokenGroup = Token::model($surveyId)->findAll("token = :token",array(":token"=>$currentToken));
             if($tokenGroup) {
                 $oTokenGroup = Token::model($surveyId)->findAll($tokenAttributeGroup."= :group",array(":group"=>$tokenGroup));
@@ -656,6 +656,7 @@ class responseListAndManage extends PluginBase {
                 $tokenList = array_merge($emptyTokenGroup,$tokenList);
             }
         }
+        
         $addNew ='';
         if(Permission::model()->hasSurveyPermission($surveyId, 'responses', 'create') && !$oSurvey->getHasTokensTable()) {
             $addNew = CHtml::link("<i class='fa fa-plus-circle' aria-hidden='true'></i>".$this->_translate("Create an new response"),
@@ -664,6 +665,14 @@ class responseListAndManage extends PluginBase {
             );
         }
         if($allowAdd && $singleToken) {
+            if($this->_allowMultipleResponse($oSurvey)) {
+                $addNew = CHtml::link("<i class='fa fa-plus-circle' aria-hidden='true'></i>".$this->_translate("Create an new response"),
+                    array("survey/index",'sid'=>$surveyId,'newtest'=>"Y",'srid'=>'new','token'=>$singleToken),
+                    array('class'=>'btn btn-default btn-sm addnew')
+                );
+            }
+        }
+        if(!$allowAdd && $currentToken) {
             if($this->_allowMultipleResponse($oSurvey)) {
                 $addNew = CHtml::link("<i class='fa fa-plus-circle' aria-hidden='true'></i>".$this->_translate("Create an new response"),
                     array("survey/index",'sid'=>$surveyId,'newtest'=>"Y",'srid'=>'new','token'=>$singleToken),
@@ -684,6 +693,7 @@ class responseListAndManage extends PluginBase {
 
             $addNew .= CHtml::endForm();
         }
+
         $this->aRenderData['addNew'] = $addNew;
         /* Contruct column */
         /* Put the button here, more easy */

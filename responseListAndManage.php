@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.2.0
+ * @version 1.2.1
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -70,13 +70,34 @@ class responseListAndManage extends PluginBase {
         if(Yii::app()->session['responseListAndManage'] != $this->getEvent()->get('surveyId')) {
             return;
         }
+        $surveyId = $this->getEvent()->get('surveyId');
+        $currentSrid = isset($_SESSION['survey_'.$surveyId]['srid']) ? $_SESSION['survey_'.$surveyId]['srid'] : null;
+        App()->getClientScript()->registerScriptFile(Yii::app()->assetManager->publish(dirname(__FILE__) . '/assets/surveymanaging/surveymanaging.js'),CClientScript::POS_BEGIN);
+
         if(Yii::app()->getRequest()->getParam("saveall")) {
             App()->getClientScript()->registerScript("justsaved","autoclose();\n",CClientScript::POS_END);
+            if($currentSrid) {
+                $oSurvey = Survey::model()->findByPk($surveyId);
+                if($oSurvey->active == "Y") {
+                    $step = isset($_SESSION['survey_'.$surveyId]['step']) ? $_SESSION['survey_'.$surveyId]['step'] : 0;
+                    LimeExpressionManager::JumpTo($step, false);
+                    $oResponse = SurveyDynamic::model($surveyId)->findByPk($currentSrid);
+                    $oResponse->lastpage = $step; // Or restart at 1st page ?
+                    // Save must force always to not submitted (draft)
+                    $oResponse->submitdate = null;
+                    $oResponse->save();
+                }
+                killSurveySession($surveyId);
+                \reloadAnyResponse\models\surveySession::model()->deleteByPk(array('sid'=>$surveyId,'srid'=>$currentSrid));
+                if(Yii::getPathOfAlias('renderMessage')) {
+                    \renderMessage\messageHelper::renderAlert($this->_translate("Your responses was saved with success, you can close this windows."));
+                }
+            }
         }
         if(Yii::app()->getRequest()->getParam("clearall")=="clearall" && Yii::app()->getRequest()->getParam("confirm-clearall")) {
             App()->getClientScript()->registerScript("justsaved","autoclose();\n",CClientScript::POS_END);
+            \reloadAnyResponse\models\surveySession::model()->deleteByPk(array('sid'=>$surveyId,'srid'=>$currentSrid));
         }
-        App()->getClientScript()->registerScriptFile(Yii::app()->assetManager->publish(dirname(__FILE__) . '/assets/surveymanaging/surveymanaging.js'),CClientScript::POS_BEGIN);
 
     }
     /**

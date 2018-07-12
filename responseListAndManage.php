@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.2.1
+ * @version 1.2.2
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -608,7 +608,6 @@ class responseListAndManage extends PluginBase {
                 throw new CHttpException(403, $this->_translate('You are not allowed to use reponse management with this token.'));
             }
         }
-
         Yii::app()->user->setState('pageSize',intval(Yii::app()->request->getParam('pageSize',Yii::app()->user->getState('pageSize',10))));
         /* Add a new */
         $tokenList = null;
@@ -636,7 +635,7 @@ class responseListAndManage extends PluginBase {
                 if($allowAdd) { /* Adding for all group */
                     $criteria = new CDbCriteria();
                     if($this->_allowMultipleResponse($oSurvey)) {
-                        $criteria->condition = "token is not null and token <> ''";
+                        $criteria->condition = "t.token is not null and t.token <> ''";
                     } else {
                         $criteria->condition = "t.token is not null and t.token <> '' and responses.id is null";
                     }

@@ -797,15 +797,15 @@ class responseListAndManage extends PluginBase {
         $this->aRenderData['lang']['Close'] = gT("Close");
         //$this->aRenderData['lang']['Delete'] = $this->_translate("Delete");
         if($oSurvey->allowprev == "Y") {
-            $this->aRenderData['lang']['Previous'] = $this->gT("Previous");
+            $this->aRenderData['lang']['Previous'] = gT("Previous");
         }
         if($oSurvey->allowsave == "Y") { // We don't need to test token, we don't shown default save part …
-            $this->aRenderData['lang']['Save'] = $this->gT("Save");
+            $this->aRenderData['lang']['Save'] = gT("Save");
         }
         if($oSurvey->format!="A") {
-            $this->aRenderData['lang']['Next'] = $this->gT("Next");
+            $this->aRenderData['lang']['Next'] = gT("Next");
         }
-        $this->aRenderData['lang']['Submit'] = $this->gT("Submit");
+        $this->aRenderData['lang']['Submit'] = gT("Submit");
         $this->aRenderData['model'] = $mResponse;
 
         $this->aRenderData['columns'] = $aColumns;
@@ -916,9 +916,9 @@ class responseListAndManage extends PluginBase {
         $oToken->save();
 
         if(!$this->_sendMail($surveyId,$oToken,App()->getRequest()->getParam('emailsubject'),App()->getRequest()->getParam('emailbody'))) {
-            $html = sprintf($this->gT("Token created but unable to send the email, token code is %s"),CHtml::tag('code',array(),$oToken->token));
+            $html = sprintf($this->_translate("Token created but unable to send the email, token code is %s"),CHtml::tag('code',array(),$oToken->token));
             $html.= CHtml::tag("hr");
-            $html.= CHtml::tag("strong",array('class'=>'block'),$this->gT('Error return by mailer:'));
+            $html.= CHtml::tag("strong",array('class'=>'block'),$this->_translate('Error return by mailer:'));
             $html.= CHtml::tag("div",array(),$this->mailError);
             $this->_returnJson(array(
                 'status'=>'warning',
@@ -1122,19 +1122,19 @@ class responseListAndManage extends PluginBase {
             if($tokenAttributeGroup) {
                 $addUser["attributeGroup"] = $aAllAttributes[$tokenAttributeGroup];
                 $addUser["attributeGroup"]['attribute'] = $tokenAttributeGroup;
-                $addUser["attributeGroup"]['caption'] = ($aSurveyInfo['attributecaptions'][$tokenAttributeGroup] ? $aSurveyInfo['attributecaptions'][$tokenAttributeGroup] : ($aAllAttributes[$tokenAttributeGroup]['description'] ? $aAllAttributes[$tokenAttributeGroup]['description'] : $this->gT("Is a group manager")));
+                $addUser["attributeGroup"]['caption'] = ($aSurveyInfo['attributecaptions'][$tokenAttributeGroup] ? $aSurveyInfo['attributecaptions'][$tokenAttributeGroup] : ($aAllAttributes[$tokenAttributeGroup]['description'] ? $aAllAttributes[$tokenAttributeGroup]['description'] : $this->_translate("Is a group manager")));
             }
             if($tokenAttributeGroupManager) {
                 $addUser["tokenAttributeGroupManager"] = $aAllAttributes[$tokenAttributeGroup];
                 $addUser["tokenAttributeGroupManager"]['attribute'] = $tokenAttributeGroup;
-                $addUser["tokenAttributeGroupManager"]['caption'] = ($aSurveyInfo['attributecaptions'][$tokenAttributeGroupManager] ? $aSurveyInfo['attributecaptions'][$tokenAttributeGroupManager] : ($aAllAttributes[$tokenAttributeGroupManager]['description'] ? $aAllAttributes[$tokenAttributeGroupManager]['description'] : $this->gT("Is a group manager")));
+                $addUser["tokenAttributeGroupManager"]['caption'] = ($aSurveyInfo['attributecaptions'][$tokenAttributeGroupManager] ? $aSurveyInfo['attributecaptions'][$tokenAttributeGroupManager] : ($aAllAttributes[$tokenAttributeGroupManager]['description'] ? $aAllAttributes[$tokenAttributeGroupManager]['description'] : $this->_translate("Is a group manager")));
             }
         }
         $emailType = 'register';
         $addUser['email'] = array(
             'subject' => $aSurveyInfo['email_'.$emailType.'_subj'],
             'body' => str_replace("<br />","<br>",$aSurveyInfo['email_'.$emailType]),
-            'help' => sprintf($this->gT("You can use token information like %s or %s, %s was replaced by the url for managing response."),"{FIRSTNAME}","{ATTRIBUTE_1}","{SURVEYURL}"),
+            'help' => sprintf($this->_translate("You can use token information like %s or %s, %s was replaced by the url for managing response."),"{FIRSTNAME}","{ATTRIBUTE_1}","{SURVEYURL}"),
             'html' => $oSurvey->htmlemail == "Y",
         );
         
@@ -1354,18 +1354,6 @@ class responseListAndManage extends PluginBase {
     {
         return $this->_allowTokenLink($oSurvey) && $oSurvey->alloweditaftercompletion == "Y" && $oSurvey->tokenanswerspersistence != "Y";
     }
-    /**
-     * Translation : use another function name for poedit, and set escape mode to needed one
-     * @see parent::gT
-     * @param string $sToTranslate The message that are being translated
-     * @param string $sEscapeMode
-     * @param string $sLanguage
-     * @return string
-     */
-    private function _translate($string, $sEscapeMode = 'unescaped', $sLanguage = null) {
-
-        return $this->gT($string, $sEscapeMode, $sLanguage);
-    }
 
     /**
      * Check if getQuestionInformation plugin is here and activated
@@ -1436,4 +1424,32 @@ class responseListAndManage extends PluginBase {
         }
         Yii::log("[".get_class($this)."] ".$message, $level, 'vardump');
     }
+
+    /**
+     * get translation
+     * @param string
+     * @return string
+     */
+    private function _translate($string){
+        return Yii::t('',$string,array(),get_class($this));
+    }
+
+    /**
+     * Add this translation just after loaded all plugins
+     * @see event afterPluginLoad
+     */
+    public function afterPluginLoad(){
+        // messageSource for this plugin:
+        $messageSource=array(
+            'class' => 'CGettextMessageSource',
+            'cacheID' => get_class($this).'Lang',
+            'cachingDuration'=>3600,
+            'forceTranslation' => true,
+            'useMoFile' => true,
+            'basePath' => __DIR__ . DIRECTORY_SEPARATOR.'locale',
+            'catalog'=>'messages',// default from Yii
+        );
+        Yii::app()->setComponent(get_class($this),$messageSource);
+    }
+
 }

@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: responseListAndManage\n"
-"POT-Creation-Date: 2018-06-21 17:21+0200\n"
+"POT-Creation-Date: 2018-07-20 09:19+0200\n"
 "PO-Revision-Date: 2018-06-21 16:36+0200\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -18,68 +18,199 @@ msgstr ""
 "X-Poedit-SearchPath-0: .\n"
 "X-Poedit-SearchPathExcluded-0: locale\n"
 
-#: responseListAndManage.php:102
-msgid "Response alternate management"
+#: responseListAndManage.php:93
+msgid "Your responses was saved with success, you can close this windows."
 msgstr ""
 
-#: responseListAndManage.php:106
-msgid "Token attributes to show in management"
+#: responseListAndManage.php:136
+msgid "Access to response alternate management"
 msgstr ""
 
-#: responseListAndManage.php:120
-msgid "Survey columns to be show in management"
+#: responseListAndManage.php:140
+msgid "Managing response alternate management"
 msgstr ""
 
-#: responseListAndManage.php:139
-msgid "Token attributes for group"
-msgstr ""
-
-#: responseListAndManage.php:142 responseListAndManage.php:151
-msgid "None"
-msgstr ""
-
-#: responseListAndManage.php:148
-msgid "Token attributes for group manager"
-msgstr ""
-
-#: responseListAndManage.php:157
-msgid "User of group can see and manage all group response"
-msgstr ""
-
-#: responseListAndManage.php:158
-msgid "Else only group manager can manage other group response."
-msgstr ""
-
-#: responseListAndManage.php:163
-msgid "Allow deletion of response"
+#: responseListAndManage.php:156
+msgid "Managing Response management"
 msgstr ""
 
 #: responseListAndManage.php:176
+msgid "Response management"
+msgstr ""
+
+#: responseListAndManage.php:226
+msgid "Token link and creation work in managing."
+msgstr ""
+
+#: responseListAndManage.php:228
+msgid "No Token link and creation can be done in managing. Survey is anonymous or token table didn‘t exist."
+msgstr ""
+
+#: responseListAndManage.php:231
+msgid "You can create new response for all token."
+msgstr ""
+
+#: responseListAndManage.php:233
+msgid "You can not create new response for all token. Only one response is available for each token (see participation setting panel)."
+msgstr ""
+
+#: responseListAndManage.php:239
+msgid "Response Management"
+msgstr ""
+
+#: responseListAndManage.php:242
+msgid "Link to response alternate management"
+msgstr ""
+
+#: responseListAndManage.php:249
+msgid "Response Management table"
+msgstr ""
+
+#: responseListAndManage.php:252
+msgid "Token attributes to show in management"
+msgstr ""
+
+#: responseListAndManage.php:266
+msgid "Survey columns to be show in management"
+msgstr ""
+
+#: responseListAndManage.php:285
+msgid "Survey columns to be show at first"
+msgstr ""
+
+#: responseListAndManage.php:286
+msgid "This question are shown at first, just after the id of the reponse."
+msgstr ""
+
+#: responseListAndManage.php:304
+msgid "Response Management token attribute usage"
+msgstr ""
+
+#: responseListAndManage.php:307
+msgid "Token attributes for group"
+msgstr ""
+
+#: responseListAndManage.php:310 responseListAndManage.php:319
+msgid "None"
+msgstr ""
+
+#: responseListAndManage.php:316
+msgid "Token attributes for group manager"
+msgstr ""
+
+#: responseListAndManage.php:330
+msgid "Response Management access and right"
+msgstr ""
+
+#: responseListAndManage.php:334
+msgid "Currently, for LimeSurvey admin user : only response access was used. Token access are not tested."
+msgstr ""
+
+#: responseListAndManage.php:335
+msgid "For user, except for No : they always have same rights than other, for example if you allow delete to admin user, an user with token can delete his response with token."
+msgstr ""
+
+#: responseListAndManage.php:336
+msgid "To disable access for user with token you can set this settings to No or only for LimeSurvey admin."
+msgstr ""
+
+#: responseListAndManage.php:342
+msgid "Allow view response of group"
+msgstr ""
+
+#: responseListAndManage.php:351
+msgid "You can disable all access with token here."
+msgstr ""
+
+#: responseListAndManage.php:356
+msgid "Allow edit response of group"
+msgstr ""
+
+#: responseListAndManage.php:365
+msgid "Except with No, user with token can always edit his response."
+msgstr ""
+
+#: responseListAndManage.php:370
+msgid "Allow deletion of response"
+msgstr ""
+
+#: responseListAndManage.php:379
+msgid "Except with No, user with token can always delete his response."
+msgstr ""
+
+#: responseListAndManage.php:384
 msgid "Allow add response"
 msgstr ""
 
-#: responseListAndManage.php:308 responseListAndManage.php:314
-#: responseListAndManage.php:325 responseListAndManage.php:332
+#: responseListAndManage.php:393
+msgid "Related to all tokens in group for user. User can always add new response if survey settings allow him to create a new response."
+msgstr ""
+
+#: responseListAndManage.php:524
+msgid "This code is invalid."
+msgstr ""
+
+#: responseListAndManage.php:608
+msgid "You are not allowed to use reponse management with this token."
+msgstr ""
+
+#: responseListAndManage.php:662 responseListAndManage.php:669
+#: responseListAndManage.php:677 responseListAndManage.php:689
 msgid "Create an new response"
 msgstr ""
 
-#: responseListAndManage.php:388
-msgid "Delete"
+#: responseListAndManage.php:789
+msgid "Create an new user"
 msgstr ""
 
-#: responseListAndManage.php:415
-msgid "No right to delete this reponse."
+#: responseListAndManage.php:819 responseListAndManage.php:878
+msgid "Invalid survey id."
 msgstr ""
 
-#: responseListAndManage.php:419
+#: responseListAndManage.php:823
 msgid "Invalid response id."
 msgstr ""
 
-#: responseListAndManage.php:448
+#: responseListAndManage.php:861
+msgid "No right to delete this reponse."
+msgstr ""
+
+#: responseListAndManage.php:881
+msgid "Token creation is disable for this survey."
+msgstr ""
+
+#: responseListAndManage.php:899
+msgid "No right to create new token in this survey."
+msgstr ""
+
+#: responseListAndManage.php:919
+#, php-format
+msgid "Token created but unable to send the email, token code is %s"
+msgstr ""
+
+#: responseListAndManage.php:921
+msgid "Error return by mailer:"
+msgstr ""
+
+#: responseListAndManage.php:952 responseListAndManage.php:956
+#, php-format
+msgid "Unable to use this plugin, you need %s plugin."
+msgstr ""
+
+#: responseListAndManage.php:974
 #, php-format
 msgid "Access link for survey listing : %s."
 msgstr ""
 
-#: responseListAndManage.php:457
+#: responseListAndManage.php:983
 msgid "Template to be used"
+msgstr ""
+
+#: responseListAndManage.php:1125 responseListAndManage.php:1130
+msgid "Is a group manager"
+msgstr ""
+
+#: responseListAndManage.php:1137
+#, php-format
+msgid "You can use token information like %s or %s, %s was replaced by the url for managing response."
 msgstr ""

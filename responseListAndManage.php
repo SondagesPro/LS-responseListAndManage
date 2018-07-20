@@ -55,8 +55,11 @@ class responseListAndManage extends PluginBase {
         /* API dependant */
         $this->subscribe('getPluginTwigPath');
 
-        /* Need some evenbt in iframe survey */
+        /* Need some event in iframe survey */
         $this->subscribe('beforeSurveyPage');
+
+        /* Need for own language system */
+        $this->subscribe('afterPluginLoad');
     }
 
     /**

@@ -574,7 +574,10 @@ class responseListAndManage extends PluginBase {
         $currentToken = $this->_getCurrentToken($surveyId);
         if(!$userHaveRight && $this->_allowTokenLink($oSurvey) && $currentToken) {
             $userHaveRight = true;
+            $this->_setCurrentToken($surveyId,$currentToken);
+            Yii::app()->user->setState('disableTokenPermission',true);
         }
+        
         if(!$userHaveRight) {
             if($this->_allowTokenLink($oSurvey) && !Yii::app()->getRequest()->getParam('admin')) {
                 $this->_showTokenForm($surveyId);
@@ -608,9 +611,6 @@ class responseListAndManage extends PluginBase {
         }
         /* Access with token */
         $isManager = false;
-        if($currentToken) {
-            Yii::app()->user->setState('disableTokenPermission',true);
-        }
         $tokenAttributeGroup = $this->get('tokenAttributeGroup','Survey',$surveyId);
         $tokenAttributeGroupManager = $this->get('tokenAttributeGroupManager','Survey',$surveyId);
 
@@ -752,7 +752,7 @@ class responseListAndManage extends PluginBase {
             $updateButtonUrl = 'App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"srid"=>$data["id"],"newtest"=>"Y"))';
             if($currentToken) {
                 if( $allowEdit ) {
-                    $updateButtonUrl = '("'.$currentToken.'" == $data["token"]) ? App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"token"=>"'.$currentToken.'","srid"=>$data["id"],"newtest"=>"Y")) : App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"currenttoken"=>"'.$currentToken.'","srid"=>$data["id"],"newtest"=>"Y"))';
+                    $updateButtonUrl = 'App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"token"=>"'.$currentToken.'","srid"=>$data["id"],"newtest"=>"Y"))';
                 } elseif($settingAllowEdit) {
                     $updateButtonUrl = '("'.$currentToken.'" == $data["token"]) ? App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"token"=>"'.$currentToken.'","srid"=>$data["id"],"newtest"=>"Y")) : null';
                 } else {
@@ -1116,7 +1116,7 @@ class responseListAndManage extends PluginBase {
         $this->aRenderData['summary'] = $aResult['summary'];
         $this->aRenderData['subtitle'] = gT('Log in');
         /* Bad hack … */
-        header("HTTP/1.1 401 Unauthorized");
+        //~ header("HTTP/1.1 401 Unauthorized");
         $this->_render('login');
     }
 
@@ -1354,8 +1354,8 @@ class responseListAndManage extends PluginBase {
                 );
             }
             $renderTwig['aSurveyInfo']['active'] = 'Y'; // Didn't show the default warning
-            $renderTwig['aSurveyInfo']['content'] = $content;
             $renderTwig['aSurveyInfo']['include_content'] = 'content';
+            $renderTwig['htmlcontent'] = $content;
             $assetUrl = Yii::app()->assetManager->publish(dirname(__FILE__) . '/assets/responselistandmanage');
             App()->getClientScript()->registerCssFile($assetUrl."/responselistandmanage.css");
             App()->getClientScript()->registerScriptFile(Yii::app()->assetManager->publish(dirname(__FILE__) . '/assets/responselistandmanage/responselistandmanage.js'));
@@ -1566,12 +1566,12 @@ class responseListAndManage extends PluginBase {
       if(!$this->getEvent()->get("controller") == "survey") {
         return;
       }
-      $token = Yii::app()->getRequest()->getQuery("currenttoken");
+      $token = Yii::app()->getRequest()->getQuery("token");
       if(!$token) {
         return;
       }
       $surveyId = Yii::app()->getRequest()->getParam("sid");
-      $responseid = Yii::app()->getRequest()->getParam("srid");
+      $responseid = Yii::app()->getRequest()->getQuery("srid");
       if(!$responseid || $responseid=="new") {
         return;
       }
@@ -1605,15 +1605,14 @@ class responseListAndManage extends PluginBase {
       }
       /* OK get it */
       $aTokens = $this->_getTokensList($surveyId,$token);
-      if($oResponseToken && !empty($oResponseToken->token)) {
-        if($oResponseToken->token == $token) {
-          return;
-        }
-        if(in_array($token,$aTokens)) {
-          $_GET['token'] = $oResponseToken->token;
-          $_POST['token'] = $oResponseToken->token;
-        }
+      if($oResponseToken->token == $token) {
+        return;
       }
+      if(in_array($token,$aTokens)) {
+        $oResponseToken->token = $token;
+        $oResponseToken->save();
+      }
+
     }
     private function _getTokensList($surveyId,$token)
     {

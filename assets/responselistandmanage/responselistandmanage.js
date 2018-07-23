@@ -30,7 +30,7 @@ $(document).on("ajaxUpdated","#responses-grid",function(event){
             return this.$element[0];
         },
         content: function() {
-            return $(this).html();
+            return $(this).html().trim();
         },
         title : function() {
             return null;
@@ -42,6 +42,7 @@ $(document).on('show.bs.popover','#responses-grid .answer-value', function () {
 })
 $(document).on("click","a.update[href]",function(event){
     event.preventDefault();
+    $('#responses-grid .answer-value').popover('hide');
     $("iframe#survey-update").attr("src",$(this).attr("href"));
     $("#modal-survey-update").modal('show');
     updateHeightModalbody("#modal-survey-update");
@@ -49,6 +50,7 @@ $(document).on("click","a.update[href]",function(event){
 
 $(document).on("click","a.addnew",function(event){
     event.preventDefault();
+    $('#responses-grid .answer-value').popover('hide');
     $("iframe#survey-update").attr("src",$(this).attr("href"));
     $("#modal-survey-update").modal('show');
     updateHeightModalbody("#modal-survey-update");
@@ -56,6 +58,7 @@ $(document).on("click","a.addnew",function(event){
 
 $(document).on("click","button.addnew",function(event){
     event.preventDefault();
+    $('#responses-grid .answer-value').popover('hide');
     if(!$("#token").val()) {
         $("#token").focus();
         // TODO : show a warning error
@@ -74,6 +77,7 @@ $(document).on("click","button.addnew",function(event){
 
 $(document).on("click","[name='adduser']",function(event){
     event.preventDefault();
+    $('#responses-grid .answer-value').popover('hide');
     $(".wysihtml5-toolbar .btn").each(function(){ /* bad hack */
         $(this).addClass("btn-default btn-xs");
     });
@@ -82,6 +86,7 @@ $(document).on("click","[name='adduser']",function(event){
 });
 $(document).on("click","#modal-create-token button:submit",function(event,data){
     data = $.extend({source:null}, data);
+    $('#responses-grid .answer-value').popover('hide');
     if(data.source == 'control') {
         return;
     }
@@ -128,7 +133,7 @@ $(document).on("click","#modal-create-token button:submit",function(event,data){
 function updateHeightModalbody(modal)
 {
     var navbarFixed=0;
-    if(false && (".navbar-fixed-top").length) {
+    if($(".navbar-fixed-top").length) {
       navbarFixed=$(".navbar-fixed-top").outerHeight();
     }
     var modalHeader=$(modal).find(".modal-header").outerHeight();
@@ -178,6 +183,7 @@ $(document).on('surveyiniframe:autoclose',function(event,data) {
 });
 
 $(document).on('click',"button[data-action]:not('disabled')",function(e) {
+    $('#responses-grid .answer-value').popover('hide');
     //console.log($(this).data($("#survey-update").contents().find("button:submit[value='"+$(this).data('action')+"']").length));
     //$("#survey-update").contents().find("form#limesurvey button:submit[value='"+$(this).data('action')+"']").last().click();
     //~ if($(this).data('action')=='saveall') {

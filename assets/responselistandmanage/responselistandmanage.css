@@ -27,7 +27,9 @@
 
 .grid-view th small{white-space: nowrap;overflow:hidden;max-width:12rem;
 text-overflow: ellipsis;}
-.grid-view .popover{min-width:12rem}
+.grid-view .popover{min-width:12rem;max-width:36em;}
+.grid-view .popover-content{white-space: pre-line;}
+
 .grid-view .column-upload-files .popover{min-width:25rem}
 .grid-view .file-list
 {

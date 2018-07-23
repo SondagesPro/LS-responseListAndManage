@@ -33,7 +33,7 @@ class responseListAndManage extends PluginBase {
         ),
         'template' => array(
             'type' => 'info',
-            'default' => 'vanilla',
+            'default' => 'default',
             'content' => 'To be updated',
         ),
     );
@@ -57,6 +57,8 @@ class responseListAndManage extends PluginBase {
 
         /* Need some event in iframe survey */
         $this->subscribe('beforeSurveyPage');
+        /* Replace token by the valid one before beforeSurveyPage @todo */
+        $this->subscribe('beforeControllerAction');
 
         /* Need for own language system */
         $this->subscribe('afterPluginLoad');
@@ -214,6 +216,7 @@ class responseListAndManage extends PluginBase {
             // Adding save part
             $settings = array(
                 'tokenAttributes','surveyAttributes','surveyAttributesPrimary',
+                'tokenAttributesHideToUser','surveyAttributesHideToUser',
                 'tokenAttributeGroup', 'tokenAttributeGroupManager', 'tokenAttributeGroupWhole',
                 'allowSee','allowEdit','allowDelete', 'allowAdd'
             );
@@ -302,6 +305,45 @@ class responseListAndManage extends PluginBase {
                     'class'=>'select2-withover ',
                 ),
                 'current'=>$this->get('surveyAttributesPrimary','Survey',$surveyId)
+            ),
+            'tokenAttributesHideToUser' => array(
+                'type'=>'select',
+                'label'=> $this->_translate('Survey or token columns to be hidden to user (admin or user)'),
+                'help' => $this->_translate('This column are shown only to admin.'),
+                'options'=>$this->_getTokensAttributeList($surveyId,'tokens.'),
+                'htmlOptions'=>array(
+                    'multiple'=>true,
+                    'placeholder'=>gT("None"),
+                    'unselectValue'=>"",
+                ),
+                'selectOptions'=>array(
+                    'placeholder'=>gT("None"),
+                    //~ 'templateResult'=>"formatQuestion",
+                ),
+                'controlOptions' => array(
+                    'class'=>'select2-withover ',
+                ),
+                'current'=>$this->get('tokenAttributesHideToUser','Survey',$surveyId)
+            ),
+            'surveyAttributesHideToUser' => array(
+                'type'=>'select',
+                'label'=> $this->_translate('Survey or token columns to be hidden to user (admin or user)'),
+                'help' => $this->_translate('This column are shown only to admin.'),
+                'options'=>$aQuestionList['data'],
+                'htmlOptions'=>array(
+                    'multiple'=>true,
+                    'placeholder'=>gT("None"),
+                    'unselectValue'=>"",
+                    'options'=>$aQuestionList['options'], // In dropdown, but not in select2
+                ),
+                'selectOptions'=>array(
+                    'placeholder'=>gT("None"),
+                    //~ 'templateResult'=>"formatQuestion",
+                ),
+                'controlOptions' => array(
+                    'class'=>'select2-withover ',
+                ),
+                'current'=>$this->get('surveyAttributesHideToUser','Survey',$surveyId)
             ),
         );
         $aSettings[$this->_translate('Response Management token attribute usage')] = array(
@@ -397,6 +439,7 @@ class responseListAndManage extends PluginBase {
                 'current'=>$this->get('allowAdd','Survey',$surveyId,'admin')
             ),
         );
+
         $aData['pluginClass']=get_class($this);
         $aData['surveyId']=$surveyId;
         $aData['title'] = "";
@@ -505,6 +548,7 @@ class responseListAndManage extends PluginBase {
      */
     private function _doSurvey($surveyId)
     {
+        $this->aRenderData['surveyId'] = $surveyId;
         Yii::import('application.helpers.viewHelper');
         $oSurvey=Survey::model()->findByPk($surveyId);
         /* Must fix rights */
@@ -582,7 +626,7 @@ class responseListAndManage extends PluginBase {
         $tokenAdmin = null;
         $isManager = false;
         /* Set the default according to Permission */
-        if(Permission::getUserId()) { /* When testing is done move this after */
+        if($this->_isLsAdmin()) { /* When testing is done move this after */
             $allowSee = $settingAllowSee && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'read');
             $allowEdit = $settingAllowEdit && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'update');
             $allowDelete = $settingAllowDelete && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'delete');
@@ -611,7 +655,7 @@ class responseListAndManage extends PluginBase {
                 throw new CHttpException(403, $this->_translate('You are not allowed to use reponse management with this token.'));
             }
         }
-        Yii::app()->user->setState('pageSize',intval(Yii::app()->request->getParam('pageSize',Yii::app()->user->getState('pageSize',10))));
+        Yii::app()->user->setState('pageSize',intval(Yii::app()->request->getParam('pageSize',Yii::app()->user->getState('pageSize',50))));
         /* Add a new */
         $tokenList = null;
         $singleToken = null;
@@ -661,7 +705,7 @@ class responseListAndManage extends PluginBase {
         }
         
         $addNew ='';
-        if(Permission::model()->hasSurveyPermission($surveyId, 'responses', 'create') && !$oSurvey->getHasTokensTable()) {
+        if(Permission::model()->hasSurveyPermission($surveyId, 'responses', 'create') && !$this->_surveyHasTokens($oSurvey)) {
             $addNew = CHtml::link("<i class='fa fa-plus-circle' aria-hidden='true'></i>".$this->_translate("Create an new response"),
                 array("survey/index",'sid'=>$surveyId,'newtest'=>"Y"),
                 array('class'=>'btn btn-default btn-sm  addnew')
@@ -708,9 +752,9 @@ class responseListAndManage extends PluginBase {
             $updateButtonUrl = 'App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"srid"=>$data["id"],"newtest"=>"Y"))';
             if($currentToken) {
                 if( $allowEdit ) {
-                    $updateButtonUrl = 'App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"token"=>$data["token"],"srid"=>$data["id"],"newtest"=>"Y"))';
+                    $updateButtonUrl = '("'.$currentToken.'" == $data["token"]) ? App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"token"=>"'.$currentToken.'","srid"=>$data["id"],"newtest"=>"Y")) : App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"currenttoken"=>"'.$currentToken.'","srid"=>$data["id"],"newtest"=>"Y"))';
                 } elseif($settingAllowEdit) {
-                    $updateButtonUrl = '("'.$currentToken.'" == $data["token"]) ? App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"token"=>$data["token"],"srid"=>$data["id"],"newtest"=>"Y")) : null';
+                    $updateButtonUrl = '("'.$currentToken.'" == $data["token"]) ? App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"token"=>"'.$currentToken.'","srid"=>$data["id"],"newtest"=>"Y")) : null';
                 } else {
                     $updateButtonUrl = '';
                 }
@@ -720,7 +764,7 @@ class responseListAndManage extends PluginBase {
         if(Permission::model()->hasSurveyPermission($surveyId, 'responses', 'delete')) {
             $deleteButtonUrl = 'App()->createUrl("plugins/direct",array("plugin"=>"'.get_class().'","sid"=>'.$surveyId.',"delete"=>$data["id"]))';
         }
-        if($this->_allowTokenLink($oSurvey) && !$oSurvey->getIsAnonymized()) {
+        if($this->_allowTokenLink($oSurvey) && $oSurvey->anonymized != 'Y') {
             $deleteButtonUrl = 'App()->createUrl("plugins/direct",array("plugin"=>"'.get_class().'","sid"=>'.$surveyId.',"token"=>$data["token"],"delete"=>$data["id"]))';
             if($currentToken) {
                 if( $allowDelete ) {
@@ -771,8 +815,20 @@ class responseListAndManage extends PluginBase {
         if(is_string($surveyAttributesPrimary)) {
             $surveyAttributesPrimary = array($surveyAttributesPrimary);
         }
+
         $forcedColumns = array('buttons','id');
         $aRestrictedColumns = array_merge($forcedColumns,$tokenAttributes,$surveyAttributes,$surveyAttributesPrimary);
+        if($currentToken) {
+            $tokenAttributesHideToUser = $this->get('tokenAttributesHideToUser','Survey',$surveyId);
+            if(!empty($tokenAttributesHideToUser)) {
+                $aRestrictedColumns = array_diff($aRestrictedColumns,$tokenAttributesHideToUser);
+            }
+            $surveyAttributesHideToUser = $this->get('surveyAttributesHideToUser','Survey',$surveyId);
+            if(!empty($surveyAttributesHideToUser)) {
+                $aRestrictedColumns = array_diff($aRestrictedColumns,$surveyAttributesHideToUser);
+                $surveyAttributesPrimary = array_diff($surveyAttributesPrimary,$surveyAttributesHideToUser);
+            }
+        }
         $aColumns = array_intersect_key( $aColumns, array_flip( $aRestrictedColumns ) );
         if(!empty($surveyAttributesPrimary)) {
             $surveyAttributesPrimary=array_reverse($surveyAttributesPrimary);// We add at inverse, the last must be first
@@ -785,6 +841,7 @@ class responseListAndManage extends PluginBase {
                 }
             }
         }
+
         $this->aRenderData['allowAddUser'] = $this->_allowTokenLink($oSurvey) && ($isManager || Permission::model()->hasSurveyPermission($surveyId, 'token', 'create'));
         $this->aRenderData['addUser'] = array();
         $this->aRenderData['addUserButton'] = '';
@@ -832,7 +889,7 @@ class responseListAndManage extends PluginBase {
             $allowed = true;
         }
         /* Is not an admin */
-        if(!$allowed && $this->get('allowDelete','Survey',$surveyId,'admin') && $oSurvey->getHasTokenTable()) {
+        if(!$allowed && $this->get('allowDelete','Survey',$surveyId,'admin') && $this->_surveyHasTokens($oSurvey)) {
             $whoIsAllowed = $this->get('allowDelete','Survey',$surveyId,'admin');
             $token = App()->getRequest()->getQuery('token');
             $tokenAttributeGroup = $this->get('tokenAttributeGroup','Survey',$surveyId,null);
@@ -930,12 +987,13 @@ class responseListAndManage extends PluginBase {
         }
         $this->_returnJson(array('status'=>'success'));
     }
+
     /**
      * Managing list of Surveys
      */
     private function _doListSurveys()
     {
-        $iAdminId = Permission::getUserId();
+        $iAdminId = $this->_isLsAdmin();
         if($iAdminId) {
             $this->_showSurveyList();
         }
@@ -975,11 +1033,16 @@ class responseListAndManage extends PluginBase {
         $accesUrl = Yii::app()->createUrl("plugins/direct", array('plugin' => get_class()));
         $accesHtmlUrl = CHtml::link($accesUrl,$accesUrl);
         $pluginSettings['information']['content'] = sprintf($this->_translate("Access link for survey listing : %s."),$accesHtmlUrl);
-        $oTemplates = TemplateConfiguration::model()->findAll(array(
-            'condition'=>'sid IS NULL',
-            'order'=>'template_name',
-        ));
-        $aTemplates = CHtml::listData($oTemplates,'template_name','template_name');
+        if(version_compare(Yii::app()->getConfig('versionnumber'),"3",">=")) {
+            $oTemplates = TemplateConfiguration::model()->findAll(array(
+                'condition'=>'sid IS NULL',
+                'order'=>'template_name',
+            ));
+            $aTemplates = CHtml::listData($oTemplates,'template_name','template_name');
+        }
+        if(version_compare(Yii::app()->getConfig('versionnumber'),"3","<")) {
+          $aTemplates = array_keys(Template::getTemplateList());
+        }
         $pluginSettings['template'] = array_merge($pluginSettings['template'],array(
             'type' => 'select',
             'options'=>$aTemplates,
@@ -998,13 +1061,16 @@ class responseListAndManage extends PluginBase {
             $lang = App()->getConfig('defaultlang');
         }
         App()->setLanguage($lang);
+        if(version_compare(Yii::app()->getConfig('versionnumber'),"3","<")) {
+            App()->user->setReturnUrl(App()->request->requestUri);
+            App()->getController()->redirect(array('/admin/authentication/sa/login'));
+        }
         Yii::import('application.controllers.admin.authentication',1);
         $aResult = Authentication::prepareLogin();
         $succeeded = isset($aResult[0]) && $aResult[0] == 'success';
         $failed = isset($aResult[0]) && $aResult[0] == 'failed';
         $this->aRenderData['error'] = null;
         if ($succeeded) {
-            //die('succeeded = '.$succeeded);
             $this->newDirectRequest();
         } elseif ($failed) {
             $message = $aResult[1];
@@ -1153,7 +1219,7 @@ class responseListAndManage extends PluginBase {
     }
 
     /**
-     * sned the email wit replacing SURVEYURL by the manage url
+     * send the email with replacing SURVEYURL by the manage url
      */
     private function _sendMail($surveyId,$oToken,$sSubject="",$sMessage="")
     {
@@ -1268,10 +1334,11 @@ class responseListAndManage extends PluginBase {
     {
         $versionNumber = Yii::app()->getConfig('versionnumber');
         $aVersion = array(0,0,0)+explode(".",$versionNumber);
-        if(($aVersion[0]>=3 && $aVersion[0]>=10)) {
+        if(version_compare(Yii::app()->getConfig('versionnumber'),"3.10",">=")) {
+            /* Fix it to use renderMessage ! */
             $this->aRenderData['pluginName'] = $pluginName = get_class($this);
             $this->aRenderData['plugin'] = $this;
-            $this->aRenderData['username'] = Permission::getUserId() ? Yii::app()->user->getName() : null;
+            $this->aRenderData['username'] = $this->_isLsAdmin() ? Yii::app()->user->getName() : null;
             $content = Yii::app()->getController()->renderPartial(get_class($this).".views.content.".$fileRender,$this->aRenderData,true);
             $templateName = Template::templateNameFilter($this->get('template',null,null,Yii::app()->getConfig('defaulttheme')));
             Template::model()->getInstance($templateName, null);
@@ -1294,29 +1361,49 @@ class responseListAndManage extends PluginBase {
             App()->getClientScript()->registerScriptFile(Yii::app()->assetManager->publish(dirname(__FILE__) . '/assets/responselistandmanage/responselistandmanage.js'));
             //~ App()->getClientScript()->registerScriptFile($assetUrl."/responselistandmanage.js");
             Yii::app()->twigRenderer->renderTemplateFromFile('layout_global.twig', $renderTwig, false);
-
             Yii::app()->end();
         }
         
         //Yii::app()->bootstrap->init();
-        
-        $this->aRenderData['oTemplate'] = $oTemplate  = Template::model()->getInstance(App()->getConfig('defaulttheme'));
-        Yii::app()->clientScript->registerPackage($oTemplate->sPackageName, LSYii_ClientScript::POS_BEGIN);
-        
+        if(version_compare(Yii::app()->getConfig('versionnumber'),"3",">=")) {
+            /* Fix it to use renderMessage ! */
+            $this->aRenderData['oTemplate'] = $oTemplate  = Template::model()->getInstance(App()->getConfig('defaulttheme'));
+            Yii::app()->clientScript->registerPackage($oTemplate->sPackageName, LSYii_ClientScript::POS_BEGIN);
+            
+            $this->aRenderData['title'] = isset($this->aRenderData['title']) ? $this->aRenderData['title'] : App()->getConfig('sitename');
+            $pluginName = get_class($this);
+            Yii::setPathOfAlias($pluginName, dirname(__FILE__));
+            //$oEvent=$this->event;
+            Yii::app()->controller->layout='bare'; // bare don't have any HTML
+            $this->aRenderData['assetUrl'] = Yii::app()->assetManager->publish(dirname(__FILE__) . '/assets/responselistandmanage');
+            $this->aRenderData['subview']="content.{$fileRender}";
+            $this->aRenderData['showAdminSurvey'] = false; // @todo Permission::model()->hasSurveyPermission($this->iSurveyId,'surveysettings','update');
+            $this->aRenderData['showAdmin'] = false; // What can be the best solution ?
+            $this->aRenderData['pluginName'] = $pluginName;
+            $this->aRenderData['username'] = false;
+            
+            Yii::app()->controller->render($pluginName.".views.layout",$this->aRenderData);
+            Yii::app()->end();
+        }
+        /* Finally 2.5X version */
+        if(!empty($this->aRenderData['surveyId'])) {
+            Yii::app()->setConfig('surveyID',$this->aRenderData['surveyId']);
+        }
         $this->aRenderData['title'] = isset($this->aRenderData['title']) ? $this->aRenderData['title'] : App()->getConfig('sitename');
         $pluginName = get_class($this);
-        Yii::setPathOfAlias($pluginName, dirname(__FILE__));
-        //$oEvent=$this->event;
-        Yii::app()->controller->layout='bare'; // bare don't have any HTML
-        $this->aRenderData['assetUrl'] = Yii::app()->assetManager->publish(dirname(__FILE__) . '/assets/responselistandmanage');
+        $this->aRenderData['assetUrl'] = $assetUrl = Yii::app()->assetManager->publish(dirname(__FILE__) . '/assets/responselistandmanage');
         $this->aRenderData['subview']="content.{$fileRender}";
         $this->aRenderData['showAdminSurvey'] = false; // @todo Permission::model()->hasSurveyPermission($this->iSurveyId,'surveysettings','update');
         $this->aRenderData['showAdmin'] = false; // What can be the best solution ?
         $this->aRenderData['pluginName'] = $pluginName;
         $this->aRenderData['username'] = false;
-        
-        Yii::app()->controller->render($pluginName.".views.layout",$this->aRenderData);
-        Yii::app()->end();
+        App()->getClientScript()->registerPackage("bootstrap");
+        App()->getClientScript()->registerCssFile($assetUrl."/responselistandmanage.css");
+        App()->getClientScript()->registerScriptFile($assetUrl."/responselistandmanage.js");
+        $message = Yii::app()->controller->renderPartial($pluginName.".views.content.".$fileRender,$this->aRenderData,true);
+        $templateName = Template::templateNameFilter($this->get('template',null,null,Yii::app()->getConfig('defaulttheme')));
+        $messageHelper = new \renderMessage\messageHelper($this->aRenderData['surveyId'],$templateName);
+        $messageHelper->render($message);
     }
 
     /**
@@ -1346,7 +1433,7 @@ class responseListAndManage extends PluginBase {
      */
     private function _allowTokenLink($oSurvey)
     {
-        return $oSurvey->getHasTokensTable() && $oSurvey->anonymized != "Y";
+        return $this->_surveyHasTokens($oSurvey) && $oSurvey->anonymized != "Y";
     }
     /**
      * Find if survey allow multiple response for token
@@ -1455,4 +1542,88 @@ class responseListAndManage extends PluginBase {
         Yii::app()->setComponent(get_class($this),$messageSource);
     }
 
+    /**
+     * Return if user is connected to LS admin
+     */
+    private function _isLsAdmin() {
+        return Yii::app()->session['loginID'];
+    }
+
+    /**
+     * return if survey has token table
+     * @param \Survey
+     * @return boolean
+     */
+    private function _surveyHasTokens($oSurvey) {
+        if(version_compare(Yii::app()->getConfig('versionnumber'),'3',">=")) {
+            return $oSurvey->getHasTokensTable();
+        }
+        Yii::import('application.helpers.common_helper', true);
+        return tableExists("{{tokens_".$oSurvey->sid."}}");
+    }
+
+    public function beforeControllerAction() {
+      if(!$this->getEvent()->get("controller") == "survey") {
+        return;
+      }
+      $token = Yii::app()->getRequest()->getQuery("currenttoken");
+      if(!$token) {
+        return;
+      }
+      $surveyId = Yii::app()->getRequest()->getParam("sid");
+      $responseid = Yii::app()->getRequest()->getParam("srid");
+      if(!$responseid || $responseid=="new") {
+        return;
+      }
+      $oSurvey = Survey::model()->findByPk($surveyId);
+      if(!$this->_surveyHasTokens($oSurvey)) {
+        return;
+      }
+      if($oSurvey->active != "Y") {
+        return;
+      }
+      $oToken =  Token::model($surveyId)->find("token = :token",array(":token"=>$token));
+      if(!$oToken) {
+        return;
+      }
+
+      $oResponseToken = Response::model($surveyId)->findByPk($responseid);
+      if(!$oResponseToken || empty($oResponseToken->token)) {
+        return;
+      }
+      $tokenAttributeGroup = $this->get('tokenAttributeGroup','Survey',$surveyId);
+      $tokenAttributeGroupManager = $this->get('tokenAttributeGroupManager','Survey',$surveyId);
+      $tokenGroup = (!empty($oToken->$tokenAttributeGroup) && trim($oToken->$tokenAttributeGroup) != "") ? $oToken->$tokenAttributeGroup : null;
+      $tokenGroupManager = (!empty($oToken->$tokenAttributeGroupManager) && trim($oToken->$tokenAttributeGroupManager) != "") ? $oToken->$tokenAttributeGroupManager : null;
+      $isManager = ((bool) $tokenGroupManager) && trim($tokenGroupManager) !== '0';
+      $settingAllowSee = $this->get('allowSee','Survey',$surveyId,'admin');
+      $allowSee = ($settingAllowSee == 'all') || ($settingAllowSee == 'admin' && $isManager);
+      $settingAllowEdit = $this->get('allowEdit','Survey',$surveyId,'admin');
+      $allowEdit = $allowSee && (($settingAllowEdit == 'all') || ($settingAllowEdit == 'admin' && $isManager));
+      if(!$allowEdit) {
+        return;
+      }
+      /* OK get it */
+      $aTokens = $this->_getTokensList($surveyId,$token);
+      if($oResponseToken && !empty($oResponseToken->token)) {
+        if($oResponseToken->token == $token) {
+          return;
+        }
+        if(in_array($token,$aTokens)) {
+          $_GET['token'] = $oResponseToken->token;
+          $_POST['token'] = $oResponseToken->token;
+        }
+      }
+    }
+    private function _getTokensList($surveyId,$token)
+    {
+      $tokenAttributeGroup = $this->get('tokenAttributeGroup','Survey',$surveyId);
+      $oTokenGroup = Token::model($surveyId)->find("token = :token",array(":token"=>$token));
+      $tokenGroup = (isset($oTokenGroup->$tokenAttributeGroup) && trim($oTokenGroup->$tokenAttributeGroup)!='') ? $oTokenGroup->$tokenAttributeGroup : null;
+      if(empty($tokenGroup)) {
+        return array($token=>$token);
+      }
+      $oTokenGroup = Token::model($surveyId)->findAll($tokenAttributeGroup."= :group",array(":group"=>$tokenGroup));
+      return CHtml::listData($oTokenGroup,'token','token');
+    }
 }

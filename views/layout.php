@@ -28,9 +28,9 @@
     <title><?php echo flattenText($title); ?></title>
     <link rel="shortcut icon" href="<?php echo $oTemplate->sTemplateurl ?>files/favicon.ico" />
     <?php
+        App()->getClientScript()->registerPackage("bootsrap");
         App()->getClientScript()->registerCssFile($assetUrl."/responselistandmanage.css");
         App()->getClientScript()->registerScriptFile($assetUrl."/responselistandmanage.js");
-
     ?>
   </head>
  <body>

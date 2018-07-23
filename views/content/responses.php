@@ -19,7 +19,7 @@ $this->widget('bootstrap.widgets.TbGridView', array(
                 array(
                     'class'=>'changePageSize form-control input-sm',
                     'style'=>'display: inline; width: auto',
-                    'onchange'=>"$.fn.yiiGridView.update('responses-grid',{ data:{pageSize: $(this).val() }})",
+                    'onchange'=>"$.fn.yiiGridView.update('responses-grid',{ data:{ pageSize: $(this).val() }})",
                 ))
         ),
     'afterAjaxUpdate' => "js:function(id,data){ $('#'+id).trigger('ajaxUpdated'); }",

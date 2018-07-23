@@ -1,3 +1,5 @@
+.grid-view-loading{opacity:0.2;}
+
 .grid-view th strong{display:block}
 .grid-view th small{display:block}
 .grid-view .table th > .sort-link {font-weight:normal}

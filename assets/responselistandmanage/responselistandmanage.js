@@ -11,6 +11,7 @@ $(function() {
   $('#responses-grid > .row-fluid').css({
         'left': $(window).scrollLeft()
   });
+  $("body").find('.outerframe.container').removeClass('container').addClass('container-fluid'); // Needed for 2.5X 
   $("#responses-grid").trigger('ajaxUpdated');
 });
 $(document).on("ajaxUpdated","#responses-grid",function(event){

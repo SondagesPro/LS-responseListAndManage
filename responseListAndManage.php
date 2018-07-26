@@ -1398,6 +1398,8 @@ class responseListAndManage extends PluginBase {
         $this->aRenderData['pluginName'] = $pluginName;
         $this->aRenderData['username'] = false;
         App()->getClientScript()->registerPackage("bootstrap");
+        Yii::app()->getClientScript()->registerMetaTag('width=device-width, initial-scale=1.0', 'viewport');
+        App()->bootstrap->registerAllScripts();
         App()->getClientScript()->registerCssFile($assetUrl."/responselistandmanage.css");
         App()->getClientScript()->registerScriptFile($assetUrl."/responselistandmanage.js");
         $message = Yii::app()->controller->renderPartial($pluginName.".views.content.".$fileRender,$this->aRenderData,true);

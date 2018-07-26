@@ -138,11 +138,11 @@ class responseListAndManage extends PluginBase {
             'settings' => array(
                 'link'=>array(
                     'type'=>'info',
-                    'content'=> CHtml::link($this->_translate("Access to response alternate management"),$accesUrl,array("target"=>'_blank','class'=>'btn btn-block btn-default btn-lg')),
+                    'content'=> CHtml::link($this->_translate("Access to responses listing"),$accesUrl,array("target"=>'_blank','class'=>'btn btn-block btn-default btn-lg')),
                 ),
                 'linkManagement'=>array(
                     'type'=>'info',
-                    'content'=> CHtml::link($this->_translate("Managing response alternate management"),$accesUrl,array("target"=>'_blank','class'=>'btn btn-block btn-default btn-lg')),
+                    'content'=> CHtml::link($this->_translate("Manage settings of responses listing"),$accesUrl,array("target"=>'_blank','class'=>'btn btn-block btn-default btn-lg')),
                 ),
             )
         ));
@@ -158,7 +158,7 @@ class responseListAndManage extends PluginBase {
         $event = $this->getEvent();
         $surveyId = $event->get('surveyId');
         $aMenuItem = array(
-            'label' => $this->_translate('Managing Response management'),
+            'label' => $this->_translate('Response listing settings'),
             'iconClass' => 'fa fa-list-alt ',
             'href' => Yii::app()->createUrl(
                 'admin/pluginhelper',
@@ -178,7 +178,7 @@ class responseListAndManage extends PluginBase {
         $event->append('menuItems', array($menuItem));
 
         $aMenuItem = array(
-            'label' => $this->_translate('Response management'),
+            'label' => $this->_translate('Response listing'),
             'iconClass' => 'fa fa-list-alt ',
             'href' => Yii::app()->createUrl(
                 'plugins/direct',
@@ -308,8 +308,8 @@ class responseListAndManage extends PluginBase {
             ),
             'tokenAttributesHideToUser' => array(
                 'type'=>'select',
-                'label'=> $this->_translate('Survey or token columns to be hidden to user (admin or user)'),
-                'help' => $this->_translate('This column are shown only to admin.'),
+                'label'=> $this->_translate('Token columns to be hidden to user (include group administrator)'),
+                'help' => $this->_translate('This column are shown only to LimeSurvey administrator.'),
                 'options'=>$this->_getTokensAttributeList($surveyId,'tokens.'),
                 'htmlOptions'=>array(
                     'multiple'=>true,
@@ -327,8 +327,8 @@ class responseListAndManage extends PluginBase {
             ),
             'surveyAttributesHideToUser' => array(
                 'type'=>'select',
-                'label'=> $this->_translate('Survey or token columns to be hidden to user (admin or user)'),
-                'help' => $this->_translate('This column are shown only to admin.'),
+                'label'=> $this->_translate('Survey columns to be hidden to user (include group administrator)'),
+                'help' => $this->_translate('This column are shown only to LimeSurvey administrator.'),
                 'options'=>$aQuestionList['data'],
                 'htmlOptions'=>array(
                     'multiple'=>true,
@@ -386,9 +386,9 @@ class responseListAndManage extends PluginBase {
                 'type'=>'select',
                 'label'=>$this->_translate('Allow view response of group'),
                 'options'=>array(
-                    'limesurvey'=>gT("Only for LimeSurvey admin (According to LimeSurvey Permission)"),
-                    'admin'=>gT("Only for administrator"),
-                    'all'=>gT("All user in group"),
+                    'limesurvey'=>gT("Only for LimeSurvey administrator (According to LimeSurvey Permission)"),
+                    'admin'=>gT("For group administrator and LimeSurvey administrator"),
+                    'all'=>gT("All (user with a valid token included)"),
                 ),
                 'htmlOptions'=>array(
                     'empty'=>gT("No"),
@@ -400,9 +400,9 @@ class responseListAndManage extends PluginBase {
                 'type'=>'select',
                 'label'=>$this->_translate('Allow edit response of group'),
                 'options'=>array(
-                    'limesurvey'=>gT("Only for LimeSurvey admin (According to LimeSurvey Permission)"),
-                    'admin'=>gT("Only for administrator"),
-                    'all'=>gT("All user in group"),
+                    'limesurvey'=>gT("Only for LimeSurvey administrator (According to LimeSurvey Permission)"),
+                    'admin'=>gT("For group administrator and LimeSurvey administrator"),
+                    'all'=>gT("All (user with a valid token included)"),
                 ),
                 'htmlOptions'=>array(
                     'empty'=>gT("No"),
@@ -414,9 +414,9 @@ class responseListAndManage extends PluginBase {
                 'type'=>'select',
                 'label'=>$this->_translate('Allow deletion of response'),
                 'options'=>array(
-                    'limesurvey'=>gT("Only for LimeSurvey admin (According to LimeSurvey Permission)"),
-                    'admin'=>gT("Only for administrator"),
-                    'all'=>gT("All user in group"),
+                    'limesurvey'=>gT("Only for LimeSurvey administrator (According to LimeSurvey Permission)"),
+                    'admin'=>gT("For group administrator and LimeSurvey administrator"),
+                    'all'=>gT("All (user with a valid token included)"),
                 ),
                 'htmlOptions'=>array(
                     'empty'=>gT("No"),
@@ -428,9 +428,9 @@ class responseListAndManage extends PluginBase {
                 'type'=>'select',
                 'label'=>$this->_translate('Allow add response'),
                 'options'=>array(
-                    'limesurvey'=>gT("Only for LimeSurvey admin (According to LimeSurvey Permission)"),
-                    'admin'=>gT("Only for administrator"),
-                    'all'=>gT("Yes"),
+                    'limesurvey'=>gT("Only for LimeSurvey administrator (According to LimeSurvey Permission)"),
+                    'admin'=>gT("For group administrator and LimeSurvey administrator"),
+                    'all'=>gT("All (user with a valid token included)"),
                 ),
                 'htmlOptions'=>array(
                     'empty'=>gT("No"),

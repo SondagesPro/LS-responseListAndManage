@@ -1,4 +1,7 @@
 <?php
+if(!empty($description)) {
+    echo CHtml::tag("div",array("class"=>"clearfix"),$description);
+}
 $this->widget('bootstrap.widgets.TbGridView', array(
     'dataProvider'=>$model->search(),
     'columns'=>$columns,

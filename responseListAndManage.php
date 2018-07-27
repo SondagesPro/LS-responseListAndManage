@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.2.2
+ * @version 1.3.0
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -226,6 +226,14 @@ class responseListAndManage extends PluginBase {
             if(App()->getRequest()->getPost('save'.get_class($this)=='redirect')) {
                 Yii::app()->getController()->redirect(Yii::app()->getController()->createUrl('admin/survey',array('sa'=>'view','surveyid'=>$surveyId)));
             }
+            $languageSettings = array('description');
+            foreach($languageSettings as $setting) {
+                $finalSettings = array();
+                foreach($oSurvey->getAllLanguages() as $language) {
+                    $finalSettings[$language] = App()->getRequest()->getPost($setting.'_'.$language);
+                }
+                $this->set($setting, $finalSettings, 'Survey', $surveyId);
+            }
         }
         $stateInfo = "<ul class='list'>";
         if($this->_allowTokenLink($oSurvey)) {
@@ -346,6 +354,17 @@ class responseListAndManage extends PluginBase {
                 'current'=>$this->get('surveyAttributesHideToUser','Survey',$surveyId)
             ),
         );
+        $aDescription = array();
+        $aDescriptionCurrent = $this->get('description','Survey',$surveyId);
+        $languageData = getLanguageData(false,Yii::app()->getLanguage());
+        foreach($oSurvey->getAllLanguages() as $language) {
+            $aDescription['description_'.$language] = array(
+                'type' => 'text',
+                'label' => sprintf($this->_translate("In %s language (%s)"),$languageData[$language]['description'],$languageData[$language]['nativedescription']),
+                'current' => (isset($aDescriptionCurrent[$language]) ? $aDescriptionCurrent[$language] : ""),
+            );
+        }
+        $aSettings[$this->_translate('Description and helper for survey listing')] = $aDescription;
         $aSettings[$this->_translate('Response Management token attribute usage')] = array(
             'tokenAttributeGroup' => array(
                 'type'=>'select',
@@ -868,7 +887,9 @@ class responseListAndManage extends PluginBase {
         }
         $this->aRenderData['lang']['Submit'] = gT("Submit");
         $this->aRenderData['model'] = $mResponse;
-
+        // Add comment block
+        $aDescriptionCurrent = $this->get('description','Survey',$surveyId);
+        $this->aRenderData['description'] = isset($aDescriptionCurrent[Yii::app()->getLanguage()]) ? $aDescriptionCurrent[Yii::app()->getLanguage()] : "";
         $this->aRenderData['columns'] = $aColumns;
         $this->_render('responses');
     }

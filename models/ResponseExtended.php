@@ -26,6 +26,9 @@ class ResponseExtended extends LSActiveRecord
     /** @var integer $lastpage */
     public $lastpage;
 
+    /** @var  object */
+    protected $restrictedColumns;
+
     /**
      * @inheritdoc
      * @return SurveyDynamic
@@ -145,6 +148,7 @@ class ResponseExtended extends LSActiveRecord
         $pageSize = Yii::app()->user->getState('pageSize', Yii::app()->params['defaultPageSize']);
         $this->setScenario('search');
         $criteria = new CDbCriteria;
+
         // Join the survey participants table and filter tokens if needed
         if ($this->haveToken && $this->survey->anonymized != 'Y') {
             $criteria->with = 'tokens';
@@ -159,6 +163,9 @@ class ResponseExtended extends LSActiveRecord
         // Token sort
         if($this->getHaveToken()) {
             $sort->attributes = array_merge($sort->attributes,$this->getTokensSort());
+        }
+        if(!empty($this->restrictedColumns)) {
+            $criteria->select = $this->restrictedColumns;
         }
         $sort->attributes = array_merge($sort->attributes,array('completed' => array(
                 'asc'=>'submitdate ASC',
@@ -373,5 +380,24 @@ class ResponseExtended extends LSActiveRecord
             $aSort[] = 'tokens.'.$attribute;
         }
         return $aSort;
+    }
+
+    /**
+     * Set array to retricted columns
+     * @param string[]
+     */
+    public function setRestrictedColumns($columns)
+    {
+        $restrictedColumns = array(
+            'id',
+            'submitdate',
+        );
+        $attributes = $this->getAttributes();
+        foreach($columns as $column) {
+            if(array_key_exists($column,$attributes) ) {
+                $restrictedColumns[] = $column;
+            }
+        }
+        $this->restrictedColumns = $restrictedColumns;
     }
 }

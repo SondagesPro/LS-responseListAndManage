@@ -271,6 +271,14 @@ class ResponseExtended extends LSActiveRecord
             'filterInputOptions' => array('class'=>'form-control input-sm filter-completed'),
         );
         if(self::$survey->datestamp =="Y") {
+            $aColumns['startdate']=array(
+                'header' => '<strong>[startdate]</strong><small>'.gT('Start date').'</small>',
+                'name' => 'startdate',
+                'htmlOptions' => array('class' => 'data-column column-startdate'),
+                'value' => 'ResponseExtended::getDateValue($data,"startdate")',
+                'filter' => null,
+                'filterInputOptions' => array('class'=>'form-control input-sm filter-startdate'),
+            );
             $aColumns['submitdate']=array(
                 'header' => '<strong>[submitdate]</strong><small>'.gT('Submit date').'</small>',
                 'name' => 'submitdate',
@@ -278,6 +286,14 @@ class ResponseExtended extends LSActiveRecord
                 'value' => 'ResponseExtended::getSubmitdateValue($data)',
                 'filter' => null,
                 'filterInputOptions' => array('class'=>'form-control input-sm filter-submitdate'),
+            );
+            $aColumns['datestamp']=array(
+                'header' => '<strong>[datestamp]</strong><small>'.gT('Date stamp').'</small>',
+                'name' => 'datestamp',
+                'htmlOptions' => array('class' => 'data-column column-datestamp'),
+                'value' => 'ResponseExtended::getDateValue($data,"datestamp")',
+                'filter' => null,
+                'filterInputOptions' => array('class'=>'form-control input-sm filter-datestamp'),
             );
         }
         if($this->getHaveToken()) {
@@ -298,6 +314,10 @@ class ResponseExtended extends LSActiveRecord
 
     public static function getSubmitdateValue($data) {
         return $data->submitdate;
+    }
+
+    public static function getDateValue($data,$name) {
+        return $data->$name;
     }
 
     public static function getAnswerValue($data,$name,$type,$iQid) {

@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.3.0
+ * @version 1.4.1
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -215,6 +215,7 @@ class responseListAndManage extends PluginBase {
         if(App()->getRequest()->getPost('save'.get_class($this))) {
             // Adding save part
             $settings = array(
+                'showId','showCompleted','showStartdate','showDatestamp',
                 'tokenAttributes','surveyAttributes','surveyAttributesPrimary',
                 'tokenAttributesHideToUser','surveyAttributesHideToUser',
                 'tokenAttributeGroup', 'tokenAttributeGroupManager', 'tokenAttributeGroupWhole',
@@ -261,6 +262,26 @@ class responseListAndManage extends PluginBase {
             ),
         );
         $aSettings[$this->_translate('Response Management table')] = array(
+            'showId' => array(
+                'type'=>'boolean',
+                'label'=>$this->_translate('Show id of response.'),
+                'current'=>$this->get('showId','Survey',$surveyId,1)
+            ),
+            'showCompleted' => array(
+                'type'=>'boolean',
+                'label'=>$this->_translate('Show completed state.'),
+                'current'=>$this->get('showCompleted','Survey',$surveyId,1)
+            ),
+            'showStartdate' => array(
+                'type'=>'boolean',
+                'label'=>$this->_translate('Show start date.'),
+                'current'=>$this->get('showStartdate','Survey',$surveyId,0)
+            ),
+            'showDatestamp' => array(
+                'type'=>'boolean',
+                'label'=>$this->_translate('Show last action date.'),
+                'current'=>$this->get('showDatestamp','Survey',$surveyId,0)
+            ),
             'tokenAttributes' => array(
                 'type'=>'select',
                 'label'=>$this->_translate('Token attributes to show in management'),
@@ -835,7 +856,19 @@ class responseListAndManage extends PluginBase {
             $surveyAttributesPrimary = array($surveyAttributesPrimary);
         }
 
-        $forcedColumns = array('buttons','id');
+        $forcedColumns = array('buttons');
+        if($this->get('showId','Survey',$surveyId,1)) {
+            $forcedColumns[] = 'id';
+        }
+        if($this->get('showCompleted','Survey',$surveyId,1)) {
+            $forcedColumns[] = 'completed';
+        }
+        if($oSurvey->datestamp && $this->get('showStartdate','Survey',$surveyId,0)) {
+            $forcedColumns[] = 'startdate';
+        }
+        if($oSurvey->datestamp && $this->get('showDatestamp','Survey',$surveyId,0)) {
+            $forcedColumns[] = 'datestamp';
+        }
         $aRestrictedColumns = array_merge($forcedColumns,$tokenAttributes,$surveyAttributes,$surveyAttributesPrimary);
         $mResponse->setRestrictedColumns($aRestrictedColumns);
         if($currentToken) {
@@ -1420,6 +1453,7 @@ class responseListAndManage extends PluginBase {
         $this->aRenderData['pluginName'] = $pluginName;
         $this->aRenderData['username'] = false;
         App()->getClientScript()->registerPackage("bootstrap");
+        App()->getClientScript()->registerPackage("fontawesome");
         Yii::app()->getClientScript()->registerMetaTag('width=device-width, initial-scale=1.0', 'viewport');
         App()->bootstrap->registerAllScripts();
         App()->getClientScript()->registerCssFile($assetUrl."/responselistandmanage.css");

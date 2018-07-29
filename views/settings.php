@@ -11,7 +11,7 @@
           $this->widget('ext.SettingsWidget.SettingsWidget', array(
                 //'id'=>'summary',
                 'title'=>$legend,
-                //'prefix' => $pluginClass, This break the label (id!=name)
+                //'prefix' => 'responseListAndManage', // Inalid label before 3.13.3
                 'form' => false,
                 'formHtmlOptions'=>array(
                     'class'=>'form-core',

@@ -157,44 +157,47 @@ class responseListAndManage extends PluginBase {
     {
         $event = $this->getEvent();
         $surveyId = $event->get('surveyId');
-        $aMenuItem = array(
-            'label' => $this->_translate('Response listing settings'),
-            'iconClass' => 'fa fa-list-alt ',
-            'href' => Yii::app()->createUrl(
-                'admin/pluginhelper',
-                array(
-                    'sa' => 'sidebody',
-                    'plugin' => get_class($this),
-                    'method' => 'actionSettings',
-                    'surveyId' => $surveyId
-                )
-            ),
-        );
-        if (class_exists("\LimeSurvey\Menu\MenuItem")) {
-            $menuItem = new \LimeSurvey\Menu\MenuItem($aMenuItem);
-        } else {
-            $menuItem = new \ls\menu\MenuItem($aMenuItem);
+        if(Permission::model()->hasSurveyPermission($surveyId, 'surveysettings', 'update')) {
+            $aMenuItem = array(
+                'label' => $this->_translate('Response listing settings'),
+                'iconClass' => 'fa fa-list-alt ',
+                'href' => Yii::app()->createUrl(
+                    'admin/pluginhelper',
+                    array(
+                        'sa' => 'sidebody',
+                        'plugin' => get_class($this),
+                        'method' => 'actionSettings',
+                        'surveyId' => $surveyId
+                    )
+                ),
+            );
+            if (class_exists("\LimeSurvey\Menu\MenuItem")) {
+                $menuItem = new \LimeSurvey\Menu\MenuItem($aMenuItem);
+            } else {
+                $menuItem = new \ls\menu\MenuItem($aMenuItem);
+            }
+            $event->append('menuItems', array($menuItem));
         }
-        $event->append('menuItems', array($menuItem));
+        if(Permission::model()->hasSurveyPermission($surveyId, 'responses', 'read') && $this->get('allowAccess','Survey',$surveyId,'all') ) {
+            $aMenuItem = array(
+                'label' => $this->_translate('Response listing'),
+                'iconClass' => 'fa fa-list-alt ',
+                'href' => Yii::app()->createUrl(
+                    'plugins/direct',
+                    array(
+                        'plugin' => get_class($this),
+                        'sid' => $surveyId
+                    )
+                ),
+            );
+            if (class_exists("\LimeSurvey\Menu\MenuItem")) {
+                $menuItem = new \LimeSurvey\Menu\MenuItem($aMenuItem);
+            } else {
+                $menuItem = new \ls\menu\MenuItem($aMenuItem);
+            }
 
-        $aMenuItem = array(
-            'label' => $this->_translate('Response listing'),
-            'iconClass' => 'fa fa-list-alt ',
-            'href' => Yii::app()->createUrl(
-                'plugins/direct',
-                array(
-                    'plugin' => get_class($this),
-                    'sid' => $surveyId
-                )
-            ),
-        );
-        if (class_exists("\LimeSurvey\Menu\MenuItem")) {
-            $menuItem = new \LimeSurvey\Menu\MenuItem($aMenuItem);
-        } else {
-            $menuItem = new \ls\menu\MenuItem($aMenuItem);
+            $event->append('menuItems', array($menuItem));
         }
-
-        $event->append('menuItems', array($menuItem));
     }
 
     /**
@@ -219,7 +222,7 @@ class responseListAndManage extends PluginBase {
                 'tokenAttributes','surveyAttributes','surveyAttributesPrimary',
                 'tokenAttributesHideToUser','surveyAttributesHideToUser',
                 'tokenAttributeGroup', 'tokenAttributeGroupManager', 'tokenAttributeGroupWhole',
-                'allowSee','allowEdit','allowDelete', 'allowAdd'
+                'allowAccess','allowSee','allowEdit','allowDelete', 'allowAdd'
             );
             foreach($settings as $setting) {
                 $this->set($setting, App()->getRequest()->getPost($setting), 'Survey', $surveyId);
@@ -412,15 +415,31 @@ class responseListAndManage extends PluginBase {
                 //~ 'current'=>$this->get('tokenAttributeGroupWhole','Survey',$surveyId,1)
             //~ ),
         );
+        /* @todo : get settings of reloadAnyResponse and set warning + readonly on some settings */
+        
         $aSettings[$this->_translate('Response Management access and right')] = array(
             'infoRights' => array(
                 'type'=>'info',
                 'content'=>CHtml::tag("ul",array('class'=>'well well-sm list-unstyled'),
-                    CHtml::tag("li",array(),$this->_translate("Currently, for LimeSurvey admin user : only response access was used. Token access are not tested.")) .
+                    CHtml::tag("li",array(),$this->_translate("Currently, for LimeSurvey admin user. For survey with token, need token read right.")) .
                     CHtml::tag("li",array(),$this->_translate("For user, except for No : they always have same rights than other, for example if you allow delete to admin user, an user with token can delete his response with token.")) .
                     CHtml::tag("li",array(),$this->_translate("To disable access for user with token you can set this settings to No or only for LimeSurvey admin.")) .
+                    CHtml::tag("li",array('class'=>'text-warning'),sprintf("<strong>%s</strong>%s",$this->_translate("Warning"),$this->_translate(": you need to update reloadAnyResponse settings and right. This was not fixed here."))) .
                     ""
                 ),
+            ),
+            'allowAccess' => array(
+                'type'=>'select',
+                'label'=>$this->_translate('Allow to access of tool.'),
+                'options'=>array(
+                    'limesurvey'=>gT("Only for LimeSurvey administrator (According to LimeSurvey Permission)."),
+                    'all'=>gT("All (need a valid tokens if not LimeSurvey admin)."),
+                ),
+                'htmlOptions'=>array(
+                    'empty'=>gT("None"),
+                ),
+                'help'=>$this->_translate('You can disable all access with token here. If user can access to the tool, he have same right than LimeSurvey admin on his responses.'),
+                'current'=>$this->get('allowAccess','Survey',$surveyId,'all')
             ),
             'allowSee' => array(
                 'type'=>'select',
@@ -433,7 +452,7 @@ class responseListAndManage extends PluginBase {
                 'htmlOptions'=>array(
                     'empty'=>gT("No"),
                 ),
-                'help'=>$this->_translate('You can disable all access with token here.'),
+                'help'=>$this->_translate('Only related to Group response not to single user token.'),
                 'current'=>$this->get('allowSee','Survey',$surveyId,'all')
             ),
             'allowEdit' => array(
@@ -447,7 +466,7 @@ class responseListAndManage extends PluginBase {
                 'htmlOptions'=>array(
                     'empty'=>gT("No"),
                 ),
-                'help'=>$this->_translate('Except with No, user with token can always edit his response.'),
+                'help'=>$this->_translate('Need view rights.'),
                 'current'=>$this->get('allowEdit','Survey',$surveyId,'admin')
             ),
             'allowDelete' => array(
@@ -461,7 +480,7 @@ class responseListAndManage extends PluginBase {
                 'htmlOptions'=>array(
                     'empty'=>gT("No"),
                 ),
-                'help'=>$this->_translate('Except with No, user with token can always delete his response.'),
+                'help'=>$this->_translate('Need view rights.'),
                 'current'=>$this->get('allowDelete','Survey',$surveyId,'admin')
             ),
             'allowAdd' => array(
@@ -475,8 +494,22 @@ class responseListAndManage extends PluginBase {
                 'htmlOptions'=>array(
                     'empty'=>gT("No"),
                 ),
-                'help'=>$this->_translate('Related to all tokens in group for user. User can always add new response if survey settings allow him to create a new response.'),
+                'help'=>$this->_translate('Need view rights.'),
                 'current'=>$this->get('allowAdd','Survey',$surveyId,'admin')
+            ),
+            'allowAddUser' => array(
+                'type'=>'select',
+                'label'=>$this->_translate('Allow add token user'),
+                'options'=>array(
+                    'limesurvey'=>gT("Only for LimeSurvey administrator (According to LimeSurvey Permission)"),
+                    'admin'=>gT("For group administrator and LimeSurvey administrator"),
+                    'all'=>gT("All (user with a valid token included)"),
+                ),
+                'htmlOptions'=>array(
+                    'empty'=>gT("No"),
+                ),
+                'help'=>$this->_translate('Need add rights.'),
+                'current'=>$this->get('allowAddUser','Survey',$surveyId,'admin')
             ),
         );
 
@@ -546,8 +579,8 @@ class responseListAndManage extends PluginBase {
         if(!$oResponse) {
             throw new CHttpException(404);
         }
-        if (Permission::model()->hasSurveyPermission($surveyId, 'responses', 'read')) {
-            if($this->_allowTokenLink($oSurvey)) {
+        if (!Permission::model()->hasSurveyPermission($surveyId, 'responses', 'read')) {
+            if(!$this->_allowTokenLink($oSurvey)) {
                 throw new CHttpException(403);
             }
             $currentToken = $this->_getCurrentToken($surveyId);
@@ -558,6 +591,7 @@ class responseListAndManage extends PluginBase {
                 throw new CHttpException(403);
             }
         }
+        
         $aQuestionFiles = $oResponse->getFiles($qid);
         if (empty($aQuestionFiles[$fileIndex])) {
             throw new CHttpException(404,gT("Sorry, this file was not found."));
@@ -593,6 +627,10 @@ class responseListAndManage extends PluginBase {
         $oSurvey=Survey::model()->findByPk($surveyId);
         /* Must fix rights */
         $userHaveRight = false;
+        $settingAllowAccess = $this->get('allowAccess','Survey',$surveyId,'all');
+        if(empty($settingAllowAccess)) {
+            throw new CHttpException(403);
+        }
         if (Permission::model()->hasSurveyPermission($surveyId, 'responses', 'read')) {
             if(App()->getRequest()->isPostRequest && App()->getRequest()->getPost('login_submit')) {
                 /* redirect to avoid CRSF when reload */
@@ -600,7 +638,13 @@ class responseListAndManage extends PluginBase {
             }
             $userHaveRight = true;
         }
-        if(!$userHaveRight && $this->_allowTokenLink($oSurvey) && App()->getRequest()->getPost('token')) {
+        if (!$userHaveRight && $settingAllowAccess == 'limesurvey') {
+            $this->_doLogin();
+        }
+        if (!$userHaveRight && $this->_allowTokenLink($oSurvey)) {
+            $this->_doLogin();
+        }
+        if(!$userHaveRight && App()->getRequest()->getPost('token')) {
             $currentToken = App()->getRequest()->getPost('token');
             $oToken = Token::model($surveyId)->findByToken($currentToken);
             if($oToken) {
@@ -612,7 +656,7 @@ class responseListAndManage extends PluginBase {
             }
         }
         $currentToken = $this->_getCurrentToken($surveyId);
-        if(!$userHaveRight && $this->_allowTokenLink($oSurvey) && $currentToken) {
+        if(!$userHaveRight && $currentToken) {
             $userHaveRight = true;
             $this->_setCurrentToken($surveyId,$currentToken);
             Yii::app()->user->setState('disableTokenPermission',true);
@@ -655,7 +699,8 @@ class responseListAndManage extends PluginBase {
         $tokenAttributeGroupManager = $this->get('tokenAttributeGroupManager','Survey',$surveyId);
 
         /* Get the final allowed according to current token) */
-        $allowSee = $allowEdit = $allowDelete = $allowAdd = false;
+        $allowAccess = $allowSee = $allowEdit = $allowDelete = $allowAdd = false;
+        $settingAllowAccess = $this->get('allowAccess','Survey',$surveyId,'all');
         $settingAllowSee = $this->get('allowSee','Survey',$surveyId,'all');
         $settingAllowEdit = $this->get('allowEdit','Survey',$surveyId,'admin');
         $settingAllowDelete = $this->get('allowDelete','Survey',$surveyId,'admin');
@@ -667,9 +712,13 @@ class responseListAndManage extends PluginBase {
         $isManager = false;
         /* Set the default according to Permission */
         if($this->_isLsAdmin()) { /* When testing is done move this after */
-            $allowSee = $settingAllowSee && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'read');
-            $allowEdit = $settingAllowEdit && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'update');
-            $allowDelete = $settingAllowDelete && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'delete');
+            $allowAccess = Permission::model()->hasSurveyPermission($surveyId, 'responses', 'read');
+            if($this->_surveyHasTokens($oSurvey)) {
+                $allowAccess = $settingAllowAccess && Permission::model()->hasSurveyPermission($surveyId, 'token', 'read');
+            }
+            $allowSee = $allowAccess && $settingAllowSee && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'read');
+            $allowEdit = $allowSee && $settingAllowEdit && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'update');
+            $allowDelete = $allowSee && $settingAllowDelete && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'delete');
             $allowAdd = $settingAllowAdd && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'create');
         }
         if($currentToken) {
@@ -678,6 +727,7 @@ class responseListAndManage extends PluginBase {
             $tokenGroup = (!empty($tokenAttributeGroup) && !empty($oToken->$tokenAttributeGroup)) ? $oToken->$tokenAttributeGroup : null;
             $tokenAdmin = (!empty($tokenAttributeGroupManager) && !empty($oToken->$tokenAttributeGroupManager)) ? $oToken->$tokenAttributeGroupManager : null;
             $isManager = ((bool) $tokenAdmin) && trim($tokenAdmin) !== '0';
+            $allowAccess = ($settingAllowAccess == 'all') || ($settingAllowAccess == 'admin' && $isManager);
             $allowSee = ($settingAllowSee == 'all') || ($settingAllowSee == 'admin' && $isManager);
             $allowEdit = $allowSee && (($settingAllowEdit == 'all') || ($settingAllowEdit == 'admin' && $isManager));
             $allowDelete = ($settingAllowDelete == 'all') || ($settingAllowDelete == 'admin' && $isManager);
@@ -691,7 +741,7 @@ class responseListAndManage extends PluginBase {
             }
             $mResponse->setAttribute('token', $aTokens);
 
-            if(!$allowSee && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'read')) {
+            if(!$allowAccess && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'read')) {
                 throw new CHttpException(403, $this->_translate('You are not allowed to use reponse management with this token.'));
             }
         }
@@ -895,7 +945,13 @@ class responseListAndManage extends PluginBase {
             }
         }
 
-        $this->aRenderData['allowAddUser'] = $this->_allowTokenLink($oSurvey) && ($isManager || Permission::model()->hasSurveyPermission($surveyId, 'token', 'create'));
+        $this->aRenderData['allowAddUser'] = $this->_allowTokenLink($oSurvey) && $this->get('allowAddUser','Survey',$surveyId,'admin') == 'all';
+        if(!$this->aRenderData['allowAddUser'] && $isManager) {
+            $this->aRenderData['allowAddUser'] = $this->_allowTokenLink($oSurvey) && $this->get('allowAddUser','Survey',$surveyId,'admin') == 'admin';
+        }
+        if(!$this->aRenderData['allowAddUser'] && Permission::model()->hasSurveyPermission($surveyId, 'token', 'create')) {
+            $this->aRenderData['allowAddUser'] = $this->_allowTokenLink($oSurvey) && $this->get('allowAddUser','Survey',$surveyId,'admin') == 'limesurvey';
+        }
         $this->aRenderData['addUser'] = array();
         $this->aRenderData['addUserButton'] = '';
         if($this->aRenderData['allowAddUser']) {
@@ -995,6 +1051,8 @@ class responseListAndManage extends PluginBase {
         if(!$this->_allowTokenLink($oSurvey)) {
             throw new CHttpException(403, $this->_translate('Token creation is disable for this survey.'));
         }
+        $allowAddSetting = $this->get('allowAdd','Survey',$surveyId,'admin');
+        $allowAddUserSetting =  $this->get('allowAddUser','Survey',$surveyId,'admin');
         $token = App()->getRequest()->getParam('currenttoken');
         $tokenGroup = null;
         $tokenAdmin = null;
@@ -1005,12 +1063,11 @@ class responseListAndManage extends PluginBase {
             $tokenGroup = (!empty($tokenAttributeGroup) && !empty($oToken->$tokenAttributeGroup)) ? $oToken->$tokenAttributeGroup : null;
             $tokenAdmin = (!empty($tokenAttributeGroupManager) && !empty($oToken->$tokenAttributeGroupManager)) ? $oToken->$tokenAttributeGroupManager : null;
             $isAdmin == ((bool) $tokenAdmin) && trim($tokenAdmin) !== '' && trim($tokenAdmin) !== '0';
-            $settingAllowAdd = $this->get('allowAdd','Survey',$surveyId,'admin');
-            $allowAdd = ($settingAllowAdd == 'all' || ($settingAllowAdd == 'admin' && $isAdmin));
+            $allowAddUser = ($allowAddUserSetting == 'all' || ($allowAddUserSetting == 'admin' && $isAdmin));
         }
         
         if(!Permission::model()->hasSurveyPermission($surveyId, 'token', 'create')) {
-            if(!$allowAdd) {
+            if(!$allowAddUser) {
                 throw new CHttpException(403, $this->_translate('No right to create new token in this survey.'));
             }
         }
@@ -1201,12 +1258,14 @@ class responseListAndManage extends PluginBase {
     {
         $surveyModel = new \responseListAndManage\models\SurveyExtended('search');
         $this->aRenderData['surveyModel'] = $surveyModel;
+        /* @todo : filter by settings … */
         $dataProvider=new CActiveDataProvider($surveyModel, array(
             'criteria'=>array(
                 'condition'=>"active='Y'",
                 'with'=>'correct_relation_defaultlanguage',
             ),
         ));
+        //$accessSettings = PluginSettings::model()->findAll …
         $this->aRenderData['dataProvider'] = $dataProvider;
         $this->_render('surveys');
     }
@@ -1654,8 +1713,13 @@ class responseListAndManage extends PluginBase {
       $tokenGroup = (!empty($oToken->$tokenAttributeGroup) && trim($oToken->$tokenAttributeGroup) != "") ? $oToken->$tokenAttributeGroup : null;
       $tokenGroupManager = (!empty($oToken->$tokenAttributeGroupManager) && trim($oToken->$tokenAttributeGroupManager) != "") ? $oToken->$tokenAttributeGroupManager : null;
       $isManager = ((bool) $tokenGroupManager) && trim($tokenGroupManager) !== '0';
-      $settingAllowSee = $this->get('allowSee','Survey',$surveyId,'admin');
-      $allowSee = ($settingAllowSee == 'all') || ($settingAllowSee == 'admin' && $isManager);
+      $settingAllowAccess = $this->get('allowAccess','Survey',$surveyId,'all');
+      $allowAccess = ($settingAllowAccess == 'all') || ($settingAllowAccess == 'admin' && $isManager);
+      if(!$allowAccess) {
+        return; // Leave limesurvey do
+      }
+      $settingAllowSee = $this->get('allowSee','Survey',$surveyId,'all');
+      $allowSee = $allowAccess && (($settingAllowSee == 'all') || ($settingAllowSee == 'admin' && $isManager));
       $settingAllowEdit = $this->get('allowEdit','Survey',$surveyId,'admin');
       $allowEdit = $allowSee && (($settingAllowEdit == 'all') || ($settingAllowEdit == 'admin' && $isManager));
       if(!$allowEdit) {
@@ -1682,5 +1746,16 @@ class responseListAndManage extends PluginBase {
       }
       $oTokenGroup = Token::model($surveyId)->findAll($tokenAttributeGroup."= :group",array(":group"=>$tokenGroup));
       return CHtml::listData($oTokenGroup,'token','token');
+    }
+
+    /**
+     * @todo : get the array of current rights
+     * @param $surveyid
+     * @param $token
+     * @return boolean[]
+     */
+    private function _getCurrentRights($surveyid,$token=null)
+    {
+
     }
 }

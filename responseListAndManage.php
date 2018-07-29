@@ -388,7 +388,7 @@ class responseListAndManage extends PluginBase {
                 'current' => (isset($aDescriptionCurrent[$language]) ? $aDescriptionCurrent[$language] : ""),
             );
         }
-        $aSettings[$this->_translate('Description and helper for survey listing')] = $aDescription;
+        $aSettings[$this->_translate('Description and helper for responses listing')] = $aDescription;
         $aSettings[$this->_translate('Response Management token attribute usage')] = array(
             'tokenAttributeGroup' => array(
                 'type'=>'select',
@@ -421,7 +421,7 @@ class responseListAndManage extends PluginBase {
             'infoRights' => array(
                 'type'=>'info',
                 'content'=>CHtml::tag("ul",array('class'=>'well well-sm list-unstyled'),
-                    CHtml::tag("li",array(),$this->_translate("Currently, for LimeSurvey admin user. For survey with token, need token read right.")) .
+                    CHtml::tag("li",array(),$this->_translate("Currently, for LimeSurvey admin user, for survey with token, need token read right.")) .
                     CHtml::tag("li",array(),$this->_translate("For user, except for No : they always have same rights than other, for example if you allow delete to admin user, an user with token can delete his response with token.")) .
                     CHtml::tag("li",array(),$this->_translate("To disable access for user with token you can set this settings to No or only for LimeSurvey admin.")) .
                     CHtml::tag("li",array('class'=>'text-warning'),sprintf("<strong>%s</strong>%s",$this->_translate("Warning"),$this->_translate(": you need to update reloadAnyResponse settings and right. This was not fixed here."))) .
@@ -452,7 +452,7 @@ class responseListAndManage extends PluginBase {
                 'htmlOptions'=>array(
                     'empty'=>gT("No"),
                 ),
-                'help'=>$this->_translate('Only related to Group response not to single user token.'),
+                'help'=>$this->_translate('Only related to Group responses not to single user responses with token.'),
                 'current'=>$this->get('allowSee','Survey',$surveyId,'all')
             ),
             'allowEdit' => array(
@@ -508,7 +508,7 @@ class responseListAndManage extends PluginBase {
                 'htmlOptions'=>array(
                     'empty'=>gT("No"),
                 ),
-                'help'=>$this->_translate('Need add rights.'),
+                'help'=>$this->_translate('Need add response right.'),
                 'current'=>$this->get('allowAddUser','Survey',$surveyId,'admin')
             ),
         );

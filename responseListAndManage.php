@@ -1453,23 +1453,23 @@ class responseListAndManage extends PluginBase {
             $this->aRenderData['pluginName'] = $pluginName = get_class($this);
             $this->aRenderData['plugin'] = $this;
             $this->aRenderData['username'] = $this->_isLsAdmin() ? Yii::app()->user->getName() : null;
-            $content = Yii::app()->getController()->renderPartial(get_class($this).".views.content.".$fileRender,$this->aRenderData,true);
+            /* @todo move it to twig if able */
+            $responselist = Yii::app()->getController()->renderPartial(get_class($this).".views.content.".$fileRender,$this->aRenderData,true);
             $templateName = Template::templateNameFilter($this->get('template',null,null,Yii::app()->getConfig('defaulttheme')));
             Template::model()->getInstance($templateName, null);
             Template::model()->getInstance($templateName, null)->oOptions->ajaxmode = 'off';
-            if(!empty($this->aRenderData['aSurveyInfo'])) {
-                Template::model()->getInstance($templateName, null)->oOptions->container = 'off';
-            }
             //~ tracevar(Template::model()->getInstance($templateName, null));
             if(empty($this->aRenderData['aSurveyInfo'])) {
-                $renderTwig['aSurveyInfo'] = array(
+                $this->aRenderData['aSurveyInfo'] = array(
                     'surveyls_title' => App()->getConfig('sitename'),
                     'name' => App()->getConfig('sitename'),
                 );
             }
+            $renderTwig['aSurveyInfo'] = $this->aRenderData['aSurveyInfo'];
+            $renderTwig['aSurveyInfo']['surveyls_title'] = sprintf($this->_translate("Reponses of %s survey"),$renderTwig['aSurveyInfo']['surveyls_title']);
             $renderTwig['aSurveyInfo']['active'] = 'Y'; // Didn't show the default warning
-            $renderTwig['aSurveyInfo']['include_content'] = 'content';
-            $renderTwig['htmlcontent'] = $content;
+            $renderTwig['aSurveyInfo']['include_content'] = 'responselistandmanage';
+            $renderTwig['responseListAndManage']['responselist'] = $responselist;
             $assetUrl = Yii::app()->assetManager->publish(dirname(__FILE__) . '/assets/responselistandmanage');
             App()->getClientScript()->registerCssFile($assetUrl."/responselistandmanage.css");
             App()->getClientScript()->registerScriptFile(Yii::app()->assetManager->publish(dirname(__FILE__) . '/assets/responselistandmanage/responselistandmanage.js'));

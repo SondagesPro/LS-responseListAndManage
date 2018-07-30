@@ -1466,7 +1466,7 @@ class responseListAndManage extends PluginBase {
                 );
             }
             $renderTwig['aSurveyInfo'] = $this->aRenderData['aSurveyInfo'];
-            $renderTwig['aSurveyInfo']['surveyls_title'] = sprintf($this->_translate("Reponses of %s survey"),$renderTwig['aSurveyInfo']['surveyls_title']);
+            $renderTwig['aSurveyInfo']['name'] = sprintf($this->_translate("Reponses of %s survey"),$renderTwig['aSurveyInfo']['name']);
             $renderTwig['aSurveyInfo']['active'] = 'Y'; // Didn't show the default warning
             $renderTwig['aSurveyInfo']['include_content'] = 'responselistandmanage';
             $renderTwig['responseListAndManage']['responselist'] = $responselist;

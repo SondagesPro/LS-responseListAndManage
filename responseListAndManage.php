@@ -1563,15 +1563,16 @@ class responseListAndManage extends PluginBase {
         App()->getClientScript()->registerScriptFile($assetUrl."/responselistandmanage.js");
         $message = Yii::app()->controller->renderPartial($pluginName.".views.content.".$fileRender,$this->aRenderData,true);
         $templateName = Template::templateNameFilter($this->get('template',null,null,Yii::app()->getConfig('defaulttemplate')));
-        if($this->aRenderData['surveyId']) {
-            if($this->get('template','Survey',$this->aRenderData['surveyId'])) {
-                $templateName = Template::templateNameFilter($this->get('template','Survey',$this->aRenderData['surveyId']));
+        $surveyId = empty($this->aRenderData['surveyId']) ? null : $this->aRenderData['surveyId'];
+        if($surveyId) {
+            if($this->get('template','Survey',$surveyId)) {
+                $templateName = Template::templateNameFilter($this->get('template','Survey',$surveyId));
                 if($templateName == Yii::app()->getConfig('defaulttheme')) {
                     $templateName = Template::templateNameFilter($this->get('template',null,null,Yii::app()->getConfig('defaulttemplate')));
                 }
             }
         }
-        $messageHelper = new \renderMessage\messageHelper($this->aRenderData['surveyId'],$templateName);
+        $messageHelper = new \renderMessage\messageHelper($surveyId,$templateName);
         $messageHelper->render($message);
     }
 

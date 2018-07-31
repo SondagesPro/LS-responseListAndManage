@@ -1502,6 +1502,7 @@ class responseListAndManage extends PluginBase {
             $renderTwig['aSurveyInfo'] = $this->aRenderData['aSurveyInfo'];
             $renderTwig['aSurveyInfo']['name'] = sprintf($this->_translate("Reponses of %s survey"),$renderTwig['aSurveyInfo']['name']);
             $renderTwig['aSurveyInfo']['active'] = 'Y'; // Didn't show the default warning
+            $renderTwig['aSurveyInfo']['showprogress'] = 'N'; // Didn't show progress bar
             $renderTwig['aSurveyInfo']['include_content'] = 'responselistandmanage';
             $renderTwig['responseListAndManage']['responselist'] = $responselist;
             $assetUrl = Yii::app()->assetManager->publish(dirname(__FILE__) . '/assets/responselistandmanage');

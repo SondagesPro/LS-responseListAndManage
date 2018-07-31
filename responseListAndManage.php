@@ -222,7 +222,8 @@ class responseListAndManage extends PluginBase {
                 'tokenAttributes','surveyAttributes','surveyAttributesPrimary',
                 'tokenAttributesHideToUser','surveyAttributesHideToUser',
                 'tokenAttributeGroup', 'tokenAttributeGroupManager', 'tokenAttributeGroupWhole',
-                'allowAccess','allowSee','allowEdit','allowDelete', 'allowAdd'
+                'allowAccess','allowSee','allowEdit','allowDelete', 'allowAdd',
+                'template',
             );
             foreach($settings as $setting) {
                 $this->set($setting, App()->getRequest()->getPost($setting), 'Survey', $surveyId);
@@ -378,6 +379,7 @@ class responseListAndManage extends PluginBase {
                 'current'=>$this->get('surveyAttributesHideToUser','Survey',$surveyId)
             ),
         );
+        /* Descrition by lang */
         $aDescription = array();
         $aDescriptionCurrent = $this->get('description','Survey',$surveyId);
         $languageData = getLanguageData(false,Yii::app()->getLanguage());
@@ -389,6 +391,30 @@ class responseListAndManage extends PluginBase {
             );
         }
         $aSettings[$this->_translate('Description and helper for responses listing')] = $aDescription;
+        /* Template to be used */
+        if(version_compare(Yii::app()->getConfig('versionnumber'),"3",">=")) {
+            $oTemplates = TemplateConfiguration::model()->findAll(array(
+                'condition'=>'sid IS NULL',
+                'order'=>'template_name',
+            ));
+            $aTemplates = CHtml::listData($oTemplates,'template_name','template_name');
+        }
+        if(version_compare(Yii::app()->getConfig('versionnumber'),"3","<")) {
+          $aTemplates = array_keys(Template::getTemplateList());
+        }
+        $default = $this->get('template',null,null,App()->getConfig('defaulttheme',App()->getConfig('defaulttemplate')));
+        $aSettings[$this->_translate('Template to be used')] = array(
+            'template' => array(
+                'type' => 'select',
+                'label'=> $this->_translate('Template to be used'),
+                'options'=>$aTemplates,
+                'htmlOptions' => array(
+                    'empty'=> sprintf($this->_translate("Leave default (%s)"),$default),
+                ),
+                'current' => $this->get('template','Survey',$surveyId),
+            )
+        );
+        /* Token attribute usage */
         $aSettings[$this->_translate('Response Management token attribute usage')] = array(
             'tokenAttributeGroup' => array(
                 'type'=>'select',
@@ -1139,7 +1165,7 @@ class responseListAndManage extends PluginBase {
             );
             return $this->settings;
         }
-        $this->settings['template']['default'] = App()->getConfig('defaulttheme');
+        $this->settings['template']['default'] = App()->getConfig('defaulttheme',App()->getConfig('defaulttemplate'));
         $pluginSettings= parent::getPluginSettings($getValues);
         /* @todo : return if not needed */
         $accesUrl = Yii::app()->createUrl("plugins/direct", array('plugin' => get_class()));
@@ -1456,6 +1482,14 @@ class responseListAndManage extends PluginBase {
             /* @todo move it to twig if able */
             $responselist = Yii::app()->getController()->renderPartial(get_class($this).".views.content.".$fileRender,$this->aRenderData,true);
             $templateName = Template::templateNameFilter($this->get('template',null,null,Yii::app()->getConfig('defaulttheme')));
+            if($this->aRenderData['surveyId']) {
+                if($this->get('template','Survey',$this->aRenderData['surveyId'])) {
+                    $templateName = Template::templateNameFilter($this->get('template','Survey',$this->aRenderData['surveyId']));
+                    if($templateName == Yii::app()->getConfig('defaulttheme')) {
+                        $templateName = Template::templateNameFilter($this->get('template',null,null,Yii::app()->getConfig('defaulttheme')));
+                    }
+                }
+            }
             Template::model()->getInstance($templateName, null);
             Template::model()->getInstance($templateName, null)->oOptions->ajaxmode = 'off';
             //~ tracevar(Template::model()->getInstance($templateName, null));
@@ -1481,7 +1515,16 @@ class responseListAndManage extends PluginBase {
         //Yii::app()->bootstrap->init();
         if(version_compare(Yii::app()->getConfig('versionnumber'),"3",">=")) {
             /* Fix it to use renderMessage ! */
-            $this->aRenderData['oTemplate'] = $oTemplate  = Template::model()->getInstance(App()->getConfig('defaulttheme'));
+            $templateName = Template::templateNameFilter($this->get('template',null,null,Yii::app()->getConfig('defaulttheme')));
+            if($this->aRenderData['surveyId']) {
+                if($this->get('template','Survey',$this->aRenderData['surveyId'])) {
+                    $templateName = Template::templateNameFilter($this->get('template','Survey',$this->aRenderData['surveyId']));
+                    if($templateName == Yii::app()->getConfig('defaulttheme')) {
+                        $templateName = Template::templateNameFilter($this->get('template',null,null,Yii::app()->getConfig('defaulttheme')));
+                    }
+                }
+            }
+            $this->aRenderData['oTemplate'] = $oTemplate  = Template::model()->getInstance($templateName);
             Yii::app()->clientScript->registerPackage($oTemplate->sPackageName, LSYii_ClientScript::POS_BEGIN);
             
             $this->aRenderData['title'] = isset($this->aRenderData['title']) ? $this->aRenderData['title'] : App()->getConfig('sitename');
@@ -1518,7 +1561,15 @@ class responseListAndManage extends PluginBase {
         App()->getClientScript()->registerCssFile($assetUrl."/responselistandmanage.css");
         App()->getClientScript()->registerScriptFile($assetUrl."/responselistandmanage.js");
         $message = Yii::app()->controller->renderPartial($pluginName.".views.content.".$fileRender,$this->aRenderData,true);
-        $templateName = Template::templateNameFilter($this->get('template',null,null,Yii::app()->getConfig('defaulttheme')));
+        $templateName = Template::templateNameFilter($this->get('template',null,null,Yii::app()->getConfig('defaulttemplate')));
+        if($this->aRenderData['surveyId']) {
+            if($this->get('template','Survey',$this->aRenderData['surveyId'])) {
+                $templateName = Template::templateNameFilter($this->get('template','Survey',$this->aRenderData['surveyId']));
+                if($templateName == Yii::app()->getConfig('defaulttheme')) {
+                    $templateName = Template::templateNameFilter($this->get('template',null,null,Yii::app()->getConfig('defaulttemplate')));
+                }
+            }
+        }
         $messageHelper = new \renderMessage\messageHelper($this->aRenderData['surveyId'],$templateName);
         $messageHelper->render($message);
     }

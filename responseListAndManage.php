@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.4.1
+ * @version 1.4.2
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -1474,6 +1474,7 @@ class responseListAndManage extends PluginBase {
     {
         $versionNumber = Yii::app()->getConfig('versionnumber');
         $aVersion = array(0,0,0)+explode(".",$versionNumber);
+        $surveyId = empty($this->aRenderData['surveyId']) ? null : $this->aRenderData['surveyId'];
         if(version_compare(Yii::app()->getConfig('versionnumber'),"3.10",">=")) {
             /* Fix it to use renderMessage ! */
             $this->aRenderData['pluginName'] = $pluginName = get_class($this);
@@ -1482,9 +1483,9 @@ class responseListAndManage extends PluginBase {
             /* @todo move it to twig if able */
             $responselist = Yii::app()->getController()->renderPartial(get_class($this).".views.content.".$fileRender,$this->aRenderData,true);
             $templateName = Template::templateNameFilter($this->get('template',null,null,Yii::app()->getConfig('defaulttheme')));
-            if($this->aRenderData['surveyId']) {
-                if($this->get('template','Survey',$this->aRenderData['surveyId'])) {
-                    $templateName = Template::templateNameFilter($this->get('template','Survey',$this->aRenderData['surveyId']));
+            if($surveyId) {
+                if($this->get('template','Survey',$surveyId)) {
+                    $templateName = Template::templateNameFilter($this->get('template','Survey',$surveyId));
                     if($templateName == Yii::app()->getConfig('defaulttheme')) {
                         $templateName = Template::templateNameFilter($this->get('template',null,null,Yii::app()->getConfig('defaulttheme')));
                     }
@@ -1512,14 +1513,14 @@ class responseListAndManage extends PluginBase {
             Yii::app()->twigRenderer->renderTemplateFromFile('layout_global.twig', $renderTwig, false);
             Yii::app()->end();
         }
-        
+
         //Yii::app()->bootstrap->init();
         if(version_compare(Yii::app()->getConfig('versionnumber'),"3",">=")) {
             /* Fix it to use renderMessage ! */
             $templateName = Template::templateNameFilter($this->get('template',null,null,Yii::app()->getConfig('defaulttheme')));
-            if($this->aRenderData['surveyId']) {
-                if($this->get('template','Survey',$this->aRenderData['surveyId'])) {
-                    $templateName = Template::templateNameFilter($this->get('template','Survey',$this->aRenderData['surveyId']));
+            if($surveyId) {
+                if($this->get('template','Survey',$surveyId)) {
+                    $templateName = Template::templateNameFilter($this->get('template','Survey',$surveyId));
                     if($templateName == Yii::app()->getConfig('defaulttheme')) {
                         $templateName = Template::templateNameFilter($this->get('template',null,null,Yii::app()->getConfig('defaulttheme')));
                     }
@@ -1544,8 +1545,8 @@ class responseListAndManage extends PluginBase {
             Yii::app()->end();
         }
         /* Finally 2.5X version */
-        if(!empty($this->aRenderData['surveyId'])) {
-            Yii::app()->setConfig('surveyID',$this->aRenderData['surveyId']);
+        if($surveyId) {
+            Yii::app()->setConfig('surveyID',$surveyId);
         }
         $this->aRenderData['title'] = isset($this->aRenderData['title']) ? $this->aRenderData['title'] : App()->getConfig('sitename');
         $pluginName = get_class($this);
@@ -1563,7 +1564,6 @@ class responseListAndManage extends PluginBase {
         App()->getClientScript()->registerScriptFile($assetUrl."/responselistandmanage.js");
         $message = Yii::app()->controller->renderPartial($pluginName.".views.content.".$fileRender,$this->aRenderData,true);
         $templateName = Template::templateNameFilter($this->get('template',null,null,Yii::app()->getConfig('defaulttemplate')));
-        $surveyId = empty($this->aRenderData['surveyId']) ? null : $this->aRenderData['surveyId'];
         if($surveyId) {
             if($this->get('template','Survey',$surveyId)) {
                 $templateName = Template::templateNameFilter($this->get('template','Survey',$surveyId));

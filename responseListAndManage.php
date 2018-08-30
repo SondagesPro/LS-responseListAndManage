@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.4.2
+ * @version 1.4.3
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -667,7 +667,7 @@ class responseListAndManage extends PluginBase {
         if (!$userHaveRight && $settingAllowAccess == 'limesurvey') {
             $this->_doLogin();
         }
-        if (!$userHaveRight && $this->_allowTokenLink($oSurvey)) {
+        if (!$userHaveRight && !$this->_allowTokenLink($oSurvey)) {
             $this->_doLogin();
         }
         if(!$userHaveRight && App()->getRequest()->getPost('token')) {

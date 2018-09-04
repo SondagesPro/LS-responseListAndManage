@@ -13,7 +13,7 @@ To use this plugin, you **need** [getQuestionInformation](https://gitlab.com/Son
 - Clone in plugins/responseListAndManage directory
 
 ### Via ZIP dowload
-- Get the file [sendMailCron.zip](https://extensions.sondages.pro/IMG/auto/responseListAndManage.zip)
+- Get the file [responseListAndManage.zip](https://extensions.sondages.pro/IMG/auto/responseListAndManage.zip)
 - Extract : `unzip responseListAndManage.zip`
 - Move the directory to plugins/ directory inside LimeSUrvey
 

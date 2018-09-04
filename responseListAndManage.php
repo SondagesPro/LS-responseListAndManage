@@ -458,7 +458,7 @@ class responseListAndManage extends PluginBase {
                 'type'=>'select',
                 'label'=>$this->_translate('Allow to access of tool.'),
                 'options'=>array(
-                    'limesurvey'=>$this->_translate("Only for LimeSurvey administrator (According to LimeSurvey Permission)."),
+                    'limesurvey'=>$this->_translate("Only for LimeSurvey administrator (According to LimeSurvey Permission)"),
                     'all'=>$this->_translate("All (need a valid tokens if not LimeSurvey admin)."),
                 ),
                 'htmlOptions'=>array(
@@ -471,7 +471,7 @@ class responseListAndManage extends PluginBase {
                 'type'=>'select',
                 'label'=>$this->_translate('Allow view response of group'),
                 'options'=>array(
-                    'limesurvey'=>$this->_translate("Only for LimeSurvey administrator (According to LimeSurvey Permission)"),
+                    'limesurvey'=>$this->_translate("Only for LimeSurvey administrator"),
                     'admin'=>$this->_translate("For group administrator and LimeSurvey administrator"),
                     'all'=>$this->_translate("All (user with a valid token included)"),
                 ),
@@ -485,7 +485,7 @@ class responseListAndManage extends PluginBase {
                 'type'=>'select',
                 'label'=>$this->_translate('Allow edit response of group'),
                 'options'=>array(
-                    'limesurvey'=>$this->_translate("Only for LimeSurvey administrator (According to LimeSurvey Permission)"),
+                    'limesurvey'=>$this->_translate("Only for LimeSurvey administrator"),
                     'admin'=>$this->_translate("For group administrator and LimeSurvey administrator"),
                     'all'=>$this->_translate("All (user with a valid token included)"),
                 ),

@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: responseListAndManage\n"
-"POT-Creation-Date: 2018-08-31 10:25+0200\n"
+"POT-Creation-Date: 2018-09-04 18:06+0200\n"
 "PO-Revision-Date: 2018-06-21 16:36+0200\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -173,12 +173,37 @@ msgstr ""
 msgid "Allow to access of tool."
 msgstr ""
 
+#: responseListAndManage.php:461 responseListAndManage.php:502
+#: responseListAndManage.php:516 responseListAndManage.php:530
+msgid "Only for LimeSurvey administrator (According to LimeSurvey Permission)"
+msgstr ""
+
+#: responseListAndManage.php:462
+msgid "All (need a valid tokens if not LimeSurvey admin)."
+msgstr ""
+
 #: responseListAndManage.php:467
 msgid "You can disable all access with token here. If user can access to the tool, he have same right than LimeSurvey admin on his responses."
 msgstr ""
 
 #: responseListAndManage.php:472
 msgid "Allow view response of group"
+msgstr ""
+
+#: responseListAndManage.php:474 responseListAndManage.php:488
+msgid "Only for LimeSurvey administrator"
+msgstr ""
+
+#: responseListAndManage.php:475 responseListAndManage.php:489
+#: responseListAndManage.php:503 responseListAndManage.php:517
+#: responseListAndManage.php:531
+msgid "For group administrator and LimeSurvey administrator"
+msgstr ""
+
+#: responseListAndManage.php:476 responseListAndManage.php:490
+#: responseListAndManage.php:504 responseListAndManage.php:518
+#: responseListAndManage.php:532
+msgid "All (user with a valid token included)"
 msgstr ""
 
 #: responseListAndManage.php:481

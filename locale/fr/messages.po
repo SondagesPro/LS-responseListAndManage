@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: responseListAndManage\n"
-"POT-Creation-Date: 2018-08-31 10:25+0200\n"
-"PO-Revision-Date: 2018-08-31 10:27+0200\n"
+"POT-Creation-Date: 2018-09-04 18:06+0200\n"
+"PO-Revision-Date: 2018-09-04 18:08+0200\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: fr\n"
@@ -208,6 +208,17 @@ msgstr ""
 msgid "Allow to access of tool."
 msgstr "Permettre l‘accès à l‘outil."
 
+#: responseListAndManage.php:461 responseListAndManage.php:502
+#: responseListAndManage.php:516 responseListAndManage.php:530
+msgid "Only for LimeSurvey administrator (According to LimeSurvey Permission)"
+msgstr ""
+"Seulement pour les administrateurs de LimeSurvey (en fonction des "
+"permissions)"
+
+#: responseListAndManage.php:462
+msgid "All (need a valid tokens if not LimeSurvey admin)."
+msgstr "Tous (avec un code d’invitation valide)"
+
 #: responseListAndManage.php:467
 msgid ""
 "You can disable all access with token here. If user can access to the tool, "
@@ -220,6 +231,22 @@ msgstr ""
 #: responseListAndManage.php:472
 msgid "Allow view response of group"
 msgstr "Permettre la visualisation des réponses du groupe"
+
+#: responseListAndManage.php:474 responseListAndManage.php:488
+msgid "Only for LimeSurvey administrator"
+msgstr "Seulement pour les administrateurs de LimeSurvey"
+
+#: responseListAndManage.php:475 responseListAndManage.php:489
+#: responseListAndManage.php:503 responseListAndManage.php:517
+#: responseListAndManage.php:531
+msgid "For group administrator and LimeSurvey administrator"
+msgstr "Pour les administrateurs de groupe et les administrateurs LimeSurvey"
+
+#: responseListAndManage.php:476 responseListAndManage.php:490
+#: responseListAndManage.php:504 responseListAndManage.php:518
+#: responseListAndManage.php:532
+msgid "All (user with a valid token included)"
+msgstr "Tous (avec un code d‘invitation valide inclus)"
 
 #: responseListAndManage.php:481
 msgid ""
@@ -330,6 +357,12 @@ msgstr ""
 #, php-format
 msgid "Reponses of %s survey"
 msgstr "Réponses au questionnaire %s"
+
+#~ msgid ""
+#~ "Only for LimeSurvey administrator (According to LimeSurvey Permission)."
+#~ msgstr ""
+#~ "Seulement pour les administrateurs LimeSurvey (En fonction des "
+#~ "permissions de LimeSurvey)"
 
 #~ msgid "You can disable all access with token here."
 #~ msgstr "Vous pouvez désactiver tous les accès par code d‘invitation ici."

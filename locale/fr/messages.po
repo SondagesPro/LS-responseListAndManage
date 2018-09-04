@@ -1,15 +1,15 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: responseListAndManage\n"
-"POT-Creation-Date: 2018-07-29 19:16+0200\n"
-"PO-Revision-Date: 2018-07-29 19:16+0200\n"
+"POT-Creation-Date: 2018-08-31 10:25+0200\n"
+"PO-Revision-Date: 2018-08-31 10:27+0200\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 2.0.9\n"
+"X-Generator: Poedit 2.1.1\n"
 "X-Poedit-Basepath: ..\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "X-Poedit-SourceCharset: UTF-8\n"
@@ -38,11 +38,11 @@ msgstr "Paramètres de la liste des réponses"
 msgid "Response listing"
 msgstr "Liste des réponses"
 
-#: responseListAndManage.php:244
+#: responseListAndManage.php:245
 msgid "Token link and creation work in managing."
 msgstr "Liaison et création d‘invitation fonctionnel dans la gestion."
 
-#: responseListAndManage.php:246
+#: responseListAndManage.php:247
 msgid ""
 "No Token link and creation can be done in managing. Survey is anonymous or "
 "token table didn‘t exist."
@@ -50,11 +50,11 @@ msgstr ""
 "La liaison et création d‘invitation ne peut fonctionner dans la gestion. Le "
 "questionnaire est anonyme ou la table des participants n‘existe pas."
 
-#: responseListAndManage.php:249
+#: responseListAndManage.php:250
 msgid "You can create new response for all token."
 msgstr "Vous pourrez créer une nouvelle réponse pour toutes les invitations."
 
-#: responseListAndManage.php:251
+#: responseListAndManage.php:252
 msgid ""
 "You can not create new response for all token. Only one response is "
 "available for each token (see participation setting panel)."
@@ -63,98 +63,108 @@ msgstr ""
 "réponse est possible pour chaque code (voir le volet des paramètres de "
 "participation)."
 
-#: responseListAndManage.php:257
+#: responseListAndManage.php:258
 msgid "Response Management"
 msgstr "Gestion des réponses"
 
-#: responseListAndManage.php:260
+#: responseListAndManage.php:261
 msgid "Link to response alternate management"
 msgstr "Lien vers la gestion alternative des réponses."
 
-#: responseListAndManage.php:267
+#: responseListAndManage.php:268
 msgid "Response Management table"
 msgstr "Tableau de données des réponses."
 
-#: responseListAndManage.php:270
+#: responseListAndManage.php:271
 msgid "Show id of response."
 msgstr "Afficher l‘identifiant de la réponse."
 
-#: responseListAndManage.php:275
+#: responseListAndManage.php:276
 msgid "Show completed state."
 msgstr "Afficher l‘état complété de la réponse."
 
-#: responseListAndManage.php:280
+#: responseListAndManage.php:281
 msgid "Show start date."
 msgstr "Afficher la date de lancement."
 
-#: responseListAndManage.php:285
+#: responseListAndManage.php:286
 msgid "Show last action date."
 msgstr "Afficher la date de la dernière action."
 
-#: responseListAndManage.php:290
+#: responseListAndManage.php:291
 msgid "Token attributes to show in management"
 msgstr "Attributs des invitations à montrer"
 
-#: responseListAndManage.php:304
+#: responseListAndManage.php:305
 msgid "Survey columns to be show in management"
 msgstr "Colonne du questionnaire à montrer"
 
-#: responseListAndManage.php:323
+#: responseListAndManage.php:324
 msgid "Survey columns to be show at first"
 msgstr "Colonne du questionnaire à montrer au début"
 
-#: responseListAndManage.php:324
+#: responseListAndManage.php:325
 msgid "This question are shown at first, just after the id of the reponse."
 msgstr ""
 "Ces questions seront montrée(s) en premier, juste après l'identifiant de "
 "réponses."
 
-#: responseListAndManage.php:343
+#: responseListAndManage.php:344
 msgid "Token columns to be hidden to user (include group administrator)"
 msgstr ""
 "Colonnes des invitations à masquer aux utilisateurs (administrateur de "
 "groupe inclus)"
 
-#: responseListAndManage.php:344 responseListAndManage.php:363
+#: responseListAndManage.php:345 responseListAndManage.php:364
 msgid "This column are shown only to LimeSurvey administrator."
 msgstr "Ces colonnes ne seront affichées que aux administrateur de LimeSurvey"
 
-#: responseListAndManage.php:362
+#: responseListAndManage.php:363
 msgid "Survey columns to be hidden to user (include group administrator)"
 msgstr ""
 "Colonnes du questionnaire à masquer aux utilisateurs (administrateur de "
 "groupe inclus)"
 
-#: responseListAndManage.php:387
+#: responseListAndManage.php:389
 #, php-format
 msgid "In %s language (%s)"
 msgstr "Dans la langue %s (%s)"
 
-#: responseListAndManage.php:391
+#: responseListAndManage.php:393
 msgid "Description and helper for responses listing"
 msgstr "Description et aide pour la liste des réponses"
 
-#: responseListAndManage.php:392
+#: responseListAndManage.php:406 responseListAndManage.php:409
+#: responseListAndManage.php:1187
+msgid "Template to be used"
+msgstr "Modèle public à utiliser"
+
+#: responseListAndManage.php:412
+#, php-format
+msgid "Leave default (%s)"
+msgstr "Laisser par défaut (%s)"
+
+#: responseListAndManage.php:418
 msgid "Response Management token attribute usage"
 msgstr "Utilisation des attributs d‘invitation"
 
-#: responseListAndManage.php:395
+#: responseListAndManage.php:421
 msgid "Token attributes for group"
 msgstr "Attribut d‘invitation pour le groupe"
 
-#: responseListAndManage.php:398 responseListAndManage.php:407
+#: responseListAndManage.php:424 responseListAndManage.php:433
 msgid "None"
 msgstr "Aucun"
 
-#: responseListAndManage.php:404
+#: responseListAndManage.php:430
 msgid "Token attributes for group manager"
 msgstr "Attribut d‘invitation pour les droits de gestion du groupe"
 
-#: responseListAndManage.php:420
+#: responseListAndManage.php:446
 msgid "Response Management access and right"
 msgstr "Accès et droit à la gestion des réponses"
 
-#: responseListAndManage.php:424
+#: responseListAndManage.php:450
 msgid ""
 "Currently, for LimeSurvey admin user, for survey with token, need token read "
 "right."
@@ -162,7 +172,7 @@ msgstr ""
 "Actuellement, pour les administrateurs de LimeSurvey, nécessite les droits "
 "de lectures des invitations."
 
-#: responseListAndManage.php:425
+#: responseListAndManage.php:451
 msgid ""
 "For user, except for No : they always have same rights than other, for "
 "example if you allow delete to admin user, an user with token can delete his "
@@ -173,7 +183,7 @@ msgstr ""
 "administrateurs de supprimer les réponses, l‘utilisateur avec un code pourra "
 "supprimer ses réponses."
 
-#: responseListAndManage.php:426
+#: responseListAndManage.php:452
 msgid ""
 "To disable access for user with token you can set this settings to No or "
 "only for LimeSurvey admin."
@@ -182,11 +192,11 @@ msgstr ""
 "pouvez fixer ce paramètre à No ou seulement aux administrateurs de "
 "LimeSurvey."
 
-#: responseListAndManage.php:427
+#: responseListAndManage.php:453
 msgid "Warning"
 msgstr "Attention"
 
-#: responseListAndManage.php:427
+#: responseListAndManage.php:453
 msgid ""
 ": you need to update reloadAnyResponse settings and right. This was not "
 "fixed here."
@@ -194,11 +204,11 @@ msgstr ""
 " : vous devez modifier les paramètres et les droits du plugin "
 "reloadAnyResponse. Ceci n'est pas effectué ici."
 
-#: responseListAndManage.php:433
+#: responseListAndManage.php:459
 msgid "Allow to access of tool."
 msgstr "Permettre l‘accès à l‘outil."
 
-#: responseListAndManage.php:441
+#: responseListAndManage.php:467
 msgid ""
 "You can disable all access with token here. If user can access to the tool, "
 "he have same right than LimeSurvey admin on his responses."
@@ -207,111 +217,107 @@ msgstr ""
 "ont accès à l‘outil, ils ont les mêmes droits que les administrateurs de "
 "LimeSurvey sur leur(s) réponse(s)."
 
-#: responseListAndManage.php:446
+#: responseListAndManage.php:472
 msgid "Allow view response of group"
 msgstr "Permettre la visualisation des réponses du groupe"
 
-#: responseListAndManage.php:455
+#: responseListAndManage.php:481
 msgid ""
 "Only related to Group responses not to single user responses with token."
 msgstr ""
 "Uniquement lié aux réponses du groupe et non aux réponses de l‘utilisateur "
 "avec un code d'invitation."
 
-#: responseListAndManage.php:460
+#: responseListAndManage.php:486
 msgid "Allow edit response of group"
 msgstr "Permettre l‘édition des réponses du groupe"
 
-#: responseListAndManage.php:469 responseListAndManage.php:483
-#: responseListAndManage.php:497
+#: responseListAndManage.php:495 responseListAndManage.php:509
+#: responseListAndManage.php:523
 msgid "Need view rights."
 msgstr "Nécessite les droits de visualisation."
 
-#: responseListAndManage.php:474
+#: responseListAndManage.php:500
 msgid "Allow deletion of response"
 msgstr "Permettre la suppression rapide de réponse"
 
-#: responseListAndManage.php:488
+#: responseListAndManage.php:514
 msgid "Allow add response"
 msgstr "Permettre l‘ajout de réponse"
 
-#: responseListAndManage.php:502
+#: responseListAndManage.php:528
 msgid "Allow add token user"
 msgstr "Permettre l‘ajout de nouvel utilisateur"
 
-#: responseListAndManage.php:511
+#: responseListAndManage.php:537
 msgid "Need add response right."
 msgstr "Nécessite les droits d'ajout de réponse."
 
-#: responseListAndManage.php:655
+#: responseListAndManage.php:681
 msgid "This code is invalid."
 msgstr "Le code est invalide."
 
-#: responseListAndManage.php:745
+#: responseListAndManage.php:771
 msgid "You are not allowed to use reponse management with this token."
 msgstr ""
 "Vous n‘êtes pas habilité à utiliser la gestion des réponses avec ce code."
 
-#: responseListAndManage.php:799 responseListAndManage.php:806
-#: responseListAndManage.php:814 responseListAndManage.php:826
+#: responseListAndManage.php:825 responseListAndManage.php:832
+#: responseListAndManage.php:840 responseListAndManage.php:852
 msgid "Create an new response"
 msgstr "Créer une nouvelle réponse"
 
-#: responseListAndManage.php:958
+#: responseListAndManage.php:984
 msgid "Create an new user"
 msgstr "Créer un nouvel utilisateur"
 
-#: responseListAndManage.php:990 responseListAndManage.php:1049
+#: responseListAndManage.php:1016 responseListAndManage.php:1075
 msgid "Invalid survey id."
 msgstr "Identifiant de questionnaire invalide."
 
-#: responseListAndManage.php:994
+#: responseListAndManage.php:1020
 msgid "Invalid response id."
 msgstr "Identifiant de réponse invalide."
 
-#: responseListAndManage.php:1032
+#: responseListAndManage.php:1058
 msgid "No right to delete this reponse."
 msgstr "Pas les droits suffisants pour supprimer cette réponse."
 
-#: responseListAndManage.php:1052
+#: responseListAndManage.php:1078
 msgid "Token creation is disable for this survey."
 msgstr "La création d‘invitation est désactivée pour ce questionnaire."
 
-#: responseListAndManage.php:1071
+#: responseListAndManage.php:1097
 msgid "No right to create new token in this survey."
 msgstr ""
 "Pas les droits suffisants pour créer un nouveau code pour ce questionnaire."
 
-#: responseListAndManage.php:1091
+#: responseListAndManage.php:1117
 #, php-format
 msgid "Token created but unable to send the email, token code is %s"
 msgstr ""
 "Code d‘invitation créé mais impossible d‘envoyer le message électronique, le "
 "code est %s"
 
-#: responseListAndManage.php:1093
+#: responseListAndManage.php:1119
 msgid "Error return by mailer:"
 msgstr "Erreur reçus par l‘émetteur des messages"
 
-#: responseListAndManage.php:1125 responseListAndManage.php:1129
+#: responseListAndManage.php:1151 responseListAndManage.php:1155
 #, php-format
 msgid "Unable to use this plugin, you need %s plugin."
 msgstr "Impossible d‘utiliser ce plugin, vous avez besoin de %s."
 
-#: responseListAndManage.php:1147
+#: responseListAndManage.php:1173
 #, php-format
 msgid "Access link for survey listing : %s."
 msgstr "Lien d‘accès à la liste des questionnaires : %s."
 
-#: responseListAndManage.php:1161
-msgid "Template to be used"
-msgstr "Modèle public à utiliser"
-
-#: responseListAndManage.php:1308 responseListAndManage.php:1313
+#: responseListAndManage.php:1334 responseListAndManage.php:1339
 msgid "Is a group manager"
 msgstr "Est un gestionnaire de groupe"
 
-#: responseListAndManage.php:1320
+#: responseListAndManage.php:1346
 #, php-format
 msgid ""
 "You can use token information like %s or %s, %s was replaced by the url for "
@@ -319,6 +325,11 @@ msgid ""
 msgstr ""
 "Vous pouvez utiliser les attributs du participant comme %s ou %s, %s sera "
 "remplacé par le lien de gestion de la réponse."
+
+#: responseListAndManage.php:1504
+#, php-format
+msgid "Reponses of %s survey"
+msgstr "Réponses au questionnaire %s"
 
 #~ msgid "You can disable all access with token here."
 #~ msgstr "Vous pouvez désactiver tous les accès par code d‘invitation ici."

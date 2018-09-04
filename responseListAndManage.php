@@ -459,7 +459,7 @@ class responseListAndManage extends PluginBase {
                 'label'=>$this->_translate('Allow to access of tool.'),
                 'options'=>array(
                     'limesurvey'=>$this->_translate("Only for LimeSurvey administrator (According to LimeSurvey Permission)"),
-                    'all'=>$this->_translate("All (need a valid tokens if not LimeSurvey admin)."),
+                    'all'=>$this->_translate("All (need a valid token)"),
                 ),
                 'htmlOptions'=>array(
                     'empty'=>gT("None"),
@@ -473,7 +473,7 @@ class responseListAndManage extends PluginBase {
                 'options'=>array(
                     'limesurvey'=>$this->_translate("Only for LimeSurvey administrator"),
                     'admin'=>$this->_translate("For group administrator and LimeSurvey administrator"),
-                    'all'=>$this->_translate("All (user with a valid token included)"),
+                    'all'=>$this->_translate("All (with a valid token)"),
                 ),
                 'htmlOptions'=>array(
                     'empty'=>gT("No"),
@@ -487,7 +487,7 @@ class responseListAndManage extends PluginBase {
                 'options'=>array(
                     'limesurvey'=>$this->_translate("Only for LimeSurvey administrator"),
                     'admin'=>$this->_translate("For group administrator and LimeSurvey administrator"),
-                    'all'=>$this->_translate("All (user with a valid token included)"),
+                    'all'=>$this->_translate("All (with a valid token)"),
                 ),
                 'htmlOptions'=>array(
                     'empty'=>gT("No"),
@@ -499,9 +499,9 @@ class responseListAndManage extends PluginBase {
                 'type'=>'select',
                 'label'=>$this->_translate('Allow deletion of response'),
                 'options'=>array(
-                    'limesurvey'=>$this->_translate("Only for LimeSurvey administrator (According to LimeSurvey Permission)"),
+                    'limesurvey'=>$this->_translate("Only for LimeSurvey administrator"),
                     'admin'=>$this->_translate("For group administrator and LimeSurvey administrator"),
-                    'all'=>$this->_translate("All (user with a valid token included)"),
+                    'all'=>$this->_translate("All (with a valid token)"),
                 ),
                 'htmlOptions'=>array(
                     'empty'=>gT("No"),
@@ -513,9 +513,9 @@ class responseListAndManage extends PluginBase {
                 'type'=>'select',
                 'label'=>$this->_translate('Allow add response'),
                 'options'=>array(
-                    'limesurvey'=>$this->_translate("Only for LimeSurvey administrator (According to LimeSurvey Permission)"),
+                    'limesurvey'=>$this->_translate("Only for LimeSurvey administrator"),
                     'admin'=>$this->_translate("For group administrator and LimeSurvey administrator"),
-                    'all'=>$this->_translate("All (user with a valid token included)"),
+                    'all'=>$this->_translate("All (with a valid token)"),
                 ),
                 'htmlOptions'=>array(
                     'empty'=>gT("No"),
@@ -527,9 +527,9 @@ class responseListAndManage extends PluginBase {
                 'type'=>'select',
                 'label'=>$this->_translate('Allow add token user'),
                 'options'=>array(
-                    'limesurvey'=>$this->_translate("Only for LimeSurvey administrator (According to LimeSurvey Permission)"),
+                    'limesurvey'=>$this->_translate("Only for LimeSurvey administrator"),
                     'admin'=>$this->_translate("For group administrator and LimeSurvey administrator"),
-                    'all'=>$this->_translate("All (user with a valid token included)"),
+                    'all'=>$this->_translate("All (with a valid token)"),
                 ),
                 'htmlOptions'=>array(
                     'empty'=>gT("No"),

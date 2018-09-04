@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: responseListAndManage\n"
-"POT-Creation-Date: 2018-09-04 18:06+0200\n"
-"PO-Revision-Date: 2018-09-04 18:08+0200\n"
+"POT-Creation-Date: 2018-09-04 18:12+0200\n"
+"PO-Revision-Date: 2018-09-04 18:13+0200\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: fr\n"
@@ -208,16 +208,15 @@ msgstr ""
 msgid "Allow to access of tool."
 msgstr "Permettre l‘accès à l‘outil."
 
-#: responseListAndManage.php:461 responseListAndManage.php:502
-#: responseListAndManage.php:516 responseListAndManage.php:530
+#: responseListAndManage.php:461
 msgid "Only for LimeSurvey administrator (According to LimeSurvey Permission)"
 msgstr ""
 "Seulement pour les administrateurs de LimeSurvey (en fonction des "
 "permissions)"
 
 #: responseListAndManage.php:462
-msgid "All (need a valid tokens if not LimeSurvey admin)."
-msgstr "Tous (avec un code d’invitation valide)"
+msgid "All (need a valid token)"
+msgstr "Tous (nécessite un code d‘invitation valide)"
 
 #: responseListAndManage.php:467
 msgid ""
@@ -233,6 +232,8 @@ msgid "Allow view response of group"
 msgstr "Permettre la visualisation des réponses du groupe"
 
 #: responseListAndManage.php:474 responseListAndManage.php:488
+#: responseListAndManage.php:502 responseListAndManage.php:516
+#: responseListAndManage.php:530
 msgid "Only for LimeSurvey administrator"
 msgstr "Seulement pour les administrateurs de LimeSurvey"
 
@@ -245,8 +246,8 @@ msgstr "Pour les administrateurs de groupe et les administrateurs LimeSurvey"
 #: responseListAndManage.php:476 responseListAndManage.php:490
 #: responseListAndManage.php:504 responseListAndManage.php:518
 #: responseListAndManage.php:532
-msgid "All (user with a valid token included)"
-msgstr "Tous (avec un code d‘invitation valide inclus)"
+msgid "All (with a valid token)"
+msgstr "Tous (avec un code d‘invitation valide)"
 
 #: responseListAndManage.php:481
 msgid ""
@@ -357,6 +358,9 @@ msgstr ""
 #, php-format
 msgid "Reponses of %s survey"
 msgstr "Réponses au questionnaire %s"
+
+#~ msgid "All (need a valid tokens if not LimeSurvey admin)."
+#~ msgstr "Tous (avec un code d’invitation valide)"
 
 #~ msgid ""
 #~ "Only for LimeSurvey administrator (According to LimeSurvey Permission)."

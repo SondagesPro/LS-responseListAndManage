@@ -132,14 +132,19 @@ $(document).on("click","#modal-create-token button:submit",function(event,data){
 });
 function updateHeightModalbody(modal)
 {
-    var navbarFixed=0;
-    if($(".navbar-fixed-top").length) {
-      navbarFixed=$(".navbar-fixed-top").outerHeight();
+    var marginTopModal = 0;
+    var marginBottomModal = 0;
+    if($(".rlm-modal-margin-top").length) {
+      marginTopModal = $(".rlm-modal-margin-top").outerHeight();
+    }
+    if($(".rlm-modal-margin-bottom").length) {
+      marginBottomModal = $(".rlm-modal-margin-bottom").outerHeight();
     }
     var modalHeader=$(modal).find(".modal-header").outerHeight();
     var modalFooter=$(modal).find(".modal-footer").outerHeight();
-    var finalHeight=Math.max(150,$(window).height()-(navbarFixed+modalHeader+modalFooter+28));// Not less than 150px
-    $(modal).find(".modal-lg").css("margin-top",navbarFixed);
+    var finalHeight=Math.max(150,$(window).height()-(marginTopModal+modalHeader+modalFooter+marginBottomModal+28));// Not less than 150px
+    console.log(finalHeight);
+    $(modal).find(".modal-lg").css("margin-top",marginTopModal);
     $(modal).find(".modal-body").css("height",finalHeight);
     $(modal).find(".modal-body iframe").css("height",finalHeight);
 }

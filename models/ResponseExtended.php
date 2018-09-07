@@ -322,11 +322,13 @@ class ResponseExtended extends LSActiveRecord
             )
         );
         $allQuestionsColumns = $surveyColumnsInformation->allQuestionsColumns();
-        $allQuestionsColumns = array_map(function ($questionsColumn) use ($aFooter) {
-            $questionsColumn['footer'] = ($this->showFooter && isset($aFooter[$questionsColumn['name']])) ? $aFooter[$questionsColumn['name']] : null;
-            return $questionsColumn;
-            },
-        $allQuestionsColumns);
+        if(!empty($aFooter)) {
+            $allQuestionsColumns = array_map(function ($questionsColumn) use ($aFooter) {
+                $questionsColumn['footer'] = (isset($aFooter[$questionsColumn['name']])) ? $aFooter[$questionsColumn['name']] : null;
+                return $questionsColumn;
+                },
+            $allQuestionsColumns);
+        }
         
         $aColumns = array_merge($aColumns,$allQuestionsColumns);
         return $aColumns;

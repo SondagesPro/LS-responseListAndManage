@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.4.4
+ * @version 1.4.3
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -224,6 +224,7 @@ class responseListAndManage extends PluginBase {
                 'tokenAttributeGroup', 'tokenAttributeGroupManager', 'tokenAttributeGroupWhole',
                 'allowAccess','allowSee','allowEdit','allowDelete', 'allowAdd',
                 'template',
+                'showFooter',
             );
             foreach($settings as $setting) {
                 $this->set($setting, App()->getRequest()->getPost($setting), 'Survey', $surveyId);
@@ -377,6 +378,11 @@ class responseListAndManage extends PluginBase {
                     'class'=>'select2-withover ',
                 ),
                 'current'=>$this->get('surveyAttributesHideToUser','Survey',$surveyId)
+            ),
+            'showFooter' => array(
+                'type'=>'boolean',
+                'label'=>$this->_translate('Show footer with count and sum.'),
+                'current'=>$this->get('showFooter','Survey',$surveyId,0)
             ),
         );
         /* Descrition by lang */
@@ -708,6 +714,7 @@ class responseListAndManage extends PluginBase {
         Yii::import(get_class($this).'.models.ResponseExtended');
         $mResponse = ResponseExtended::model($surveyId);
         $mResponse->setScenario('search');
+        $mResponse->showFooter = $this->get('showFooter','Survey',$surveyId,false);
         $filters = Yii::app()->request->getParam('ResponseExtended');
         if (!empty($filters)) {
             $mResponse->setAttributes($filters, false);
@@ -899,11 +906,10 @@ class responseListAndManage extends PluginBase {
                 'template'=>'{update}{delete}',
                 'updateButtonUrl'=>$updateButtonUrl,
                 'deleteButtonUrl'=>$deleteButtonUrl,
+                'footer' => ($this->get('showFooter','Survey',$surveyId,false) ? $this->_translate("Answered count and sum") : null),
             ),
         );
         $disableTokenPermission = (bool) $currentToken;
-        
-        $aColumns = array_merge($aColumns,$mResponse->getGridColumns($disableTokenPermission));
         /* Get the selected columns only */
         $tokenAttributes = $this->get('tokenAttributes','Survey',$surveyId);
         $surveyAttributes = $this->get('surveyAttributes','Survey',$surveyId);
@@ -947,6 +953,8 @@ class responseListAndManage extends PluginBase {
         }
         $aRestrictedColumns = array_merge($forcedColumns,$tokenAttributes,$surveyAttributes,$surveyAttributesPrimary);
         $mResponse->setRestrictedColumns($aRestrictedColumns);
+        $aColumns = array_merge($aColumns,$mResponse->getGridColumns($disableTokenPermission));
+
         if($currentToken) {
             $tokenAttributesHideToUser = $this->get('tokenAttributesHideToUser','Survey',$surveyId);
             if(!empty($tokenAttributesHideToUser)) {

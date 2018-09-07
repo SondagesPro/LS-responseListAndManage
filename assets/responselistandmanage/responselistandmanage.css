@@ -76,8 +76,10 @@ width: 12em;
 .btn-link:focus, .btn-link:hover {
     color: inherit;
 }
-.responses-grid{padding-bottom:4em}
-
+#responses-grid tfoot{display: table-header-group;}
+#responses-grid tfoot{font-weight:bold}
+.grid-view tfoot td{text-align:center}
+.grid-view tfoot .button-column{text-align:right}
 /* For wisywig editor */
 .wysihtml5-toolbar .btn{
 

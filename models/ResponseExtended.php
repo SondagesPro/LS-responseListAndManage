@@ -29,6 +29,12 @@ class ResponseExtended extends LSActiveRecord
     /** @var  object */
     protected $restrictedColumns;
 
+    /** @var boolean */
+    public $showFooter;
+
+    /* @var */
+    protected $sum;
+
     /**
      * @inheritdoc
      * @return SurveyDynamic
@@ -253,6 +259,9 @@ class ResponseExtended extends LSActiveRecord
      */
     public function getGridColumns()
     {
+        if($this->showFooter) {
+            $aFooter = $this->getFooters();
+        }
         $aColumns = array();
         /* Basic columns */
         $aColumns['id']=array(
@@ -260,6 +269,7 @@ class ResponseExtended extends LSActiveRecord
             'name' => 'id',
             'htmlOptions' => array('class' => 'data-column column-id'),
             'filterInputOptions' => array('class'=>'form-control input-sm filter-id'),
+            'footer' => ($this->showFooter && isset($aFooter['id'])) ? $aFooter['id'] : null,
         );
         $aColumns['completed']=array(
             'header' => '<strong>[completed]</strong><small>'.gT('Completed'),
@@ -269,6 +279,7 @@ class ResponseExtended extends LSActiveRecord
             'value' => 'ResponseExtended::getCompletedGrid($data)',
             'filter'=> array('Y'=>gT('Yes'),'N'=>gT('No')),
             'filterInputOptions' => array('class'=>'form-control input-sm filter-completed'),
+            'footer' => ($this->showFooter && isset($aFooter['completed'])) ? $aFooter['completed'] : null,
         );
         if(self::$survey->datestamp =="Y") {
             $aColumns['startdate']=array(
@@ -278,6 +289,7 @@ class ResponseExtended extends LSActiveRecord
                 'value' => 'ResponseExtended::getDateValue($data,"startdate")',
                 'filter' => null,
                 'filterInputOptions' => array('class'=>'form-control input-sm filter-startdate'),
+                'footer' => ($this->showFooter && isset($aFooter['startdate'])) ? $aFooter['startdate'] : null,
             );
             $aColumns['submitdate']=array(
                 'header' => '<strong>[submitdate]</strong><small>'.gT('Submit date').'</small>',
@@ -286,6 +298,7 @@ class ResponseExtended extends LSActiveRecord
                 'value' => 'ResponseExtended::getSubmitdateValue($data)',
                 'filter' => null,
                 'filterInputOptions' => array('class'=>'form-control input-sm filter-submitdate'),
+                'footer' => ($this->showFooter && isset($aFooter['submitdate'])) ? $aFooter['submitdate'] : null,
             );
             $aColumns['datestamp']=array(
                 'header' => '<strong>[datestamp]</strong><small>'.gT('Date stamp').'</small>',
@@ -294,6 +307,7 @@ class ResponseExtended extends LSActiveRecord
                 'value' => 'ResponseExtended::getDateValue($data,"datestamp")',
                 'filter' => null,
                 'filterInputOptions' => array('class'=>'form-control input-sm filter-datestamp'),
+                'footer' => ($this->showFooter && isset($aFooter['datestamp'])) ? $aFooter['datestamp'] : null,
             );
         }
         if($this->getHaveToken()) {
@@ -307,8 +321,14 @@ class ResponseExtended extends LSActiveRecord
                 'action' => 'download',
             )
         );
-        $aColumns = array_merge($aColumns,$surveyColumnsInformation->allQuestionsColumns());
-
+        $allQuestionsColumns = $surveyColumnsInformation->allQuestionsColumns();
+        $allQuestionsColumns = array_map(function ($questionsColumn) use ($aFooter) {
+            $questionsColumn['footer'] = ($this->showFooter && isset($aFooter[$questionsColumn['name']])) ? $aFooter[$questionsColumn['name']] : null;
+            return $questionsColumn;
+            },
+        $allQuestionsColumns);
+        
+        $aColumns = array_merge($aColumns,$allQuestionsColumns);
         return $aColumns;
     }
 
@@ -420,4 +440,62 @@ class ResponseExtended extends LSActiveRecord
         }
         $this->restrictedColumns = $restrictedColumns;
     }
+
+    /**
+     *
+     */
+    public function getFooters()
+    {
+        
+        if(is_callable(array("\getQuestionInformation\helpers\surveyColumnsInformation","allQuestionsType")) ) {
+            $surveyColumnsInformation = new \getQuestionInformation\helpers\surveyColumnsInformation(self::$sid,App()->getLanguage());
+            $allQuestionsType = $surveyColumnsInformation->allQuestionsType();
+        } else {
+            $this->log("Footer without sum, update getQuestionInformation plugin to 1.4.0 and up",'error',"ReponseExtended.getFooters");
+            $surveyColumnsInformation = null;
+        }
+        $aFooters = array();
+        $baseCriteria = $this->search()->getCriteria();
+        /* Always add submitdate */
+        $cloneCriteria = clone $baseCriteria;
+        $cloneCriteria->addCondition("submitdate != '' and submitdate IS NOT null");
+        $aFooters['completed'] = self::model()->count($baseCriteria);
+        /* All DB columns */
+        $aDbColumns = self::model()->getTableSchema()->columns;
+        foreach($aDbColumns as $column=>$data) {
+            $footer = null;
+            /* Specific one */
+            if($column == 'id') {
+                $aFooters['id'] = self::model()->count($baseCriteria);
+                continue;
+            }
+            if(!empty($this->restrictedColumns) && !in_array($column,$this->restrictedColumns)) {
+                continue;
+            }
+            $quoteColumn = Yii::app()->db->quoteColumnName($column);
+            $cloneCriteria = clone $baseCriteria;
+            $cloneCriteria->addCondition("$quoteColumn != '' and $quoteColumn IS NOT null");
+            $footer = self::model()->count($cloneCriteria);
+            if(isset($allQuestionsType[$column])) {
+                if(in_array($allQuestionsType[$column],array('decimal','float','integer')) ) {
+                    $sum = array_sum(Chtml::listData($this->search()->getData(),$column,$column));
+                    $footer .= " / ".$sum;
+                }
+            }
+            $aFooters[$column] = $footer;
+        }
+        return $aFooters;
+    }
+
+  /**
+   * @inheritdoc adding string, by default current event
+   * @param string
+   */
+  public function log($message, $level = \CLogger::LEVEL_TRACE,$logDetail = null)
+  {
+    if(!$logDetail && $this->getEvent()) {
+      $logDetail = $this->getEvent()->getEventName();
+    } // What to put if no event ?
+    Yii::log($message, $level,'plugins.reloadAnyResponse.'.$logDetail);
+  }
 }

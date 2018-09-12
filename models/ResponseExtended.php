@@ -287,7 +287,7 @@ class ResponseExtended extends LSActiveRecord
                 'name' => 'startdate',
                 'htmlOptions' => array('class' => 'data-column column-startdate'),
                 'value' => 'ResponseExtended::getDateValue($data,"startdate")',
-                'filter' => null,
+                'filter' => false,
                 'filterInputOptions' => array('class'=>'form-control input-sm filter-startdate'),
                 'footer' => ($this->showFooter && isset($aFooter['startdate'])) ? $aFooter['startdate'] : null,
             );
@@ -296,7 +296,7 @@ class ResponseExtended extends LSActiveRecord
                 'name' => 'submitdate',
                 'htmlOptions' => array('class' => 'data-column column-submitdate'),
                 'value' => 'ResponseExtended::getSubmitdateValue($data)',
-                'filter' => null,
+                'filter' => false,
                 'filterInputOptions' => array('class'=>'form-control input-sm filter-submitdate'),
                 'footer' => ($this->showFooter && isset($aFooter['submitdate'])) ? $aFooter['submitdate'] : null,
             );
@@ -305,7 +305,7 @@ class ResponseExtended extends LSActiveRecord
                 'name' => 'datestamp',
                 'htmlOptions' => array('class' => 'data-column column-datestamp'),
                 'value' => 'ResponseExtended::getDateValue($data,"datestamp")',
-                'filter' => null,
+                'filter' => false,
                 'filterInputOptions' => array('class'=>'form-control input-sm filter-datestamp'),
                 'footer' => ($this->showFooter && isset($aFooter['datestamp'])) ? $aFooter['datestamp'] : null,
             );

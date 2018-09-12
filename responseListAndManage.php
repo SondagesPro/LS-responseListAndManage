@@ -220,6 +220,7 @@ class responseListAndManage extends PluginBase {
             $settings = array(
                 'showId','showCompleted','showStartdate','showDatestamp',
                 'tokenAttributes','surveyAttributes','surveyAttributesPrimary',
+                'tokenColumnOrder',
                 'tokenAttributesHideToUser','surveyAttributesHideToUser',
                 'tokenAttributeGroup', 'tokenAttributeGroupManager', 'tokenAttributeGroupWhole',
                 'allowAccess','allowSee','allowEdit','allowDelete', 'allowAdd',
@@ -300,6 +301,16 @@ class responseListAndManage extends PluginBase {
                     'placeholder'=>gT("All"),
                 ),
                 'current'=>$this->get('tokenAttributes','Survey',$surveyId)
+            ),
+            'tokenColumnOrder' => array(
+                'type'=>'select',
+                'label'=>$this->_translate('Token attributes order'),
+                'options'=>array(
+                    'start' => $this->_translate("At start (before primary columns)"),
+                    'default' => $this->_translate("Between primary columns and secondary columns (default)"),
+                    'end' => $this->_translate("At end (after all other columns)"),
+                ),
+                'current'=>$this->get('tokenColumnOrder','Survey',$surveyId,'default')
             ),
             'surveyAttributes' => array(
                 'type'=>'select',
@@ -905,16 +916,8 @@ class responseListAndManage extends PluginBase {
                 }
             }
         }
-        $aColumns= array(
-            'buttons'=>array(
-                'htmlOptions' => array('nowrap'=>'nowrap'),
-                'class'=>'bootstrap.widgets.TbButtonColumn',
-                'template'=>'{update}{delete}',
-                'updateButtonUrl'=>$updateButtonUrl,
-                'deleteButtonUrl'=>$deleteButtonUrl,
-                'footer' => ($this->get('showFooter','Survey',$surveyId,false) ? $this->_translate("Answered count and sum") : null),
-            ),
-        );
+
+        $aColumns = array();
         $disableTokenPermission = (bool) $currentToken;
         /* Get the selected columns only */
         $tokenAttributes = $this->get('tokenAttributes','Survey',$surveyId);
@@ -943,24 +946,34 @@ class responseListAndManage extends PluginBase {
         if(is_string($surveyAttributesPrimary)) {
             $surveyAttributesPrimary = array($surveyAttributesPrimary);
         }
-
-        $forcedColumns = array('buttons');
+        if(!empty($surveyAttributesPrimary)) {
+            $surveyAttributes = array_diff ($surveyAttributes,$surveyAttributesPrimary);
+        }
+        $baseColumns = array();
         if($this->get('showId','Survey',$surveyId,1)) {
-            $forcedColumns[] = 'id';
+            $baseColumns[] = 'id';
         }
         if($this->get('showCompleted','Survey',$surveyId,1)) {
-            $forcedColumns[] = 'completed';
+            $baseColumns[] = 'completed';
         }
         if($oSurvey->datestamp && $this->get('showStartdate','Survey',$surveyId,0)) {
-            $forcedColumns[] = 'startdate';
+            $baseColumns[] = 'startdate';
         }
         if($oSurvey->datestamp && $this->get('showDatestamp','Survey',$surveyId,0)) {
-            $forcedColumns[] = 'datestamp';
+            $baseColumns[] = 'datestamp';
         }
-        $aRestrictedColumns = array_merge($forcedColumns,$tokenAttributes,$surveyAttributes,$surveyAttributesPrimary);
-        $mResponse->setRestrictedColumns($aRestrictedColumns);
-        $aColumns = array_merge($aColumns,$mResponse->getGridColumns($disableTokenPermission));
-
+        $aRestrictedColumns = array_merge($baseColumns,$tokenAttributes,$surveyAttributes,$surveyAttributesPrimary);
+        switch ($this->get('tokenColumnOrder','Survey',$surveyId,'default')) {
+            case "start":
+                $aRestrictedColumns = array_merge($baseColumns,$tokenAttributes,$surveyAttributesPrimary,$surveyAttributes);
+                break;
+            case "end":
+                $aRestrictedColumns = array_merge($baseColumns,$surveyAttributesPrimary,$surveyAttributes,$tokenAttributes);
+                break;
+            case "default":
+            default:
+                $aRestrictedColumns = array_merge($baseColumns,$surveyAttributesPrimary,$tokenAttributes,$surveyAttributes);
+        }
         if($currentToken) {
             $tokenAttributesHideToUser = $this->get('tokenAttributesHideToUser','Survey',$surveyId);
             if(!empty($tokenAttributesHideToUser)) {
@@ -969,19 +982,24 @@ class responseListAndManage extends PluginBase {
             $surveyAttributesHideToUser = $this->get('surveyAttributesHideToUser','Survey',$surveyId);
             if(!empty($surveyAttributesHideToUser)) {
                 $aRestrictedColumns = array_diff($aRestrictedColumns,$surveyAttributesHideToUser);
-                $surveyAttributesPrimary = array_diff($surveyAttributesPrimary,$surveyAttributesHideToUser);
             }
         }
-        $aColumns = array_intersect_key( $aColumns, array_flip( $aRestrictedColumns ) );
-        if(!empty($surveyAttributesPrimary)) {
-            $surveyAttributesPrimary=array_reverse($surveyAttributesPrimary);// We add at inverse, the last must be first
-            $surveyAttributesPrimary=array_merge($surveyAttributesPrimary,array_reverse($forcedColumns)); // And need buttons and id at start
-            foreach($surveyAttributesPrimary as $columnKey) {
-                if(isset($aColumns[$columnKey])) {
-                    $aColumnPrimary = $aColumns[$columnKey];
-                    unset($aColumns[$columnKey]); // Is this needed ?
-                    array_unshift($aColumns,$aColumnPrimary);
-                }
+        $mResponse->setRestrictedColumns($aRestrictedColumns);
+        $aColumns = $mResponse->getGridColumns($disableTokenPermission);
+        /* Get columns by order now … */
+        $aOrderedColumn = array(
+            'button' => array(
+                'htmlOptions' => array('nowrap'=>'nowrap'),
+                'class'=>'bootstrap.widgets.TbButtonColumn',
+                'template'=>'{update}{delete}',
+                'updateButtonUrl'=>$updateButtonUrl,
+                'deleteButtonUrl'=>$deleteButtonUrl,
+                'footer' => ($this->get('showFooter','Survey',$surveyId,false) ? $this->_translate("Answered count and sum") : null),
+            )
+        );
+        foreach($aRestrictedColumns as $key) {
+            if(isset($aColumns[$key])) {
+                $aOrderedColumn[$key] = $aColumns[$key];
             }
         }
 
@@ -1019,7 +1037,7 @@ class responseListAndManage extends PluginBase {
         // Add comment block
         $aDescriptionCurrent = $this->get('description','Survey',$surveyId);
         $this->aRenderData['description'] = isset($aDescriptionCurrent[Yii::app()->getLanguage()]) ? $aDescriptionCurrent[Yii::app()->getLanguage()] : "";
-        $this->aRenderData['columns'] = $aColumns;
+        $this->aRenderData['columns'] = $aOrderedColumn;
         $this->_render('responses');
     }
 

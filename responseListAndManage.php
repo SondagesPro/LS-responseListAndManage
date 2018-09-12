@@ -706,10 +706,16 @@ class responseListAndManage extends PluginBase {
         $language = App()->getlanguage();
         if(!in_array($language,$oSurvey->getAllLanguages())) {
             $language = $oSurvey->language;
+            App()->setLanguage($language);
         }
-        App()->setLanguage($language);
         $this->aRenderData['aSurveyInfo'] = getSurveyInfo($surveyId, $language);
-
+        /* See https://github.com/LimeSurvey/LimeSurvey/commit/0ffc127bfceac4aa7658595b624ac18a2dcce2aa */
+        if(Yii::app()->getConfig('debug') && version_compare(Yii::app()->getConfig('versionnumber'),"3.14.8","<=") && version_compare(Yii::app()->getConfig('versionnumber'),"3.0.0",">=")) {
+            $sessionSurvey = array(
+                "s_lang" => $language
+            );
+            Yii::app()->session['survey_'.$surveyId] = $sessionSurvey;
+        }
         Yii::app()->session['responseListAndManage'] = $surveyId;
         Yii::import(get_class($this).'.models.ResponseExtended');
         $mResponse = ResponseExtended::model($surveyId);

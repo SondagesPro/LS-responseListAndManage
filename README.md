@@ -26,6 +26,13 @@ For each survey : if survey have token and is not anonymous : user with token ca
 
 Two elements are added in survey tools menu : one for survey alternate management, and one for managing settings of alternate management.
 
+## Issues and feature
+
+All issue and merge request must be done in [base repo](https://gitlab.com/SondagesPro/managament/responseListAndManage) (currently gitlab).
+
+Issue must be posted with complete information : LimeSurvey version and build number, web server version, PHP version, SQL type and version number … 
+**Reminder:** no warranty of functionnal system operation is offered on this software. If you want a professional offer: please [contact Sondages Pro](https://extensions.sondages.pro/about/contact.html).
+
 ## Home page & Copyright
 - HomePage <http://extensions.sondages.pro/>
 - Copyright © 2018 Denis Chenu <http://sondages.pro>

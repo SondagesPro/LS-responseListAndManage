@@ -32,6 +32,12 @@ class ResponseExtended extends LSActiveRecord
     /** @var boolean */
     public $showFooter;
 
+    /** @var  */
+    public $filterOnDate = true;
+
+    /** @var boolean */
+    //~ public $dateFilterQuestion;
+
     /* @var */
     protected $sum;
 
@@ -217,8 +223,6 @@ class ResponseExtended extends LSActiveRecord
      */
     protected function filterColumns(CDbCriteria $criteria)
     {
-        $dateFormatDetails = getDateFormatData(Yii::app()->session['dateformat']);
-
         // Filters for responses
         foreach ($this->metaData->columns as $column) {
             if (!in_array($column->name, $this->defaultColumns)) {
@@ -230,13 +234,35 @@ class ResponseExtended extends LSActiveRecord
                         $this->$c1 = (float) $this->$c1;
                         $criteria->compare(Yii::app()->db->quoteColumnName($c1), $this->$c1, false);
                     } elseif ($isDatetime) {
-                        $s = DateTime::createFromFormat($dateFormatDetails['phpdate'], $this->$c1);
+                        if(is_array($this->$c1)) {
+                            $date = $this->$c1;
+                            $dateFormat = empty($date['format']) ? 'Y-m-d' : $date['format'];
+                            if(!empty($date['min'])) {
+                                $minDate = DateTime::createFromFormat('!' . $dateFormat, trim($date['min']));
+                                if ($minDate === false) {
+                                    throw new CHttpException(500, "Invalid format for $c1 : $dateFormat");
+                                }
+                                $minDate = $minDate->format("Y-m-d H:i");
+                                //~ $criteria->compare(Yii::app()->db->quoteColumnName($c1), ">=".$minDate);
+                                $criteria->addCondition(Yii::app()->db->quoteColumnName($c1).' >= '.Yii::app()->db->quoteValue($minDate));
+                            }
+                            if(!empty($date['max'])) {
+                                $maxDate = DateTime::createFromFormat('!' . $dateFormat, trim($date['max']));
+                                if ($maxDate === false) {
+                                    throw new CHttpException(500, "Invalid format for $c1 : $dateFormat");
+                                }
+                                $maxDate = $maxDate->format("Y-m-d H:i");
+                                $criteria->addCondition(Yii::app()->db->quoteColumnName($c1).' < '.Yii::app()->db->quoteValue($maxDate));
+                            }
+                            continue;
+                        }
+                        $s = DateTime::createFromFormat("Y-m-d", $this->$c1);
                         if ($s === false) {
                             // This happens when date is in wrong format
                             continue;
                         }
                         $s2 = $s->format('Y-m-d');
-                        $criteria->addCondition('cast('.Yii::app()->db->quoteColumnName($c1).' as date) = \''.$s2.'\'');
+                        $criteria->addCondition('cast('.Yii::app()->db->quoteColumnName($c1).' as date) = '.Yii::app()->db->quoteValue($s2));
                     } else {
                         $criteria->compare(Yii::app()->db->quoteColumnName($c1), $this->$c1, true);
                     }
@@ -262,6 +288,15 @@ class ResponseExtended extends LSActiveRecord
         if($this->showFooter) {
             $aFooter = $this->getFooters();
         }
+        $surveyColumnsInformation = new \getQuestionInformation\helpers\surveyColumnsInformation(self::$sid,App()->getLanguage());
+        $surveyColumnsInformation->model = $this;
+        $surveyColumnsInformation->downloadUrl = array(
+            'route' => "plugins/direct",
+            'params' => array(
+                'plugin' => "responseListAndManage",
+                'action' => 'download',
+            )
+        );
         $aColumns = array();
         /* Basic columns */
         $aColumns['id']=array(
@@ -282,12 +317,15 @@ class ResponseExtended extends LSActiveRecord
             'footer' => ($this->showFooter && isset($aFooter['completed'])) ? $aFooter['completed'] : null,
         );
         if(self::$survey->datestamp =="Y") {
+            $allowDateFilter = $this->filterOnDate && method_exists($surveyColumnsInformation,'getDateFilter');
+            $dateFormatData = getDateFormatData(\SurveyLanguageSetting::model()->getDateFormat(self::$sid,Yii::app()->getLanguage()));
+            $dateFormat = $dateFormatData['phpdate'];
             $aColumns['startdate']=array(
                 'header' => '<strong>[startdate]</strong><small>'.gT('Start date').'</small>',
                 'name' => 'startdate',
                 'htmlOptions' => array('class' => 'data-column column-startdate'),
-                'value' => 'ResponseExtended::getDateValue($data,"startdate")',
-                'filter' => false,
+                'value' => 'ResponseExtended::getDateValue($data,"startdate","'.$dateFormat.'")',
+                'filter' => $allowDateFilter ? $surveyColumnsInformation->getDateFilter("startdate") : false,
                 'filterInputOptions' => array('class'=>'form-control input-sm filter-startdate'),
                 'footer' => ($this->showFooter && isset($aFooter['startdate'])) ? $aFooter['startdate'] : null,
             );
@@ -295,8 +333,8 @@ class ResponseExtended extends LSActiveRecord
                 'header' => '<strong>[submitdate]</strong><small>'.gT('Submit date').'</small>',
                 'name' => 'submitdate',
                 'htmlOptions' => array('class' => 'data-column column-submitdate'),
-                'value' => 'ResponseExtended::getSubmitdateValue($data)',
-                'filter' => false,
+                'value' => 'ResponseExtended::getDateValue($data,"submitdate","'.$dateFormat.'")',
+                'filter' => $allowDateFilter ? $surveyColumnsInformation->getDateFilter("submitdate") : false,
                 'filterInputOptions' => array('class'=>'form-control input-sm filter-submitdate'),
                 'footer' => ($this->showFooter && isset($aFooter['submitdate'])) ? $aFooter['submitdate'] : null,
             );
@@ -304,8 +342,8 @@ class ResponseExtended extends LSActiveRecord
                 'header' => '<strong>[datestamp]</strong><small>'.gT('Date stamp').'</small>',
                 'name' => 'datestamp',
                 'htmlOptions' => array('class' => 'data-column column-datestamp'),
-                'value' => 'ResponseExtended::getDateValue($data,"datestamp")',
-                'filter' => false,
+                'value' => 'ResponseExtended::getDateValue($data,"datestamp","'.$dateFormat.'")',
+                'filter' => $allowDateFilter ? $surveyColumnsInformation->getDateFilter("datestamp") : false,
                 'filterInputOptions' => array('class'=>'form-control input-sm filter-datestamp'),
                 'footer' => ($this->showFooter && isset($aFooter['datestamp'])) ? $aFooter['datestamp'] : null,
             );
@@ -313,14 +351,7 @@ class ResponseExtended extends LSActiveRecord
         if($this->getHaveToken()) {
             $aColumns = array_merge($aColumns,$this->getTokensColumns());
         }
-        $surveyColumnsInformation = new \getQuestionInformation\helpers\surveyColumnsInformation(self::$sid,App()->getLanguage());
-        $surveyColumnsInformation->downloadUrl = array(
-            'route' => "plugins/direct",
-            'params' => array(
-                'plugin' => "responseListAndManage",
-                'action' => 'download',
-            )
-        );
+
         $allQuestionsColumns = $surveyColumnsInformation->allQuestionsColumns();
         if(!empty($aFooter)) {
             $allQuestionsColumns = array_map(function ($questionsColumn) use ($aFooter) {
@@ -334,20 +365,25 @@ class ResponseExtended extends LSActiveRecord
         return $aColumns;
     }
 
-    public static function getSubmitdateValue($data) {
-        return $data->submitdate;
-    }
-
-    public static function getDateValue($data,$name) {
+    public static function getDateValue($data,$name,$dateFormat="Y-m-d") {
+        if(empty($data->$name)) {
+            return "";
+        }
+        $datetimeobj = \DateTime::createFromFormat('!Y-m-d H:i:s', $data->$name);
+        if ($datetimeobj) {
+            return $datetimeobj->format($dateFormat);
+        }
         return $data->$name;
     }
 
     public static function getAnswerValue($data,$name,$type,$iQid) {
         return $data->$name;
     }
+
     public function getCompleted() {
         return (bool)$this->submitdate;
     }
+
     public static function getCompletedGrid($data) {
         if($data->submitdate) {
             if(self::$survey->datestamp =="Y") {
@@ -448,7 +484,6 @@ class ResponseExtended extends LSActiveRecord
      */
     public function getFooters()
     {
-        
         if(is_callable(array("\getQuestionInformation\helpers\surveyColumnsInformation","allQuestionsType")) ) {
             $surveyColumnsInformation = new \getQuestionInformation\helpers\surveyColumnsInformation(self::$sid,App()->getLanguage());
             $allQuestionsType = $surveyColumnsInformation->allQuestionsType();
@@ -499,5 +534,37 @@ class ResponseExtended extends LSActiveRecord
       $logDetail = $this->getEvent()->getEventName();
     } // What to put if no event ?
     Yii::log($message, $level,'plugins.reloadAnyResponse.'.$logDetail);
+  }
+
+  /**
+   * get specific filter for date
+   */
+  public function getDateFilter($column,$iQid=null) {
+        /* Validate version for date time picker ? */
+        $dateFormatMoment = $dateFormatPHP = null;
+        if($iQid) {
+            $oAttributeDateFormat = QuestionAttribute::model()->find("qid = :qid",array(":qid"=>$iQid));
+            if($oAttributeDateFormat && trim($oAttributeDateFormat->value)) {
+                $dateFormat = trim($oAttributeDateFormat->value);
+                $dateFormatMoment = getJSDateFromDateFormat($dateFormat);
+                $dateFormatPHP = getPHPDateFromDateFormat($dateFormat);
+            }
+        }
+        if(empty($dateFormatMoment)) {
+            $dateFormatData = getDateFormatData(\SurveyLanguageSetting::model()->getDateFormat(self::$sid,Yii::app()->getLanguage()));
+            $dateFormatMoment = $dateFormatData['jsdate'];
+            $dateFormatPHP = $dateFormatData['phpdate'];
+        }
+        $attributes = $this->attributes;
+        $minValue = !empty($attributes[$column]['min']) ? $attributes[$column]['min'] : null;
+        $maxValue = !empty($attributes[$column]['max']) ? $attributes[$column]['max'] : null;
+        $dateFilter = '<div class="input-group"><div class="input-group-addon">&gt;=</div>';
+        $dateFilter.= CHtml::textField(get_class($this)."[".$column."]"."[min]",$minValue,array("class"=>'form-control input-sm filter-date','data-format'=>$dateFormatMoment));
+        $dateFilter.= "</div>";
+        $dateFilter .= '<div class="input-group"><div class="input-group-addon">&lt;</div>';
+        $dateFilter.= CHtml::textField(get_class($this)."[".$column."]"."[max]",$maxValue,array("class"=>'form-control input-sm filter-date','data-format'=>$dateFormatMoment));
+        $dateFilter.= "</div>";
+        $dateFilter.= CHtml::hiddenField(get_class($this)."[".$column."]"."[format]",$dateFormatPHP);
+        return $dateFilter;
   }
 }

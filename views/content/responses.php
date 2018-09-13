@@ -9,7 +9,7 @@ $this->widget('bootstrap.widgets.TbGridView', array(
     'itemsCssClass'=>'table-condensed',
     'id'            => 'responses-grid',
     'ajaxUpdate'    => 'responses-grid',
-    //~ 'ajaxUpdate' => false,
+    //'ajaxUpdate' => false,
     //~ 'htmlOptions'   => array('class'=>'grid-view table-responsive'),
     'ajaxType'      => 'POST',
     'template'      => "{items}\n<div class='row'><div class='col-sm-4 tools-form'>{$addNew} {$addUserButton}</div><div class='col-sm-4'>{pager}</div><div class='col-sm-4'>{summary}</div></div>",

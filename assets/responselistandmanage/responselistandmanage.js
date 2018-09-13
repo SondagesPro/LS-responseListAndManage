@@ -36,6 +36,20 @@ $(document).on("ajaxUpdated","#responses-grid",function(event){
             return null;
         }
     });
+    $('#responses-grid .filter-date').each(function() {
+        var dateFormat = $(this).data('format')? $(this).data('format') : 'YYYY-MM-DD';
+        $(this).datetimepicker({
+            format : dateFormat,
+            icons : {"time":"fa fa-clock-o","date":"fa fa-calendar","up":"fa fa-chevron-up","down":"fa fa-chevron-down","previous":"fa fa-chevron-left","next":"fa fa-chevron-right","today":"fa fa-calendar-check-o","clear":"fa fa-trash-o","close":"fa fa-closee"},
+            allowInputToggle : true,
+            showClear : true,
+            sideBySide : true
+        });
+    });
+
+    $('#responses-grid .filter-date').on('dp.hide', function(){
+        $('#responses-grid .filters input:first').trigger('change'); /* Simulate a chang on first input, : change on self seems disable by datetimepicker */
+    });
 });
 $(document).on('show.bs.popover','#responses-grid .answer-value', function () {
     $('#responses-grid .answer-value').not(this).popover('hide');

@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.4.5
+ * @version 1.5.0
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -226,6 +226,7 @@ class responseListAndManage extends PluginBase {
                 'allowAccess','allowSee','allowEdit','allowDelete', 'allowAdd',
                 'template',
                 'showFooter',
+                'filterOnDate',
             );
             foreach($settings as $setting) {
                 $this->set($setting, App()->getRequest()->getPost($setting), 'Survey', $surveyId);
@@ -277,16 +278,6 @@ class responseListAndManage extends PluginBase {
                 'type'=>'boolean',
                 'label'=>$this->_translate('Show completed state.'),
                 'current'=>$this->get('showCompleted','Survey',$surveyId,1)
-            ),
-            'showStartdate' => array(
-                'type'=>'boolean',
-                'label'=>$this->_translate('Show start date.'),
-                'current'=>$this->get('showStartdate','Survey',$surveyId,0)
-            ),
-            'showDatestamp' => array(
-                'type'=>'boolean',
-                'label'=>$this->_translate('Show last action date.'),
-                'current'=>$this->get('showDatestamp','Survey',$surveyId,0)
             ),
             'tokenAttributes' => array(
                 'type'=>'select',
@@ -394,6 +385,40 @@ class responseListAndManage extends PluginBase {
                 'type'=>'boolean',
                 'label'=>$this->_translate('Show footer with count and sum.'),
                 'current'=>$this->get('showFooter','Survey',$surveyId,0)
+            ),
+        );
+        $aSettings[$this->_translate('Date/time response management')] = array(
+            'filterOnDate' => array(
+                'type'=>'boolean',
+                'label'=>$this->_translate('Show filter on date question.'),
+                'current'=>$this->get('filterOnDate','Survey',$surveyId,1)
+            ),
+            //~ 'showSubmitdate' => array(
+                //~ 'type'=>'boolean',
+                //~ 'label'=>$this->_translate('Show submit date.'),
+                //~ 'help'=>$this->_translate('All date need your survey has datestamped enable.'),
+                //~ 'current'=>$this->get('showSubmitdate','Survey',$surveyId,0)
+            //~ ),
+            'showStartdate' => array(
+                'type'=>'boolean',
+                'label'=>$this->_translate('Show start date.'),
+                
+                'current'=>$this->get('showStartdate','Survey',$surveyId,0)
+            ),
+            //~ 'filterStartdate' => array(
+                //~ 'type'=>'select',
+                //~ 'options' => array(
+                    //~ 0 => gT("No"),
+                    //~ 1 => gT("Yes"),
+                    //~ 2 => gT("Yes with time"),
+                //~ ),
+                //~ 'label'=>$this->_translate('Show filter on start date.'),
+                //~ 'current'=>$this->get('showStartdate','Survey',$surveyId,0)
+            //~ ),
+            'showDatestamp' => array(
+                'type'=>'boolean',
+                'label'=>$this->_translate('Show last action date.'),
+                'current'=>$this->get('showDatestamp','Survey',$surveyId,0)
             ),
         );
         /* Descrition by lang */
@@ -732,6 +757,7 @@ class responseListAndManage extends PluginBase {
         $mResponse = ResponseExtended::model($surveyId);
         $mResponse->setScenario('search');
         $mResponse->showFooter = $this->get('showFooter','Survey',$surveyId,false);
+        $mResponse->filterOnDate = (bool) $this->get('filterOnDate','Survey',$surveyId,true);
         $filters = Yii::app()->request->getParam('ResponseExtended');
         if (!empty($filters)) {
             $mResponse->setAttributes($filters, false);
@@ -1538,6 +1564,7 @@ class responseListAndManage extends PluginBase {
             $renderTwig['aSurveyInfo']['showprogress'] = 'N'; // Didn't show progress bar
             $renderTwig['aSurveyInfo']['include_content'] = 'responselistandmanage';
             $renderTwig['responseListAndManage']['responselist'] = $responselist;
+            App()->getClientScript()->registerPackage("bootstrap-datetimepicker");
             $assetUrl = Yii::app()->assetManager->publish(dirname(__FILE__) . '/assets/responselistandmanage');
             App()->getClientScript()->registerCssFile($assetUrl."/responselistandmanage.css");
             App()->getClientScript()->registerScriptFile(Yii::app()->assetManager->publish(dirname(__FILE__) . '/assets/responselistandmanage/responselistandmanage.js'));
@@ -1560,7 +1587,7 @@ class responseListAndManage extends PluginBase {
             }
             $this->aRenderData['oTemplate'] = $oTemplate  = Template::model()->getInstance($templateName);
             Yii::app()->clientScript->registerPackage($oTemplate->sPackageName, LSYii_ClientScript::POS_BEGIN);
-            
+            App()->getClientScript()->registerPackage("bootstrap-datetimepicker");
             $this->aRenderData['title'] = isset($this->aRenderData['title']) ? $this->aRenderData['title'] : App()->getConfig('sitename');
             $pluginName = get_class($this);
             Yii::setPathOfAlias($pluginName, dirname(__FILE__));
@@ -1590,6 +1617,7 @@ class responseListAndManage extends PluginBase {
         $this->aRenderData['username'] = false;
         App()->getClientScript()->registerPackage("bootstrap");
         App()->getClientScript()->registerPackage("fontawesome");
+        App()->getClientScript()->registerPackage("bootstrap-datetimepicker");
         Yii::app()->getClientScript()->registerMetaTag('width=device-width, initial-scale=1.0', 'viewport');
         App()->bootstrap->registerAllScripts();
         App()->getClientScript()->registerCssFile($assetUrl."/responselistandmanage.css");

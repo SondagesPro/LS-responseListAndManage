@@ -48,7 +48,7 @@ $(document).on("ajaxUpdated","#responses-grid",function(event){
     });
 
     $('#responses-grid .filter-date').on('dp.hide', function(){
-        $('#responses-grid .filters input:first').trigger('change'); /* Simulate a chang on first input, : change on self seems disable by datetimepicker */
+        $('#responses-grid .filters input:not(.filter-date)').first().trigger('change'); /* Simulate a chang on first input, : change on self seems disable by datetimepicker */
     });
 });
 $(document).on('show.bs.popover','#responses-grid .answer-value', function () {

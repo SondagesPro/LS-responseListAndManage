@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.5.0
+ * @version 1.6.0
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -218,7 +218,7 @@ class responseListAndManage extends PluginBase {
         if(App()->getRequest()->getPost('save'.get_class($this))) {
             // Adding save part
             $settings = array(
-                'showId','showCompleted','showStartdate','showDatestamp',
+                'showId','showCompleted','showSubmitdate','showStartdate','showDatestamp',
                 'tokenAttributes','surveyAttributes','surveyAttributesPrimary',
                 'tokenColumnOrder',
                 'tokenAttributesHideToUser','surveyAttributesHideToUser',
@@ -226,7 +226,7 @@ class responseListAndManage extends PluginBase {
                 'allowAccess','allowSee','allowEdit','allowDelete', 'allowAdd',
                 'template',
                 'showFooter',
-                'filterOnDate',
+                'filterOnDate','filterSubmitdate','filterStartdate','filterDatestamp',
             );
             foreach($settings as $setting) {
                 $this->set($setting, App()->getRequest()->getPost($setting), 'Survey', $surveyId);
@@ -393,32 +393,55 @@ class responseListAndManage extends PluginBase {
                 'label'=>$this->_translate('Show filter on date question.'),
                 'current'=>$this->get('filterOnDate','Survey',$surveyId,1)
             ),
-            //~ 'showSubmitdate' => array(
-                //~ 'type'=>'boolean',
-                //~ 'label'=>$this->_translate('Show submit date.'),
-                //~ 'help'=>$this->_translate('All date need your survey has datestamped enable.'),
-                //~ 'current'=>$this->get('showSubmitdate','Survey',$surveyId,0)
-            //~ ),
+            'showDateInfo' => array(
+                'type' => 'info',
+                'content' => CHtml::tag("div",array("class"=>"well"),$this->_translate("All settings after need date stamped survey.")),
+            ),
             'showStartdate' => array(
                 'type'=>'boolean',
                 'label'=>$this->_translate('Show start date.'),
                 
                 'current'=>$this->get('showStartdate','Survey',$surveyId,0)
             ),
-            //~ 'filterStartdate' => array(
-                //~ 'type'=>'select',
-                //~ 'options' => array(
-                    //~ 0 => gT("No"),
-                    //~ 1 => gT("Yes"),
-                    //~ 2 => gT("Yes with time"),
-                //~ ),
-                //~ 'label'=>$this->_translate('Show filter on start date.'),
-                //~ 'current'=>$this->get('showStartdate','Survey',$surveyId,0)
-            //~ ),
+            'filterStartdate' => array(
+                'type'=>'select',
+                'options' => array(
+                    0 => gT("No"),
+                    1 => gT("Yes"),
+                    2 => $this->_translate("Yes with time"),
+                ),
+                'label'=>$this->_translate('Show filter on start date.'),
+                'current'=>$this->get('filterStartdate','Survey',$surveyId,0)
+            ),
+            'showSubmitdate' => array(
+                'type'=>'boolean',
+                'label'=>$this->_translate('Show submit date.'),
+                'current'=>$this->get('showSubmitdate','Survey',$surveyId,0)
+            ),
+            'filterSubmitdate' => array(
+                'type'=>'select',
+                'options' => array(
+                    0 => gT("No"),
+                    1 => gT("Yes"),
+                    2 => $this->_translate("Yes with time"),
+                ),
+                'label'=>$this->_translate('Show filter on submit date.'),
+                'current'=>$this->get('filterSubmitdate','Survey',$surveyId,0)
+            ),
             'showDatestamp' => array(
                 'type'=>'boolean',
                 'label'=>$this->_translate('Show last action date.'),
                 'current'=>$this->get('showDatestamp','Survey',$surveyId,0)
+            ),
+            'filterDatestamp' => array(
+                'type'=>'select',
+                'options' => array(
+                    0 => gT("No"),
+                    1 => gT("Yes"),
+                    2 => $this->_translate("Yes with time"),
+                ),
+                'label'=>$this->_translate('Show filter on start date.'),
+                'current'=>$this->get('filterDatestamp','Survey',$surveyId,0)
             ),
         );
         /* Descrition by lang */
@@ -758,6 +781,10 @@ class responseListAndManage extends PluginBase {
         $mResponse->setScenario('search');
         $mResponse->showFooter = $this->get('showFooter','Survey',$surveyId,false);
         $mResponse->filterOnDate = (bool) $this->get('filterOnDate','Survey',$surveyId,true);
+        $mResponse->filterSubmitDate = (int) $this->get('filterSubmitDate','Survey',$surveyId,0);
+        $mResponse->filterStartdate = (int) $this->get('filterStartdate','Survey',$surveyId,0);
+        $mResponse->filterDatestamp = (int) $this->get('filterDatestamp','Survey',$surveyId,0);
+
         $filters = Yii::app()->request->getParam('ResponseExtended');
         if (!empty($filters)) {
             $mResponse->setAttributes($filters, false);
@@ -984,6 +1011,9 @@ class responseListAndManage extends PluginBase {
         }
         if($oSurvey->datestamp && $this->get('showStartdate','Survey',$surveyId,0)) {
             $baseColumns[] = 'startdate';
+        }
+        if($oSurvey->datestamp && $this->get('showSubmitDate','Survey',$surveyId,0)) {
+            $baseColumns[] = 'submitdate';
         }
         if($oSurvey->datestamp && $this->get('showDatestamp','Survey',$surveyId,0)) {
             $baseColumns[] = 'datestamp';

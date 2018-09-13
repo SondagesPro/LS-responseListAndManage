@@ -32,11 +32,14 @@ class ResponseExtended extends LSActiveRecord
     /** @var boolean */
     public $showFooter;
 
-    /** @var  */
-    public $filterOnDate = true;
-
     /** @var boolean */
-    //~ public $dateFilterQuestion;
+    public $filterOnDate = true;
+    /** @var integer */
+    public $filterSubmitDate = 0;
+    /** @var integer */
+    public $filterStartdate = 0;
+        /** @var integer */
+    public $filterDatestamp = 0;
 
     /* @var */
     protected $sum;
@@ -317,15 +320,15 @@ class ResponseExtended extends LSActiveRecord
             'footer' => ($this->showFooter && isset($aFooter['completed'])) ? $aFooter['completed'] : null,
         );
         if(self::$survey->datestamp =="Y") {
-            $allowDateFilter = $this->filterOnDate && method_exists($surveyColumnsInformation,'getDateFilter');
+            $allowDateFilter = method_exists($surveyColumnsInformation,'getDateFilter');
             $dateFormatData = getDateFormatData(\SurveyLanguageSetting::model()->getDateFormat(self::$sid,Yii::app()->getLanguage()));
             $dateFormat = $dateFormatData['phpdate'];
             $aColumns['startdate']=array(
                 'header' => '<strong>[startdate]</strong><small>'.gT('Start date').'</small>',
                 'name' => 'startdate',
                 'htmlOptions' => array('class' => 'data-column column-startdate'),
-                'value' => 'ResponseExtended::getDateValue($data,"startdate","'.$dateFormat.'")',
-                'filter' => $allowDateFilter ? $surveyColumnsInformation->getDateFilter("startdate") : false,
+                'value' => 'ResponseExtended::getDateValue($data,"startdate","'.$dateFormat.($this->filterStartdate > 1 ? " H:m:i": "").'")',
+                'filter' => $this->getDateFilter("startdate",null,$this->filterStartdate),
                 'filterInputOptions' => array('class'=>'form-control input-sm filter-startdate'),
                 'footer' => ($this->showFooter && isset($aFooter['startdate'])) ? $aFooter['startdate'] : null,
             );
@@ -333,8 +336,8 @@ class ResponseExtended extends LSActiveRecord
                 'header' => '<strong>[submitdate]</strong><small>'.gT('Submit date').'</small>',
                 'name' => 'submitdate',
                 'htmlOptions' => array('class' => 'data-column column-submitdate'),
-                'value' => 'ResponseExtended::getDateValue($data,"submitdate","'.$dateFormat.'")',
-                'filter' => $allowDateFilter ? $surveyColumnsInformation->getDateFilter("submitdate") : false,
+                'value' => 'ResponseExtended::getDateValue($data,"submitdate","'.$dateFormat.($this->filterSubmitDate > 1 ? " H:m:i": "").'")',
+                'filter' => $this->getDateFilter("submitdate",null,$this->filterSubmitDate),
                 'filterInputOptions' => array('class'=>'form-control input-sm filter-submitdate'),
                 'footer' => ($this->showFooter && isset($aFooter['submitdate'])) ? $aFooter['submitdate'] : null,
             );
@@ -342,8 +345,8 @@ class ResponseExtended extends LSActiveRecord
                 'header' => '<strong>[datestamp]</strong><small>'.gT('Date stamp').'</small>',
                 'name' => 'datestamp',
                 'htmlOptions' => array('class' => 'data-column column-datestamp'),
-                'value' => 'ResponseExtended::getDateValue($data,"datestamp","'.$dateFormat.'")',
-                'filter' => $allowDateFilter ? $surveyColumnsInformation->getDateFilter("datestamp") : false,
+                'value' => 'ResponseExtended::getDateValue($data,"datestamp","'.$dateFormat.($this->filterDatestamp > 1 ? " H:m:i": "").'")',
+                'filter' => $this->getDateFilter("datestamp",null,$this->filterDatestamp),
                 'filterInputOptions' => array('class'=>'form-control input-sm filter-datestamp'),
                 'footer' => ($this->showFooter && isset($aFooter['datestamp'])) ? $aFooter['datestamp'] : null,
             );
@@ -538,10 +541,16 @@ class ResponseExtended extends LSActiveRecord
 
   /**
    * get specific filter for date
+   * @param string $column
+   * @param integer|null $iQid
+   * @param integer $filterType : only used without iQid : show time or not
    */
-  public function getDateFilter($column,$iQid=null) {
+  public function getDateFilter($column,$iQid =null ,$filterType = 1) {
         /* Validate version for date time picker ? */
         $dateFormatMoment = $dateFormatPHP = null;
+        if(is_null($iQid) && $filterType === 0) {
+            return false;
+        }
         if($iQid) {
             $oAttributeDateFormat = QuestionAttribute::model()->find("qid = :qid",array(":qid"=>$iQid));
             if($oAttributeDateFormat && trim($oAttributeDateFormat->value)) {
@@ -554,6 +563,10 @@ class ResponseExtended extends LSActiveRecord
             $dateFormatData = getDateFormatData(\SurveyLanguageSetting::model()->getDateFormat(self::$sid,Yii::app()->getLanguage()));
             $dateFormatMoment = $dateFormatData['jsdate'];
             $dateFormatPHP = $dateFormatData['phpdate'];
+            if(is_null($iQid) && $filterType > 1) {
+                $dateFormatMoment.= " HH:mm:ss";
+                $dateFormatPHP.= " H:i:s";
+            }
         }
         $attributes = $this->attributes;
         $minValue = !empty($attributes[$column]['min']) ? $attributes[$column]['min'] : null;

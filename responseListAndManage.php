@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.6.0
+ * @version 1.7.0
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -227,13 +227,12 @@ class responseListAndManage extends PluginBase {
                 'template',
                 'showFooter',
                 'filterOnDate','filterSubmitdate','filterStartdate','filterDatestamp',
+                'showLogout','showSurveyAdminpageLink',
             );
             foreach($settings as $setting) {
                 $this->set($setting, App()->getRequest()->getPost($setting), 'Survey', $surveyId);
             }
-            if(App()->getRequest()->getPost('save'.get_class($this)=='redirect')) {
-                Yii::app()->getController()->redirect(Yii::app()->getController()->createUrl('admin/survey',array('sa'=>'view','surveyid'=>$surveyId)));
-            }
+
             $languageSettings = array('description');
             foreach($languageSettings as $setting) {
                 $finalSettings = array();
@@ -241,6 +240,10 @@ class responseListAndManage extends PluginBase {
                     $finalSettings[$language] = App()->getRequest()->getPost($setting.'_'.$language);
                 }
                 $this->set($setting, $finalSettings, 'Survey', $surveyId);
+            }
+
+            if(App()->getRequest()->getPost('save'.get_class($this)=='redirect')) {
+                Yii::app()->getController()->redirect(Yii::app()->getController()->createUrl('admin/survey',array('sa'=>'view','surveyid'=>$surveyId)));
             }
         }
         $stateInfo = "<ul class='list'>";
@@ -602,6 +605,31 @@ class responseListAndManage extends PluginBase {
                 'help'=>$this->_translate('Need add response right.'),
                 'current'=>$this->get('allowAddUser','Survey',$surveyId,'admin')
             ),
+            'showLogout' => array(
+                'type'=>'select',
+                'label'=>$this->_translate('Show log out button'),
+                'options'=>array(
+                    'limesurvey'=>$this->_translate("Only for LimeSurvey administrator"),
+                    'all'=>gT("Yes"),
+                ),
+                'htmlOptions'=>array(
+                    'empty'=>gT("No"),
+                ),
+                'current'=>$this->get('showLogout','Survey',$surveyId,'admin')
+            ),
+            'showSurveyAdminpageLink' => array(
+                'type'=>'select',
+                'label'=>$this->_translate('Show survey admin page link'),
+                'options'=>array(
+                    'limesurvey'=>$this->_translate("All LimeSurvey administrator"),
+                    'admin'=>$this->_translate("LimeSurvey administrator with survey settings right"),
+                ),
+                'htmlOptions'=>array(
+                    'empty'=>gT("No"),
+                ),
+                'help'=>$this->_translate('Need add response right.'),
+                'current'=>$this->get('showSurveyAdminpageLink','Survey',$surveyId,'admin')
+            ),
         );
 
         $aData['pluginClass']=get_class($this);
@@ -639,6 +667,10 @@ class responseListAndManage extends PluginBase {
         }
         $this->_setConfig();
         $surveyId = App()->getRequest()->getQuery('sid');
+        if(App()->getRequest()->getQuery('logout') ) {
+            $this->_doLogout($surveyId);
+            App()->end(); // Not needed but more clear
+        }
         if($surveyId && App()->getRequest()->getQuery('delete') ) {
             $this->_deleteResponseSurvey($surveyId,App()->getRequest()->getQuery('delete'));
             App()->end(); // Not needed but more clear
@@ -896,17 +928,64 @@ class responseListAndManage extends PluginBase {
                 $tokenList = array_merge($emptyTokenGroup,$tokenList);
             }
         }
-        
+
+        $adminAction = "";
+        if(Permission::model()->hasSurveyPermission($surveyId, 'responses', 'read')) {
+            $actionLinks = array();
+            if($this->get('showLogout','Survey',$surveyId)) {
+                $actionLinks[] = array(
+                    'text'=>"<i class='fa fa-sign-out' aria-hidden='true'></i> ".$this->_translate("Log out"),
+                    'link'=> array("plugins/direct",'plugin' => get_class(),'sid'=>$surveyId,'logout'=>"logout"),
+                );
+            }
+            if($this->get('showSurveyAdminpageLink','Survey',$surveyId,'admin')) {
+                if(Permission::model()->hasSurveyPermission($surveyId, 'surveysettings', 'read') || $this->get('showSurveyAdminpageLink','Survey',$surveyId) == 'all') {
+                    $actionLinks[] = array(
+                        'text'=>"<i class='fa fa-window-close-o' aria-hidden='true'></i> ".$this->_translate("Survey settings"),
+                        'link'=>array("admin/survey/sa/view",'surveyid'=>$surveyId),
+                    );
+                }
+            }
+            if(count($actionLinks) == 1) {
+                $adminAction = CHtml::link($actionLinks[0]['text'],
+                        $actionLinks[0]['link'],
+                        array('class'=>'btn btn-default btn-sm btn-admin')
+                    );;
+            }
+            if(count($actionLinks) > 1) {
+                $adminAction = '<div class="dropup">'.
+                               '<button class="btn btn-default btn-sm dropdown-toggle" type="button" id="dropdownAdminAction" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">'.
+                               'Admin Name'.
+                               '<span class="caret"></span>'.
+                               '</button>'.
+                               '<ul class="dropdown-menu" aria-labelledby="dropdownAdminAction">';
+                $adminAction.= implode('',array_map(function($link){
+                    return CHtml::tag('li',array(),CHtml::link($link['text'],$link['link']));
+                },$actionLinks));
+                $adminAction.= '</ul>';
+                $adminAction.= '</div>';
+            }
+        }
+        if(!Permission::model()->hasSurveyPermission($surveyId, 'responses', 'read')) {
+            if($this->get('showLogout','Survey',$surveyId) == 'all') {
+                $adminAction = CHtml::link("<i class='fa fa-sign-out' aria-hidden='true'></i> ".$this->_translate("Log out"),
+                    array("plugins/direct",'plugin' => get_class(),'sid'=>$surveyId,'logout'=>"logout"),
+                    array('class'=>'btn btn-default btn-sm btn-logout')
+                );
+            }
+        }
+        $this->aRenderData['adminAction'] = empty($adminAction) ? "" : $adminAction." ";;
+
         $addNew ='';
         if(Permission::model()->hasSurveyPermission($surveyId, 'responses', 'create') && !$this->_surveyHasTokens($oSurvey)) {
-            $addNew = CHtml::link("<i class='fa fa-plus-circle' aria-hidden='true'></i>".$this->_translate("Create an new response"),
+            $addNew = CHtml::link("<i class='fa fa-plus-circle' aria-hidden='true'></i> ".$this->_translate("Create an new response"),
                 array("survey/index",'sid'=>$surveyId,'newtest'=>"Y"),
                 array('class'=>'btn btn-default btn-sm  addnew')
             );
         }
         if($allowAdd && $singleToken) {
             if($this->_allowMultipleResponse($oSurvey)) {
-                $addNew = CHtml::link("<i class='fa fa-plus-circle' aria-hidden='true'></i>".$this->_translate("Create an new response"),
+                $addNew = CHtml::link("<i class='fa fa-plus-circle' aria-hidden='true'></i> ".$this->_translate("Create an new response"),
                     array("survey/index",'sid'=>$surveyId,'newtest'=>"Y",'srid'=>'new','token'=>$singleToken),
                     array('class'=>'btn btn-default btn-sm addnew')
                 );
@@ -914,7 +993,7 @@ class responseListAndManage extends PluginBase {
         }
         if(!$allowAdd && $currentToken) {
             if($this->_allowMultipleResponse($oSurvey)) {
-                $addNew = CHtml::link("<i class='fa fa-plus-circle' aria-hidden='true'></i>".$this->_translate("Create an new response"),
+                $addNew = CHtml::link("<i class='fa fa-plus-circle' aria-hidden='true'></i> ".$this->_translate("Create an new response"),
                     array("survey/index",'sid'=>$surveyId,'newtest'=>"Y",'srid'=>'new','token'=>$singleToken),
                     array('class'=>'btn btn-default btn-sm addnew')
                 );
@@ -926,7 +1005,7 @@ class responseListAndManage extends PluginBase {
             $addNew .= CHtml::hiddenField('newtest',"Y");
             //~ $addNew .= '<div class="form-group"><div class="input-group">';
             $addNew .= CHtml::dropDownList('token',$currentToken,$tokenList,array('class'=>'form-control input-sm','empty'=>gT("Please choose...")));
-            $addNew .= CHtml::htmlButton("<i class='fa fa-plus-circle' aria-hidden='true'></i>".$this->_translate("Create an new response"),
+            $addNew .= CHtml::htmlButton("<i class='fa fa-plus-circle' aria-hidden='true'></i> ".$this->_translate("Create an new response"),
                 array("type"=>'button','name'=>'srid','value'=>'new','class'=>'btn btn-default btn-sm addnew')
             );
             //~ $addNew .= '</div></div>';
@@ -934,7 +1013,7 @@ class responseListAndManage extends PluginBase {
             $addNew .= CHtml::endForm();
         }
 
-        $this->aRenderData['addNew'] = $addNew;
+        $this->aRenderData['addNew'] = empty($addNew) ? "" : $addNew." ";;
         /* Contruct column */
         /* Put the button here, more easy */
         $updateButtonUrl = "";
@@ -1341,11 +1420,40 @@ class responseListAndManage extends PluginBase {
         $this->aRenderData['pluginContent'] = $pluginContent;
         $this->aRenderData['summary'] = $aResult['summary'];
         $this->aRenderData['subtitle'] = gT('Log in');
-        /* Bad hack … */
+        /* Bad hack … or not ?*/
         //~ header("HTTP/1.1 401 Unauthorized");
         $this->_render('login');
     }
 
+    private function _doLogout($surveyId = null)
+    {
+        if($surveyId && $this->_getCurrentToken($surveyId)) {
+            /* admin can come from survey with token */
+            $this->_setCurrentToken($surveyId,null);
+        }
+        if(Permission::getUserId()) {
+            $beforeLogout = new PluginEvent('beforeLogout');
+            App()->getPluginManager()->dispatchEvent($beforeLogout);
+            regenerateCSRFToken();
+            App()->user->logout();
+            /* Adding afterLogout event */
+            $event = new PluginEvent('afterLogout');
+            App()->getPluginManager()->dispatchEvent($event);
+        }
+        if($surveyId) {
+            App()->getController()->redirect(
+                array('plugins/direct',
+                    'plugin' => get_class($this),
+                    'sid' => $surveyId
+                )
+            );
+        }
+        App()->getController()->redirect(
+            array('plugins/direct',
+                'plugin' => get_class($this),
+            )
+        );
+    }
     /**
      * Show a token form
      */

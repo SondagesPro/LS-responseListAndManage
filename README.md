@@ -2,7 +2,7 @@
 
 Allow to manage response in different way for admin and with tokens
 
-**This plugin is compatible With LimeSurvey 3.0 and up version.** This plugin was testes with LimeSurvey 3.6 version and 3.12 version.
+**This plugin is compatible with LimeSurvey 2.76 and 3.0 and up version.** This plugin was testes with version 2.76, 3.6 and 3.14.
 
 ## Installation
 

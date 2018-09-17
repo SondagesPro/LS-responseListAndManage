@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.8.0
+ * @version 1.8.1
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -408,7 +408,7 @@ class responseListAndManage extends PluginBase {
             ),
             'showDateInfo' => array(
                 'type' => 'info',
-                'content' => CHtml::tag("div",array("class"=>"well"),$this->_translate("All settings after need date stamped survey.")),
+                'content' => CHtml::tag("div",array("class"=>"well"),$this->_translate("All this settings after need date stamped survey.")),
             ),
             'showStartdate' => array(
                 'type'=>'boolean',
@@ -1850,7 +1850,7 @@ class responseListAndManage extends PluginBase {
                     'link'=> array("admin/index"),
                 );
             }
-            if($surveyId && Permission::model()->hasSurveyPermission($surveyId, 'surveysettings', 'read') && $showAdminSurveyLink) {
+            if($surveyId && (Permission::model()->hasSurveyPermission($surveyId, 'surveysettings', 'read') || $showAdminSurveyLink == 'limesurvey') && $showAdminSurveyLink) {
                 $actionLinks[] = array(
                     'text'=>"<i class='fa fa-cog' aria-hidden='true'></i> ".$this->_translate("Survey settings"),
                     'link'=>array("admin/survey/sa/view",'surveyid'=>$surveyId),

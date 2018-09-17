@@ -17,7 +17,7 @@ $this->widget('bootstrap.widgets.TbGridView', array(
         sprintf(gT('%s rows per page'),
             CHtml::dropDownList(
                 'pageSize',
-                Yii::app()->user->getState('pageSize'),
+                Yii::app()->user->getState('responseListAndManagePageSize'),
                 Yii::app()->params['pageSizeOptions'],
                 array(
                     'class'=>'changePageSize form-control input-sm',

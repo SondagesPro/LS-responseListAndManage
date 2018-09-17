@@ -160,7 +160,7 @@ class ResponseExtended extends LSActiveRecord
      */
     public function search()
     {
-        $pageSize = Yii::app()->user->getState('pageSize', Yii::app()->params['defaultPageSize']);
+        $pageSize = Yii::app()->user->getState('responseListAndManagePageSize', Yii::app()->params['defaultPageSize']);
         $this->setScenario('search');
         $criteria = new CDbCriteria;
 

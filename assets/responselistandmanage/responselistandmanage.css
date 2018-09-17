@@ -18,7 +18,8 @@
     width: 100%;
     background:#fff;
 }
-.grid-view .tools-form form{display:inline-block}
+.grid-view .tools-form form,.grid-view .tools-form .dropup{display:inline-block}
+.tools-form .btn .caret {margin-left: 0.2em;}
 .grid-view .table-condensed{margin-bottom:0.5em}
 .grid-view .pager,.grid-view .pagination{margin:0.5em 0}
 .grid-view .summary{padding:0.5em 0}
@@ -86,4 +87,3 @@ width: 12em;
 .wysihtml5-toolbar .btn{
 
 }
-

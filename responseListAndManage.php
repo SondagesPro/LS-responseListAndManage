@@ -26,7 +26,7 @@ class responseListAndManage extends PluginBase {
     /**
      * @var array[] the settings
      */
-    protected $settings = array(
+     protected $settings = array(
         'information' => array(
             'type' => 'info',
             'content' => 'Access link is …',
@@ -34,7 +34,17 @@ class responseListAndManage extends PluginBase {
         'template' => array(
             'type' => 'info',
             'default' => 'default',
-            'content' => 'To be updated',
+            'label' => 'Template to be used',
+        ),
+        'showLogOut' => array(
+            'type' => 'boolean',
+            'default' => false,
+            'label' => 'Show log out',
+        ),
+        'showAdminLink' => array(
+            'type' => 'boolean',
+            'default' => true,
+            'label' => 'Show administration link',
         ),
     );
 
@@ -227,7 +237,7 @@ class responseListAndManage extends PluginBase {
                 'template',
                 'showFooter',
                 'filterOnDate','filterSubmitdate','filterStartdate','filterDatestamp',
-                'showLogout','showSurveyAdminpageLink',
+                'showLogOut','showSurveyAdminpageLink',
             );
             foreach($settings as $setting) {
                 $this->set($setting, App()->getRequest()->getPost($setting), 'Survey', $surveyId);
@@ -605,7 +615,7 @@ class responseListAndManage extends PluginBase {
                 'help'=>$this->_translate('Need add response right.'),
                 'current'=>$this->get('allowAddUser','Survey',$surveyId,'admin')
             ),
-            'showLogout' => array(
+            'showLogOut' => array(
                 'type'=>'select',
                 'label'=>$this->_translate('Show log out button'),
                 'options'=>array(
@@ -615,7 +625,7 @@ class responseListAndManage extends PluginBase {
                 'htmlOptions'=>array(
                     'empty'=>gT("No"),
                 ),
-                'current'=>$this->get('showLogout','Survey',$surveyId,'admin')
+                'current'=>$this->get('showLogOut','Survey',$surveyId,$this->get('showLogOut',null,null,$this->settings['showLogOut']['default']) ? 'admin': null)
             ),
             'showSurveyAdminpageLink' => array(
                 'type'=>'select',
@@ -628,7 +638,7 @@ class responseListAndManage extends PluginBase {
                     'empty'=>gT("No"),
                 ),
                 'help'=>$this->_translate('Need add response right.'),
-                'current'=>$this->get('showSurveyAdminpageLink','Survey',$surveyId,'admin')
+                'current'=>$this->get('showSurveyAdminpageLink','Survey',$surveyId,$this->get('showAdminLink',null,null,$this->settings['showAdminLink']['default']) ? 'admin': null)
             ),
         );
 
@@ -880,7 +890,7 @@ class responseListAndManage extends PluginBase {
                 throw new CHttpException(403, $this->_translate('You are not allowed to use reponse management with this token.'));
             }
         }
-        Yii::app()->user->setState('pageSize',intval(Yii::app()->request->getParam('pageSize',Yii::app()->user->getState('pageSize',50))));
+        Yii::app()->user->setState('responseListAndManagePageSize',intval(Yii::app()->request->getParam('pageSize',Yii::app()->user->getState('responseListAndManagePageSize',50))));
         /* Add a new */
         $tokenList = null;
         $singleToken = null;
@@ -929,51 +939,7 @@ class responseListAndManage extends PluginBase {
             }
         }
 
-        $adminAction = "";
-        if(Permission::model()->hasSurveyPermission($surveyId, 'responses', 'read')) {
-            $actionLinks = array();
-            if($this->get('showLogout','Survey',$surveyId)) {
-                $actionLinks[] = array(
-                    'text'=>"<i class='fa fa-sign-out' aria-hidden='true'></i> ".$this->_translate("Log out"),
-                    'link'=> array("plugins/direct",'plugin' => get_class(),'sid'=>$surveyId,'logout'=>"logout"),
-                );
-            }
-            if($this->get('showSurveyAdminpageLink','Survey',$surveyId,'admin')) {
-                if(Permission::model()->hasSurveyPermission($surveyId, 'surveysettings', 'read') || $this->get('showSurveyAdminpageLink','Survey',$surveyId) == 'all') {
-                    $actionLinks[] = array(
-                        'text'=>"<i class='fa fa-window-close-o' aria-hidden='true'></i> ".$this->_translate("Survey settings"),
-                        'link'=>array("admin/survey/sa/view",'surveyid'=>$surveyId),
-                    );
-                }
-            }
-            if(count($actionLinks) == 1) {
-                $adminAction = CHtml::link($actionLinks[0]['text'],
-                        $actionLinks[0]['link'],
-                        array('class'=>'btn btn-default btn-sm btn-admin')
-                    );;
-            }
-            if(count($actionLinks) > 1) {
-                $adminAction = '<div class="dropup">'.
-                               '<button class="btn btn-default btn-sm dropdown-toggle" type="button" id="dropdownAdminAction" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">'.
-                               'Admin Name'.
-                               '<span class="caret"></span>'.
-                               '</button>'.
-                               '<ul class="dropdown-menu" aria-labelledby="dropdownAdminAction">';
-                $adminAction.= implode('',array_map(function($link){
-                    return CHtml::tag('li',array(),CHtml::link($link['text'],$link['link']));
-                },$actionLinks));
-                $adminAction.= '</ul>';
-                $adminAction.= '</div>';
-            }
-        }
-        if(!Permission::model()->hasSurveyPermission($surveyId, 'responses', 'read')) {
-            if($this->get('showLogout','Survey',$surveyId) == 'all') {
-                $adminAction = CHtml::link("<i class='fa fa-sign-out' aria-hidden='true'></i> ".$this->_translate("Log out"),
-                    array("plugins/direct",'plugin' => get_class(),'sid'=>$surveyId,'logout'=>"logout"),
-                    array('class'=>'btn btn-default btn-sm btn-logout')
-                );
-            }
-        }
+        $adminAction = $this->_getAdminMenu($surveyId);
         $this->aRenderData['adminAction'] = empty($adminAction) ? "" : $adminAction." ";;
 
         $addNew ='';
@@ -1351,8 +1317,20 @@ class responseListAndManage extends PluginBase {
         $pluginSettings['template'] = array_merge($pluginSettings['template'],array(
             'type' => 'select',
             'options'=>$aTemplates,
-            'label'=> $this->_translate('Template to be used'),
+            'label'=> $this->_translate('Template to be used.'),
         ));
+        $pluginSettings['showLogOut'] = array(
+            'type' => 'boolean',
+            'label'=> $this->_translate('Show log out.'),
+            'default' => true,
+            'help' => $this->_translate('On survey list and by default for admin'),
+        );
+        $pluginSettings['showAdminLink'] = array(
+            'type' => 'boolean',
+            'label'=> $this->_translate('Show LimeSurvey admininstration link.'),
+            'default' => true,
+            'help' => $this->_translate('On survey list and by default for admin'),
+        );
         return $pluginSettings;
     }
     
@@ -1478,16 +1456,18 @@ class responseListAndManage extends PluginBase {
      */
     private function _showSurveyList()
     {
-        $surveyModel = new \responseListAndManage\models\SurveyExtended('search');
+        Yii::import(get_class($this).'.models.SurveyExtended');
+        Yii::app()->user->setState('pageSize',intval(Yii::app()->request->getParam('pageSize',Yii::app()->user->getState('pageSize',Yii::app()->params['defaultPageSize']))));
+
+        $surveyModel = new SurveyExtended();
+        $surveyModel->setScenario('search');
         $this->aRenderData['surveyModel'] = $surveyModel;
         /* @todo : filter by settings … */
-        $dataProvider=new CActiveDataProvider($surveyModel, array(
-            'criteria'=>array(
-                'condition'=>"active='Y'",
-                'with'=>'correct_relation_defaultlanguage',
-            ),
-        ));
+        $filter = Yii::app()->request->getParam('SurveyExtended');
+        $surveyModel->title = empty($filter['title']) ? null : $filter['title'];
+        $dataProvider=$surveyModel->search();
         //$accessSettings = PluginSettings::model()->findAll …
+        $this->aRenderData['adminMenu'] = $this->_getAdminMenu();
         $this->aRenderData['dataProvider'] = $dataProvider;
         $this->_render('surveys');
     }
@@ -1831,6 +1811,77 @@ class responseListAndManage extends PluginBase {
         return $haveGetQuestionInformation && $haveReloadAnyResponse;
     }
 
+    /**
+     * Get the administration menu
+     * @param $surveyId
+     * @return string html
+     */
+    private function _getAdminMenu($surveyId = null)
+    {
+        $adminAction = "";
+        $showLogOut = $this->get('showLogOut',null,null,$this->settings['showLogOut']['default']);
+        $showAdminSurveyLink = false;
+        $showAdminLink = $this->get('showAdminLink',null,null,$this->settings['showAdminLink']['default']);
+        if($surveyId) {
+            $showLogOut = $this->get('showLogOut','Survey',$surveyId,$this->get('showLogOut',null,null,$this->settings['showLogOut']['default']) ? 'admin': null);
+            $showAdminSurveyLink = $this->get('showSurveyAdminpageLink','Survey',$surveyId,$this->get('showAdminLink',null,null,$this->settings['showAdminLink']['default']) ? 'admin': null);
+            $showAdminLink = $showAdminSurveyLink && $this->get('showAdminLink',null,null,$this->settings['showAdminLink']['default']);
+        } 
+        if(!Permission::getUserId()) {
+            if($surveyId && $showLogOut == 'all') {
+                $adminAction = CHtml::link("<i class='fa fa-sign-out' aria-hidden='true'></i> ".$this->_translate("Log out"),
+                    array("plugins/direct",'plugin' => get_class(),'sid'=>$surveyId,'logout'=>"logout"),
+                    array('class'=>'btn btn-default btn-sm btn-logout')
+                );
+            }
+            return $adminAction;
+        }
+
+        if(Permission::getUserId()) {
+            $actionLinks = array();
+            if($showLogOut) {
+                $actionLinks[] = array(
+                    'text'=>"<i class='fa fa-sign-out' aria-hidden='true'></i> ".$this->_translate("Log out"),
+                    'link'=> array("plugins/direct",'plugin' => get_class(),'sid'=>$surveyId,'logout'=>"logout"),
+                );
+            }
+            if($showAdminLink) {
+                $actionLinks[] = array(
+                    'text'=>"<i class='fa fa-cogs' aria-hidden='true'></i> ".$this->_translate("Administration"),
+                    'link'=> array("admin/index"),
+                );
+            }
+            if($surveyId && Permission::model()->hasSurveyPermission($surveyId, 'surveysettings', 'read') && $showAdminSurveyLink) {
+                $actionLinks[] = array(
+                    'text'=>"<i class='fa fa-cog' aria-hidden='true'></i> ".$this->_translate("Survey settings"),
+                    'link'=>array("admin/survey/sa/view",'surveyid'=>$surveyId),
+                );
+            }
+            if(count($actionLinks) == 1) {
+                $adminAction = CHtml::link($actionLinks[0]['text'],
+                        $actionLinks[0]['link'],
+                        array('class'=>'btn btn-default btn-sm btn-admin')
+                    );;
+            }
+            if(count($actionLinks) > 1) {
+                $oUser = User::model()->findByPk(Permission::getUserId());
+                $adminAction = '<div class="dropup">'.
+                               '<button class="btn btn-default btn-sm dropdown-toggle" type="button" id="dropdownAdminAction" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">'.
+                               $oUser->full_name.
+                               '<span class="caret"></span>'.
+                               '</button>'.
+                               '<ul class="dropdown-menu" aria-labelledby="dropdownAdminAction">';
+                $adminAction.= implode('',array_map(function($link){
+                    return CHtml::tag('li',array(),CHtml::link($link['text'],$link['link']));
+                },$actionLinks));
+                $adminAction.= '</ul>';
+                $adminAction.= '</div>';
+            }
+            return $adminAction;
+        }
+
+        return $adminAction; // Never happen currently
+    }
     /**
      * get the current token
      * Order is : session, getQuery

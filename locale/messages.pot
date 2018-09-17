@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: responseListAndManage\n"
-"POT-Creation-Date: 2018-09-17 11:22+0200\n"
+"POT-Creation-Date: 2018-09-17 11:43+0200\n"
 "PO-Revision-Date: 2018-06-21 16:36+0200\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -131,7 +131,7 @@ msgid "Show filter on date question."
 msgstr ""
 
 #: responseListAndManage.php:411
-msgid "All settings after need date stamped survey."
+msgid "All this settings after need date stamped survey."
 msgstr ""
 
 #: responseListAndManage.php:415

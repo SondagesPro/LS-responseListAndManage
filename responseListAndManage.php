@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.7.0
+ * @version 1.8.0
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -1456,9 +1456,8 @@ class responseListAndManage extends PluginBase {
      */
     private function _showSurveyList()
     {
-        Yii::import(get_class($this).'.models.SurveyExtended');
         Yii::app()->user->setState('pageSize',intval(Yii::app()->request->getParam('pageSize',Yii::app()->user->getState('pageSize',Yii::app()->params['defaultPageSize']))));
-
+        Yii::import(get_class($this).'.models.SurveyExtended');
         $surveyModel = new SurveyExtended();
         $surveyModel->setScenario('search');
         $this->aRenderData['surveyModel'] = $surveyModel;

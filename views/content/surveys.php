@@ -30,7 +30,14 @@ $this->widget('bootstrap.widgets.TbGridView', array(
             //~ 'filterInputOptions' => array('class'=>'form-control input-sm filter-id'),
             'filter'=>CHtml::textField("SurveyExtended[title]", $surveyModel->title, array('id'=>false)),
         ),
+        array(
+            'name'=>'datecreated',
+            'header'=>gT("Date created"),
+            //~ 'filterInputOptions' => array('class'=>'form-control input-sm filter-id'),
+            'filter'=>false,
+        ),
     ),
     'filter'=>$surveyModel,
+    
 ));
 ?>

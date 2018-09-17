@@ -22,27 +22,12 @@ class SurveyExtended extends Survey
         $pageSize = Yii::app()->user->getState('pageSize', Yii::app()->params['defaultPageSize']);
         $sort = new CSort();
         $sort->attributes = array(
-            'survey_id'=>array(
-                'asc'=>'t.sid asc',
-                'desc'=>'t.sid desc',
-            ),
-            'title'=>array(
-                'asc'=>'correct_relation_defaultlanguage.surveyls_title asc',
-                'desc'=>'correct_relation_defaultlanguage.surveyls_title desc',
-            ),
-            'creation_date'=>array(
-                'asc'=>'t.datecreated asc',
-                'desc'=>'t.datecreated desc',
-            ),
-
-            'owner'=>array(
-                'asc'=>'owner.users_name asc',
-                'desc'=>'owner.users_name desc',
-            ),
+            'correct_relation_defaultlanguage.surveyls_title',
+            'datecreated',
         );
-        $sort->defaultOrder = array('creation_date' => CSort::SORT_DESC);
+        $sort->defaultOrder = array('datecreated' => CSort::SORT_DESC); 
 
-        $criteria = new LSDbCriteria;
+        $criteria = new CDbCriteria;
         $criteria->condition = "active='Y'";
         $criteria->with = array('correct_relation_defaultlanguage');
 
@@ -58,6 +43,9 @@ class SurveyExtended extends Survey
             $criteriaPerm->compare('permissions.read_p', '1', false, 'OR');
             $criteria->mergeWith($criteriaPerm, 'AND');
         }
+        // Search filter
+        $criteria->compare('correct_relation_defaultlanguage.surveyls_title', $this->title,true);
+    
         $dataProvider = new CActiveDataProvider('SurveyExtended', array(
             'sort'=>$sort,
             'criteria'=>$criteria,
@@ -65,8 +53,6 @@ class SurveyExtended extends Survey
                 'pageSize'=>$pageSize,
             ),
         ));
-        // Search filter
-        $criteria->compare('correct_relation_defaultlanguage.surveyls_title', $this->title,true);
         return $dataProvider;
     }
 

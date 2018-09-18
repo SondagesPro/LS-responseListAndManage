@@ -27,13 +27,12 @@ $this->widget('bootstrap.widgets.TbGridView', array(
         array(
             'name'=>'correct_relation_defaultlanguage.surveyls_title',
             'header'=>gT("Title"),
-            //~ 'filterInputOptions' => array('class'=>'form-control input-sm filter-id'),
-            'filter'=>CHtml::textField("SurveyExtended[title]", $surveyModel->title, array('id'=>false)),
+            'filter'=>CHtml::textField("SurveyExtended[title]", $surveyModel->title, array('id'=>false,'class'=>'form-control input-sm filter-title')),
         ),
         array(
             'name'=>'datecreated',
             'header'=>gT("Date created"),
-            //~ 'filterInputOptions' => array('class'=>'form-control input-sm filter-id'),
+            //~ 'filterInputOptions' => array(),
             'filter'=>false,
         ),
     ),

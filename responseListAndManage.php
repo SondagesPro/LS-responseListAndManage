@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.8.1
+ * @version 1.9.0
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -676,7 +676,7 @@ class responseListAndManage extends PluginBase {
             return;
         }
         $this->_setConfig();
-        $surveyId = App()->getRequest()->getQuery('sid');
+        $surveyId = App()->getRequest()->getQuery('sid',App()->getRequest()->getQuery('surveyid'));
         if(App()->getRequest()->getQuery('logout') ) {
             $this->_doLogout($surveyId);
             App()->end(); // Not needed but more clear
@@ -1277,6 +1277,9 @@ class responseListAndManage extends PluginBase {
         if(Yii::app() instanceof CConsoleApplication) {
             return;
         }
+        //~ if(!$getValues) {
+            //~ return;
+        //~ }
         if(!$this->_isUsable()){
             $warningMessage = "";
             $haveGetQuestionInformation = Yii::getPathOfAlias('getQuestionInformation');
@@ -1331,9 +1334,90 @@ class responseListAndManage extends PluginBase {
             'default' => true,
             'help' => $this->_translate('On survey list and by default for admin'),
         );
+        /* Validate version_number more than 3.0 ?*/
+        if(version_compare(App()->getConfig("versionnumber"),"3",">=") ) {
+            /* Find if menu already exist */
+            $oSurveymenuEntries = SurveymenuEntries::model()->find("name = :name",array(":name"=>'responseslist'));
+            $state = !empty($oSurveymenuEntries);
+            $help = $state ? $this->_translate('Menu exist, to delete : uncheck box and validate.') : $this->_translate("Menu didn‘t exist, to create check box and validate." );
+            $pluginSettings['createSurveyMenu'] = array(
+                'type' => 'checkbox',
+                'label'=> $this->_translate('Add a menu to responses management in surveys.'),
+                'default' => false,
+                'help' => $help,
+                'current' => $state,
+            );
+        }
         return $pluginSettings;
     }
-    
+
+
+    /**
+     * @inheritdoc
+     * and set menu if needed
+    **/
+
+    public function saveSettings($settings)
+    {
+        parent::saveSettings($settings);
+        if(version_compare(App()->getConfig("versionnumber"),"3","<") ) {
+            return;
+        }
+        $oSurveymenuEntries = SurveymenuEntries::model()->find("name = :name",array(":name"=>'responseslist'));
+        $createSurveyMenu = App()->getRequest()->getPost('createSurveyMenu');
+        if(empty($oSurveymenuEntries) && App()->getRequest()->getPost('createSurveyMenu')) {
+            $parentMenu = 1;
+            $order = 3;
+            /* Find response menu */
+            $oResponseSurveymenuEntries = SurveymenuEntries::model()->find("name = :name",array(":name"=>'responses'));
+            if($oResponseSurveymenuEntries) {
+                $parentMenu = $oResponseSurveymenuEntries->menu_id;
+                $order = $oResponseSurveymenuEntries->ordering;
+            }
+            /* Unable to translate it currently … */
+            //~ $oSurveymenuEntries = new SurveymenuEntries();
+            //~ $oSurveymenuEntries->name = 'responselistandmanage';
+            //~ $oSurveymenuEntries->language = 'en-GB';
+            //~ $oSurveymenuEntries->title = "Responses list";
+            //~ $oSurveymenuEntries->menu_title = "Responses list";
+            //~ $oSurveymenuEntries->menu_description = "Responses list";
+            //~ $oSurveymenuEntries->menu_icon ='list-alt',
+            //~ $oSurveymenuEntries->title =
+            //~ $oSurveymenuEntries->title =
+            //~ $oSurveymenuEntries->title =
+            $aNewMenu = array(
+                'name' => 'responseslist', // Why this was cutted ????? 
+                'language' => 'en-GB',
+                'title' => "Responses list",
+                'menu_title' => "Responses list",
+                'menu_description' => "Responses list and manage",
+                'menu_icon' => 'list-alt',
+                'menu_icon_type' => 'fontawesome',
+                'menu_link' => 'plugins/direct', // 'plugins/direct/plugin/responseListAndManage'
+                'manualParams' => array(
+                    'plugin' => 'responseListAndManage',
+                ),
+                'permission' => 'responses',
+                'permission_grade' => 'read',
+                'hideOnSurveyState' => 'active', // This must be named as showOnSurveyState …
+                'pjaxed' => false,
+                'addSurveyId' => true,
+                'addQuestionGroupId' => false,
+                'addQuestionId' => false,
+                'linkExternal' => false,
+                'ordering' => $order,
+            );
+            $iMenu = SurveymenuEntries::staticAddMenuEntry($parentMenu,$aNewMenu);
+            $oSurveymenuEntries = SurveymenuEntries::model()->find("name = :name",array(":name"=>'responseslist'));
+            $oSurveymenuEntries->ordering = $order;
+            $oSurveymenuEntries->save();
+            SurveymenuEntries::reorderMenu($parentMenu);
+        }
+        if(!empty($oSurveymenuEntries) && empty(App()->getRequest()->getPost('createSurveyMenu'))) {
+            SurveymenuEntries::model()->deleteAll("name = :name",array(":name"=>'responseslist'));
+        }
+    }
+
     /**
      * Call plugin log and show login form if needed
      */

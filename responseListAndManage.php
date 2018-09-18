@@ -1356,7 +1356,6 @@ class responseListAndManage extends PluginBase {
     public function saveSettings($settings)
     {
         parent::saveSettings($settings);
-        tracevar($settings);
         if(version_compare(App()->getConfig("versionnumber"),"3","<") ) {
             return;
         }

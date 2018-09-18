@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.9.2
+ * @version 1.9.3
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -960,7 +960,7 @@ class responseListAndManage extends PluginBase {
         if(!$allowAdd && $currentToken) {
             if($this->_allowMultipleResponse($oSurvey)) {
                 $addNew = CHtml::link("<i class='fa fa-plus-circle' aria-hidden='true'></i> ".$this->_translate("Create an new response"),
-                    array("survey/index",'sid'=>$surveyId,'newtest'=>"Y",'srid'=>'new','token'=>$singleToken),
+                    array("survey/index",'sid'=>$surveyId,'newtest'=>"Y",'srid'=>'new','token'=>$currentToken),
                     array('class'=>'btn btn-default btn-sm addnew')
                 );
             }
@@ -1728,6 +1728,12 @@ class responseListAndManage extends PluginBase {
         $versionNumber = Yii::app()->getConfig('versionnumber');
         $aVersion = array(0,0,0)+explode(".",$versionNumber);
         $surveyId = empty($this->aRenderData['surveyId']) ? null : $this->aRenderData['surveyId'];
+        $event = new PluginEvent('beforeRenderResponseListAndManage');
+        $event->set('surveyId', $surveyId);
+        $event->set('token',$this->_getCurrentToken($surveyId));
+        App()->getPluginManager()->dispatchEvent($event);
+        $this->aRenderData['pluginHtml'] = (string) $event->get('html');
+
         if(version_compare(Yii::app()->getConfig('versionnumber'),"3.10",">=")) {
             /* Fix it to use renderMessage ! */
             $this->aRenderData['pluginName'] = $pluginName = get_class($this);

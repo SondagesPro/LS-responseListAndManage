@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.9.3
+ * @version 1.9.4
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -233,7 +233,7 @@ class responseListAndManage extends PluginBase {
                 'tokenColumnOrder',
                 'tokenAttributesHideToUser','surveyAttributesHideToUser',
                 'tokenAttributeGroup', 'tokenAttributeGroupManager', 'tokenAttributeGroupWhole',
-                'allowAccess','allowSee','allowEdit','allowDelete', 'allowAdd',
+                'allowAccess','allowSee','allowEdit','allowDelete', 'allowAdd','allowAddSelf','allowAddUser',
                 'template',
                 'showFooter',
                 'filterOnDate','filterSubmitdate','filterStartdate','filterDatestamp',
@@ -598,8 +598,14 @@ class responseListAndManage extends PluginBase {
                 'htmlOptions'=>array(
                     'empty'=>gT("No"),
                 ),
-                'help'=>$this->_translate('Need view rights.'),
+                'help'=>$this->_translate('Need view rights, for administrator, allow to choose token for creation.'),
                 'current'=>$this->get('allowAdd','Survey',$surveyId,'admin')
+            ),
+            'allowAddSelf' => array(
+                'type'=>'boolean',
+                'label'=>$this->_translate('Allow add response with existing token according to survey setting'),
+                'help'=>$this->_translate('If survey settings allow user to create new response, allow it.'),
+                'current'=>$this->get('allowAddSelf','Survey',$surveyId,true)
             ),
             'allowAddUser' => array(
                 'type'=>'select',
@@ -856,7 +862,7 @@ class responseListAndManage extends PluginBase {
         $tokenAdmin = null;
         $isManager = false;
         /* Set the default according to Permission */
-        if($this->_isLsAdmin()) { /* When testing is done move this after */
+        if(empty($currentToken) && $this->_isLsAdmin()) {
             $allowAccess = Permission::model()->hasSurveyPermission($surveyId, 'responses', 'read');
             if($this->_surveyHasTokens($oSurvey)) {
                 $allowAccess = $settingAllowAccess && Permission::model()->hasSurveyPermission($surveyId, 'token', 'read');
@@ -958,7 +964,7 @@ class responseListAndManage extends PluginBase {
             }
         }
         if(!$allowAdd && $currentToken) {
-            if($this->_allowMultipleResponse($oSurvey)) {
+            if($this->get('allowAddSelf','Survey',$surveyId,true) && $this->_allowMultipleResponse($oSurvey)) {
                 $addNew = CHtml::link("<i class='fa fa-plus-circle' aria-hidden='true'></i> ".$this->_translate("Create an new response"),
                     array("survey/index",'sid'=>$surveyId,'newtest'=>"Y",'srid'=>'new','token'=>$currentToken),
                     array('class'=>'btn btn-default btn-sm addnew')

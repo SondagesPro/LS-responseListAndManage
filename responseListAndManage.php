@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.9.1
+ * @version 1.9.2
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -1483,7 +1483,12 @@ class responseListAndManage extends PluginBase {
             /* admin can come from survey with token */
             $this->_setCurrentToken($surveyId,null);
         }
-        if(Permission::getUserId()) {
+        if(version_compare(App()->getConfig('versionnumber'),"3",">=")) {
+            $userId = Permission::getUserId();
+        } else {
+            $userId = Yii::app()->session['loginID'];
+        }
+        if($userId) {
             $beforeLogout = new PluginEvent('beforeLogout');
             App()->getPluginManager()->dispatchEvent($beforeLogout);
             regenerateCSRFToken();
@@ -1899,8 +1904,13 @@ class responseListAndManage extends PluginBase {
             $showLogOut = $this->get('showLogOut','Survey',$surveyId,$this->get('showLogOut',null,null,$this->settings['showLogOut']['default']) ? 'admin': null);
             $showAdminSurveyLink = $this->get('showSurveyAdminpageLink','Survey',$surveyId,$this->get('showAdminLink',null,null,$this->settings['showAdminLink']['default']) ? 'admin': null);
             $showAdminLink = $showAdminSurveyLink && $this->get('showAdminLink',null,null,$this->settings['showAdminLink']['default']);
-        } 
-        if(!Permission::getUserId()) {
+        }
+        if(version_compare(App()->getConfig('versionnumber'),"3",">=")) {
+            $userId = Permission::getUserId();
+        } else {
+            $userId = Yii::app()->session['loginID'];
+        }
+        if(!$userId) {
             if($surveyId && $showLogOut == 'all') {
                 $adminAction = CHtml::link("<i class='fa fa-sign-out' aria-hidden='true'></i> ".$this->_translate("Log out"),
                     array("plugins/direct",'plugin' => get_class(),'sid'=>$surveyId,'logout'=>"logout"),
@@ -1910,48 +1920,47 @@ class responseListAndManage extends PluginBase {
             return $adminAction;
         }
 
-        if(Permission::getUserId()) {
-            $actionLinks = array();
-            if($showLogOut) {
-                $actionLinks[] = array(
-                    'text'=>"<i class='fa fa-sign-out' aria-hidden='true'></i> ".$this->_translate("Log out"),
-                    'link'=> array("plugins/direct",'plugin' => get_class(),'sid'=>$surveyId,'logout'=>"logout"),
-                );
-            }
-            if($showAdminLink) {
-                $actionLinks[] = array(
-                    'text'=>"<i class='fa fa-cogs' aria-hidden='true'></i> ".$this->_translate("Administration"),
-                    'link'=> array("admin/index"),
-                );
-            }
-            if($surveyId && (Permission::model()->hasSurveyPermission($surveyId, 'surveysettings', 'read') || $showAdminSurveyLink == 'limesurvey') && $showAdminSurveyLink) {
-                $actionLinks[] = array(
-                    'text'=>"<i class='fa fa-cog' aria-hidden='true'></i> ".$this->_translate("Survey settings"),
-                    'link'=>array("admin/survey/sa/view",'surveyid'=>$surveyId),
-                );
-            }
-            if(count($actionLinks) == 1) {
-                $adminAction = CHtml::link($actionLinks[0]['text'],
-                        $actionLinks[0]['link'],
-                        array('class'=>'btn btn-default btn-sm btn-admin')
-                    );;
-            }
-            if(count($actionLinks) > 1) {
-                $oUser = User::model()->findByPk(Permission::getUserId());
-                $adminAction = '<div class="dropup">'.
-                               '<button class="btn btn-default btn-sm dropdown-toggle" type="button" id="dropdownAdminAction" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">'.
-                               $oUser->full_name.
-                               '<span class="caret"></span>'.
-                               '</button>'.
-                               '<ul class="dropdown-menu" aria-labelledby="dropdownAdminAction">';
-                $adminAction.= implode('',array_map(function($link){
-                    return CHtml::tag('li',array(),CHtml::link($link['text'],$link['link']));
-                },$actionLinks));
-                $adminAction.= '</ul>';
-                $adminAction.= '</div>';
-            }
-            return $adminAction;
+        $actionLinks = array();
+        if($showLogOut) {
+            $actionLinks[] = array(
+                'text'=>"<i class='fa fa-sign-out' aria-hidden='true'></i> ".$this->_translate("Log out"),
+                'link'=> array("plugins/direct",'plugin' => get_class(),'sid'=>$surveyId,'logout'=>"logout"),
+            );
         }
+        if($showAdminLink) {
+            $actionLinks[] = array(
+                'text'=>"<i class='fa fa-cogs' aria-hidden='true'></i> ".$this->_translate("Administration"),
+                'link'=> array("admin/index"),
+            );
+        }
+        if($surveyId && (Permission::model()->hasSurveyPermission($surveyId, 'surveysettings', 'read') || $showAdminSurveyLink == 'limesurvey') && $showAdminSurveyLink) {
+            $actionLinks[] = array(
+                'text'=>"<i class='fa fa-cog' aria-hidden='true'></i> ".$this->_translate("Survey settings"),
+                'link'=>array("admin/survey/sa/view",'surveyid'=>$surveyId),
+            );
+        }
+        if(count($actionLinks) == 1) {
+            $adminAction = CHtml::link($actionLinks[0]['text'],
+                    $actionLinks[0]['link'],
+                    array('class'=>'btn btn-default btn-sm btn-admin')
+                );;
+        }
+        if(count($actionLinks) > 1) {
+            $oUser = User::model()->findByPk($userId);
+            $adminAction = '<div class="dropup">'.
+                           '<button class="btn btn-default btn-sm dropdown-toggle" type="button" id="dropdownAdminAction" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">'.
+                           $oUser->full_name.
+                           '<span class="caret"></span>'.
+                           '</button>'.
+                           '<ul class="dropdown-menu" aria-labelledby="dropdownAdminAction">';
+            $adminAction.= implode('',array_map(function($link){
+                return CHtml::tag('li',array(),CHtml::link($link['text'],$link['link']));
+            },$actionLinks));
+            $adminAction.= '</ul>';
+            $adminAction.= '</div>';
+        }
+        return $adminAction;
+
 
         return $adminAction; // Never happen currently
     }

@@ -79,6 +79,7 @@ width: 12em;
 .btn-link:focus, .btn-link:hover {
     color: inherit;
 }
+#modal-create-token .modal-body {overflow:auto}
 #responses-grid tfoot{display: table-header-group;}
 #responses-grid tfoot{font-weight:bold}
 .grid-view tfoot td{text-align:center}

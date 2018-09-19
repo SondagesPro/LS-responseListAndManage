@@ -604,7 +604,7 @@ class responseListAndManage extends PluginBase {
             'allowAddSelf' => array(
                 'type'=>'boolean',
                 'label'=>$this->_translate('Allow add response with existing token according to survey setting'),
-                'help'=>$this->_translate('If survey settings allow user to create new response, allow it.'),
+                'help'=>$this->_translate('If survey settings allow user to create new response, add a button to create a new response.'),
                 'current'=>$this->get('allowAddSelf','Survey',$surveyId,true)
             ),
             'allowAddUser' => array(

@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: responseListAndManage\n"
-"POT-Creation-Date: 2018-09-17 11:43+0200\n"
+"POT-Creation-Date: 2018-09-19 12:23+0200\n"
 "PO-Revision-Date: 2018-06-21 16:36+0200\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -239,19 +239,19 @@ msgstr ""
 
 #: responseListAndManage.php:552 responseListAndManage.php:566
 #: responseListAndManage.php:580 responseListAndManage.php:594
-#: responseListAndManage.php:608 responseListAndManage.php:622
+#: responseListAndManage.php:614 responseListAndManage.php:628
 msgid "Only for LimeSurvey administrator"
 msgstr ""
 
 #: responseListAndManage.php:553 responseListAndManage.php:567
 #: responseListAndManage.php:581 responseListAndManage.php:595
-#: responseListAndManage.php:609
+#: responseListAndManage.php:615
 msgid "For group administrator and LimeSurvey administrator"
 msgstr ""
 
 #: responseListAndManage.php:554 responseListAndManage.php:568
 #: responseListAndManage.php:582 responseListAndManage.php:596
-#: responseListAndManage.php:610
+#: responseListAndManage.php:616
 msgid "All (with a valid token)"
 msgstr ""
 
@@ -264,7 +264,6 @@ msgid "Allow edit response of group"
 msgstr ""
 
 #: responseListAndManage.php:573 responseListAndManage.php:587
-#: responseListAndManage.php:601
 msgid "Need view rights."
 msgstr ""
 
@@ -276,128 +275,152 @@ msgstr ""
 msgid "Allow add response"
 msgstr ""
 
+#: responseListAndManage.php:601
+msgid "Need view rights, for administrator, allow to choose token for creation."
+msgstr ""
+
 #: responseListAndManage.php:606
+msgid "Allow add response with existing token according to survey setting"
+msgstr ""
+
+#: responseListAndManage.php:607
+msgid "If survey settings allow user to create new response, add a button to create a new response."
+msgstr ""
+
+#: responseListAndManage.php:612
 msgid "Allow add token user"
 msgstr ""
 
-#: responseListAndManage.php:615 responseListAndManage.php:640
+#: responseListAndManage.php:621 responseListAndManage.php:646
 msgid "Need add response right."
 msgstr ""
 
-#: responseListAndManage.php:620
+#: responseListAndManage.php:626
 msgid "Show log out button"
 msgstr ""
 
-#: responseListAndManage.php:632
+#: responseListAndManage.php:638
 msgid "Show survey admin page link"
 msgstr ""
 
-#: responseListAndManage.php:634
+#: responseListAndManage.php:640
 msgid "All LimeSurvey administrator"
 msgstr ""
 
-#: responseListAndManage.php:635
+#: responseListAndManage.php:641
 msgid "LimeSurvey administrator with survey settings right"
 msgstr ""
 
-#: responseListAndManage.php:788
+#: responseListAndManage.php:794
 msgid "This code is invalid."
 msgstr ""
 
-#: responseListAndManage.php:890
+#: responseListAndManage.php:900
 msgid "You are not allowed to use reponse management with this token."
 msgstr ""
 
-#: responseListAndManage.php:947 responseListAndManage.php:954
-#: responseListAndManage.php:962 responseListAndManage.php:974
+#: responseListAndManage.php:957 responseListAndManage.php:964
+#: responseListAndManage.php:972 responseListAndManage.php:984
 msgid "Create an new response"
 msgstr ""
 
-#: responseListAndManage.php:1098
+#: responseListAndManage.php:1108
 msgid "Answered count and sum"
 msgstr ""
 
-#: responseListAndManage.php:1117
+#: responseListAndManage.php:1120
 msgid "Create an new user"
 msgstr ""
 
-#: responseListAndManage.php:1149 responseListAndManage.php:1208
+#: responseListAndManage.php:1162 responseListAndManage.php:1221
 msgid "Invalid survey id."
 msgstr ""
 
-#: responseListAndManage.php:1153
+#: responseListAndManage.php:1166
 msgid "Invalid response id."
 msgstr ""
 
-#: responseListAndManage.php:1191
+#: responseListAndManage.php:1204
 msgid "No right to delete this reponse."
 msgstr ""
 
-#: responseListAndManage.php:1211
+#: responseListAndManage.php:1224
 msgid "Token creation is disable for this survey."
 msgstr ""
 
-#: responseListAndManage.php:1230
+#: responseListAndManage.php:1243
 msgid "No right to create new token in this survey."
 msgstr ""
 
-#: responseListAndManage.php:1250
+#: responseListAndManage.php:1263
 #, php-format
 msgid "Token created but unable to send the email, token code is %s"
 msgstr ""
 
-#: responseListAndManage.php:1252
+#: responseListAndManage.php:1265
 msgid "Error return by mailer:"
 msgstr ""
 
-#: responseListAndManage.php:1284 responseListAndManage.php:1288
+#: responseListAndManage.php:1300 responseListAndManage.php:1304
 #, php-format
 msgid "Unable to use this plugin, you need %s plugin."
 msgstr ""
 
-#: responseListAndManage.php:1306
+#: responseListAndManage.php:1322
 #, php-format
 msgid "Access link for survey listing : %s."
 msgstr ""
 
-#: responseListAndManage.php:1320
+#: responseListAndManage.php:1336
 msgid "Template to be used."
 msgstr ""
 
-#: responseListAndManage.php:1324
+#: responseListAndManage.php:1339
 msgid "Show log out."
 msgstr ""
 
-#: responseListAndManage.php:1326 responseListAndManage.php:1332
+#: responseListAndManage.php:1340 responseListAndManage.php:1344
 msgid "On survey list and by default for admin"
 msgstr ""
 
-#: responseListAndManage.php:1330
+#: responseListAndManage.php:1343
 msgid "Show LimeSurvey admininstration link."
 msgstr ""
 
-#: responseListAndManage.php:1509 responseListAndManage.php:1514
+#: responseListAndManage.php:1351
+msgid "Menu exist, to delete : uncheck box and validate."
+msgstr ""
+
+#: responseListAndManage.php:1351
+msgid "Menu didn‘t exist, to create check box and validate."
+msgstr ""
+
+#: responseListAndManage.php:1354
+msgid "Add a menu to responses management in surveys."
+msgstr ""
+
+#: responseListAndManage.php:1600 responseListAndManage.php:1605
 msgid "Is a group manager"
 msgstr ""
 
-#: responseListAndManage.php:1521
+#: responseListAndManage.php:1612
 #, php-format
 msgid "You can use token information like %s or %s, %s was replaced by the url for managing response."
 msgstr ""
 
-#: responseListAndManage.php:1679
+#: responseListAndManage.php:1776
 #, php-format
 msgid "Reponses of %s survey"
 msgstr ""
 
-#: responseListAndManage.php:1831 responseListAndManage.php:1843
+#: responseListAndManage.php:1933 responseListAndManage.php:1944
 msgid "Log out"
 msgstr ""
 
-#: responseListAndManage.php:1849
+#: responseListAndManage.php:1950
 msgid "Administration"
 msgstr ""
 
-#: responseListAndManage.php:1855
+#: responseListAndManage.php:1956
 msgid "Survey settings"
 msgstr ""

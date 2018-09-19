@@ -552,7 +552,7 @@ class ResponseExtended extends LSActiveRecord
             return false;
         }
         if($iQid) {
-            $oAttributeDateFormat = QuestionAttribute::model()->find("qid = :qid",array(":qid"=>$iQid));
+            $oAttributeDateFormat = QuestionAttribute::model()->find("qid = :qid AND attribute = :attribute",array(":qid"=>$iQid,":attribute"=>'date_format'));
             if($oAttributeDateFormat && trim($oAttributeDateFormat->value)) {
                 $dateFormat = trim($oAttributeDateFormat->value);
                 $dateFormatMoment = getJSDateFromDateFormat($dateFormat);
@@ -571,10 +571,10 @@ class ResponseExtended extends LSActiveRecord
         $attributes = $this->attributes;
         $minValue = !empty($attributes[$column]['min']) ? $attributes[$column]['min'] : null;
         $maxValue = !empty($attributes[$column]['max']) ? $attributes[$column]['max'] : null;
-        $dateFilter = '<div class="input-group"><div class="input-group-addon">&gt;=</div>';
+        $dateFilter = '<div class="input-group input-group-date input-group-date-min"><div class="input-group-addon">&gt;=</div>';
         $dateFilter.= CHtml::textField(get_class($this)."[".$column."]"."[min]",$minValue,array("class"=>'form-control input-sm filter-date','data-format'=>$dateFormatMoment));
         $dateFilter.= "</div>";
-        $dateFilter .= '<div class="input-group"><div class="input-group-addon">&lt;</div>';
+        $dateFilter .= '<div class="input-group input-group-date input-group-date-max"><div class="input-group-addon">&lt;</div>';
         $dateFilter.= CHtml::textField(get_class($this)."[".$column."]"."[max]",$maxValue,array("class"=>'form-control input-sm filter-date','data-format'=>$dateFormatMoment));
         $dateFilter.= "</div>";
         $dateFilter.= CHtml::hiddenField(get_class($this)."[".$column."]"."[format]",$dateFormatPHP);

@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.9.4
+ * @version 1.9.5
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -856,6 +856,8 @@ class responseListAndManage extends PluginBase {
         $settingAllowEdit = $this->get('allowEdit','Survey',$surveyId,'admin');
         $settingAllowDelete = $this->get('allowDelete','Survey',$surveyId,'admin');
         $settingAllowAdd = $this->get('allowAdd','Survey',$surveyId,'admin');
+        $settingAllowAddUser = $this->get('allowAddUser','Survey',$surveyId,'admin');
+
         $tokenAttributeGroup = $this->get('tokenAttributeGroup','Survey',$surveyId,null);
         $tokenAttributeGroupManager = $this->get('tokenAttributeGroupManager','Survey',$surveyId,null);
         $tokenGroup = null;
@@ -871,6 +873,7 @@ class responseListAndManage extends PluginBase {
             $allowEdit = $allowSee && $settingAllowEdit && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'update');
             $allowDelete = $allowSee && $settingAllowDelete && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'delete');
             $allowAdd = $settingAllowAdd && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'create');
+            $allowAddUser = $this->_allowTokenLink($oSurvey) && $settingAllowAddUser && Permission::model()->hasSurveyPermission($surveyId, 'token', 'create');
         }
         if($currentToken) {
             $aTokens = (array) $currentToken;
@@ -883,6 +886,7 @@ class responseListAndManage extends PluginBase {
             $allowEdit = $allowSee && (($settingAllowEdit == 'all') || ($settingAllowEdit == 'admin' && $isManager));
             $allowDelete = ($settingAllowDelete == 'all') || ($settingAllowDelete == 'admin' && $isManager);
             $allowAdd = ($settingAllowAdd == 'all') || ($settingAllowAdd == 'admin' && $isManager); // all add with any token (show token list)
+            $allowAddUser = $this->_allowTokenLink($oSurvey) && ( ($settingAllowAddUser == 'all') || ($settingAllowAddUser == 'admin' && $isManager));
             $oTokenGroup = Token::model($surveyId)->findAll("token = :token",array(":token"=>$currentToken));
             if($tokenGroup) {
                 $oTokenGroup = Token::model($surveyId)->findAll($tokenAttributeGroup."= :group",array(":group"=>$tokenGroup));
@@ -1109,17 +1113,10 @@ class responseListAndManage extends PluginBase {
                 $aOrderedColumn[$key] = $aColumns[$key];
             }
         }
-
-        $this->aRenderData['allowAddUser'] = $this->_allowTokenLink($oSurvey) && $this->get('allowAddUser','Survey',$surveyId,'admin') == 'all';
-        if(!$this->aRenderData['allowAddUser'] && $isManager) {
-            $this->aRenderData['allowAddUser'] = $this->_allowTokenLink($oSurvey) && $this->get('allowAddUser','Survey',$surveyId,'admin') == 'admin';
-        }
-        if(!$this->aRenderData['allowAddUser'] && Permission::model()->hasSurveyPermission($surveyId, 'token', 'create')) {
-            $this->aRenderData['allowAddUser'] = $this->_allowTokenLink($oSurvey) && $this->get('allowAddUser','Survey',$surveyId,'admin') == 'limesurvey';
-        }
+        $this->aRenderData['allowAddUser'] = $allowAddUser;
         $this->aRenderData['addUser'] = array();
         $this->aRenderData['addUserButton'] = '';
-        if($this->aRenderData['allowAddUser']) {
+        if($allowAddUser) {
             $this->aRenderData['addUserButton'] = CHtml::htmlButton("<i class='fa fa-user-plus ' aria-hidden='true'></i>".$this->_translate("Create an new user"),
                 array("type"=>'button','name'=>'adduser','value'=>'new','class'=>'btn btn-default btn-sm addnewuser')
             );
@@ -1143,7 +1140,17 @@ class responseListAndManage extends PluginBase {
         $this->aRenderData['model'] = $mResponse;
         // Add comment block
         $aDescriptionCurrent = $this->get('description','Survey',$surveyId);
-        $this->aRenderData['description'] = isset($aDescriptionCurrent[Yii::app()->getLanguage()]) ? $aDescriptionCurrent[Yii::app()->getLanguage()] : "";
+        $sDescriptionCurrent = isset($aDescriptionCurrent[Yii::app()->getLanguage()]) ? $aDescriptionCurrent[Yii::app()->getLanguage()] : "";
+        $aReplacement = array(
+            'SID' => $surveyId,
+            'TOKEN' => $currentToken,
+        );
+        if(version_compare(App()->getConfig("versionnumber"),"3","<") ) {
+            $sDescriptionCurrent = LimeExpressionManager::ProcessString($sDescriptionCurrent,null,$aReplacement);
+        } else {
+            $sDescriptionCurrent = LimeExpressionManager::ProcessString($sDescriptionCurrent,null,$aReplacement);
+        }
+        $this->aRenderData['description'] = $sDescriptionCurrent;
         $this->aRenderData['columns'] = $aOrderedColumn;
         $this->_render('responses');
     }
@@ -1602,7 +1609,7 @@ class responseListAndManage extends PluginBase {
         $addUser['email'] = array(
             'subject' => $aSurveyInfo['email_'.$emailType.'_subj'],
             'body' => str_replace("<br />","<br>",$aSurveyInfo['email_'.$emailType]),
-            'help' => sprintf($this->_translate("You can use token information like %s or %s, %s was replaced by the url for managing response."),"{FIRSTNAME}","{ATTRIBUTE_1}","{SURVEYURL}"),
+            'help' => sprintf($this->_translate("You can use token information like %s or %s, %s was replaced by the url for managing response."),"&#123;FIRSTNAME&#125;","&#123;ATTRIBUTE_1&#125;","&#123;SURVEYURL&#125;"),
             'html' => $oSurvey->htmlemail == "Y",
         );
         

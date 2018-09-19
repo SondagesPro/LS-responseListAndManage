@@ -32,3 +32,4 @@ Yii::app()->getController()->renderPartial("responseListAndManage.views.content.
 if($allowAddUser) {
     Yii::app()->getController()->renderPartial("responseListAndManage.views.content.subContent.modalUser",array('lang'=>$lang,'addUser'=>$addUser));
 }
+echo $pluginHtml;

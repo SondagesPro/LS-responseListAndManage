@@ -168,24 +168,10 @@ class ResponseExtended extends LSActiveRecord
         if ($this->haveToken && $this->survey->anonymized != 'Y') {
             $criteria->with = 'tokens';
         }
-        $sort     = new CSort;
-        $sort->defaultOrder = 'id ASC';
-
-        // Make all the model's columns sortable (default behaviour)
-        $sort->attributes = array(
-            '*',
-        );
-        // Token sort
-        if($this->getHaveToken()) {
-            $sort->attributes = array_merge($sort->attributes,$this->getTokensSort());
-        }
+        $sort = $this->getSort();
         if(!empty($this->restrictedColumns)) {
             $criteria->select = $this->restrictedColumns;
         }
-        $sort->attributes = array_merge($sort->attributes,array('completed' => array(
-                'asc'=>'submitdate ASC',
-                'desc'=>'submitdate DESC',
-        )));
         // Completed filters
         if ($this->completed == "Y") {
             $criteria->addCondition('t.submitdate IS NOT NULL');
@@ -579,5 +565,61 @@ class ResponseExtended extends LSActiveRecord
         $dateFilter.= "</div>";
         $dateFilter.= CHtml::hiddenField(get_class($this)."[".$column."]"."[format]",$dateFormatPHP);
         return $dateFilter;
+  }
+
+  public function getSort() {
+        $sort     = new CSort;
+        $sort->defaultOrder = 'id ASC';
+
+        
+        $sort->attributes = array();
+        // Token sort
+        if($this->getHaveToken()) {
+            $sort->attributes = array_merge($sort->attributes,$this->getTokensSort());
+        }
+        $sort->attributes = array_merge($sort->attributes,
+            array(
+                'completed' =>
+                    array(
+                    'asc'=>'submitdate ASC',
+                    'desc'=>'submitdate DESC',
+                )
+            )
+        );
+        $surveyColumnsInformation = new \getQuestionInformation\helpers\surveyColumnsInformation(self::$sid,App()->getLanguage());
+        /* Find numeric columns */
+        $aQuestionId = CHtml::listData(Question::model()->findAll(array(
+            'select' => 'qid',
+            'condition' => 'parent_qid = 0 and sid =:sid',
+            'params' => array(':sid'=>self::$sid)
+        )),'qid','qid');
+        $AttributeCriteria = new CDbCriteria;
+        $AttributeCriteria->select = 'qid';
+        $AttributeCriteria->addInCondition('qid',$aQuestionId);
+        $AttributeCriteria->compare('attribute','numbers_only');
+        $AttributeCriteria->compare('value',1);
+        $aQuestionsAsNumber = CHtml::listData(QuestionAttribute::model()->findAll($AttributeCriteria),'qid','qid');
+        if(!empty($aQuestionsAsNumber)) {
+            foreach($aQuestionsAsNumber as $questionAsNumber) {
+                /* question can be short text, equation, array text and multiple text */
+                $aColumns = \getQuestionInformation\helpers\surveyCodeHelper::getQuestionColumn($questionAsNumber);
+                foreach($aColumns as $column => $value) {
+                    /* cast as decimal : then allow int and non int */
+                    /* and casting as decimal didn't need specific db part test */
+                    /* Not tested with separator as `,` since it's broken in 3.14.9 */
+                    $sort->attributes = array_merge($sort->attributes,
+                        array(
+                            $column => array(
+                                'asc'=>'CAST('.Yii::app()->db->quoteColumnName($column).' AS decimal(30,10)) ASC',
+                                'desc'=>'CAST('.Yii::app()->db->quoteColumnName($column).' AS decimal(30,10)) DESC',
+                            ),
+                        )
+                    );
+                }
+            }
+        }
+        // Finally all not set order 
+        $sort->attributes = array_merge($sort->attributes,array("*"));
+        return $sort;
   }
 }

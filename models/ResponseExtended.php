@@ -517,14 +517,12 @@ class ResponseExtended extends LSActiveRecord
    * @inheritdoc adding string, by default current event
    * @param string
    * @param string \CLogger const
-   * @param string $logDetail, if not set or set to global : get current event name (if exist)
+   * @param string $logDetail, default to global
    */
   public function log($message, $level = \CLogger::LEVEL_TRACE,$logDetail = "global")
   {
-    if($logDetail== "global" && $this->getEvent()) {
-      $logDetail = $this->getEvent()->getEventName();
-    }
     Yii::log($message, $level,'plugins.responseListAndManage.ResponseExtended.'.$logDetail);
+    Yii::log('[plugins.responseListAndManage.ResponseExtended.'.$logDetail.'] '.$message, $level,'vardump');
   }
 
   /**
@@ -588,8 +586,8 @@ class ResponseExtended extends LSActiveRecord
             )
         );
         /* Find numeric columns */
-        if(empty(\getQuestionInformation\helpers\surveyColumnsInformation::apiversion)) {
-            $this->log("You need getQuestionInformation\helpers\surveyColumnsInformation with api version 1 at minimum for nupmbers_only question",'warning');
+        if(!defined("\getQuestionInformation\helpers\surveyColumnsInformation::apiversion")) {
+            $this->log("You need getQuestionInformation\helpers\surveyColumnsInformation with api version 1 at minimum for numbers_only question",'warning','getSort');
         }else {
             $surveyColumnsInformation = new \getQuestionInformation\helpers\surveyColumnsInformation(self::$sid,App()->getLanguage());
             $aQuestionsTypes = $surveyColumnsInformation->allQuestionsType();

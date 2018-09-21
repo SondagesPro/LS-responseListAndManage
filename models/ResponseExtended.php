@@ -570,7 +570,7 @@ class ResponseExtended extends LSActiveRecord
     public function getSort() {
         $sort     = new CSort;
         $sort->defaultOrder = 'id ASC';
-
+        $sort->multiSort = true;
         $sort->attributes = array();
         // Token sort
         if($this->getHaveToken()) {

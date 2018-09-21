@@ -503,7 +503,7 @@ class ResponseExtended extends LSActiveRecord
             $cloneCriteria->addCondition("$quoteColumn != '' and $quoteColumn IS NOT null");
             $footer = self::model()->count($cloneCriteria);
             if(isset($allQuestionsType[$column])) {
-                if(in_array($allQuestionsType[$column],array('decimal','float','integer')) ) {
+                if(in_array($allQuestionsType[$column],array('decimal','float','integer','number')) ) {
                     $sum = array_sum(Chtml::listData($this->search()->getData(),$column,$column));
                     $footer .= " / ".$sum;
                 }
@@ -516,13 +516,15 @@ class ResponseExtended extends LSActiveRecord
   /**
    * @inheritdoc adding string, by default current event
    * @param string
+   * @param string \CLogger const
+   * @param string $logDetail, if not set or set to global : get current event name (if exist)
    */
-  public function log($message, $level = \CLogger::LEVEL_TRACE,$logDetail = null)
+  public function log($message, $level = \CLogger::LEVEL_TRACE,$logDetail = "global")
   {
-    if(!$logDetail && $this->getEvent()) {
+    if($logDetail== "global" && $this->getEvent()) {
       $logDetail = $this->getEvent()->getEventName();
-    } // What to put if no event ?
-    Yii::log($message, $level,'plugins.reloadAnyResponse.'.$logDetail);
+    }
+    Yii::log($message, $level,'plugins.responseListAndManage.ResponseExtended.'.$logDetail);
   }
 
   /**
@@ -567,11 +569,10 @@ class ResponseExtended extends LSActiveRecord
         return $dateFilter;
   }
 
-  public function getSort() {
+    public function getSort() {
         $sort     = new CSort;
         $sort->defaultOrder = 'id ASC';
 
-        
         $sort->attributes = array();
         // Token sort
         if($this->getHaveToken()) {
@@ -586,24 +587,17 @@ class ResponseExtended extends LSActiveRecord
                 )
             )
         );
-        $surveyColumnsInformation = new \getQuestionInformation\helpers\surveyColumnsInformation(self::$sid,App()->getLanguage());
         /* Find numeric columns */
-        $aQuestionId = CHtml::listData(Question::model()->findAll(array(
-            'select' => 'qid',
-            'condition' => 'parent_qid = 0 and sid =:sid',
-            'params' => array(':sid'=>self::$sid)
-        )),'qid','qid');
-        $AttributeCriteria = new CDbCriteria;
-        $AttributeCriteria->select = 'qid';
-        $AttributeCriteria->addInCondition('qid',$aQuestionId);
-        $AttributeCriteria->compare('attribute','numbers_only');
-        $AttributeCriteria->compare('value',1);
-        $aQuestionsAsNumber = CHtml::listData(QuestionAttribute::model()->findAll($AttributeCriteria),'qid','qid');
-        if(!empty($aQuestionsAsNumber)) {
-            foreach($aQuestionsAsNumber as $questionAsNumber) {
-                /* question can be short text, equation, array text and multiple text */
-                $aColumns = \getQuestionInformation\helpers\surveyCodeHelper::getQuestionColumn($questionAsNumber);
-                foreach($aColumns as $column => $value) {
+        if(empty(\getQuestionInformation\helpers\surveyColumnsInformation::apiversion)) {
+            $this->log("You need getQuestionInformation\helpers\surveyColumnsInformation with api version 1 at minimum for nupmbers_only question",'warning');
+        }else {
+            $surveyColumnsInformation = new \getQuestionInformation\helpers\surveyColumnsInformation(self::$sid,App()->getLanguage());
+            $aQuestionsTypes = $surveyColumnsInformation->allQuestionsType();
+            $aQuestionsAsNumber = array_filter($aQuestionsTypes, function($type) {
+                return $type == 'number';
+            });
+            if(!empty($aQuestionsAsNumber)) {
+                foreach($aQuestionsAsNumber as $column => $type) {
                     /* cast as decimal : then allow int and non int */
                     /* and casting as decimal didn't need specific db part test */
                     /* Not tested with separator as `,` since it's broken in 3.14.9 */
@@ -621,5 +615,6 @@ class ResponseExtended extends LSActiveRecord
         // Finally all not set order 
         $sort->attributes = array_merge($sort->attributes,array("*"));
         return $sort;
-  }
+    }
+
 }

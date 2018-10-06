@@ -34,17 +34,21 @@ text-overflow: ellipsis;}
 .grid-view .column-upload-files .popover{min-width:25rem}
 .grid-view .file-list
 {
-margin: 0;
-padding: 0;
-width: 12em;
+  margin: 0;
+  padding: 0;
+  
 }
-
 .grid-view .file-list dt
 {
     float: left;
     clear: left;
     width: 12rem;
     font-weight: normal;
+}
+.grid-view .answer-value .file-list dt
+{
+    width: 10rem;
+    text-overflow: ellipsis;
 }
 
 .grid-view .file-list dd

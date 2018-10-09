@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.11.0
+ * @version 1.12.1
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -1032,7 +1032,7 @@ class responseListAndManage extends PluginBase {
             if(Permission::model()->hasSurveyPermission($surveyId, 'response', 'export')) {
                 $selectableRows = 2;
             }
-            if($selectableRows == 1 && $currentToken && $this->get('showExportLink','Survey',$surveyId) == 'all') {
+            if($selectableRows == 0 && $currentToken && $this->get('showExportLink','Survey',$surveyId) == 'all') {
                 $selectableRows = 2;
             }
         }

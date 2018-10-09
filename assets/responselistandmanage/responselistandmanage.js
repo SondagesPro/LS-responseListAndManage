@@ -213,6 +213,19 @@ $(document).on('click',"button[data-action]:not('disabled')",function(e) {
     $("#survey-update").contents().find("form#limesurvey button:submit[value='"+$(this).data('action')+"']").last().click();
 });
 
+function activateExport(){
+    $(document).on('click',"[data-export-checked]",function(e) {
+        e.preventDefault();
+        $("#link-clone").remove();
+        var checked = $('#responses-grid').yiiGridView('getSelection').toString();
+        var newUrl = $(this).attr("href");
+        newUrl = newUrl+"&checkeds="+checked; // Quick way : send it in a string …
+        var newLink = $(this).clone().attr("id","link-clone").addClass("hidden").removeAttr("data-export-checked").attr("href",newUrl);
+        $(newLink).appendTo("body");
+        document.getElementById("link-clone").click(); // Then we keep the download=1
+    });
+}
+activateExport();
 /* html(parser rules */
 var wysihtml5ParserRules = {
   tags: {

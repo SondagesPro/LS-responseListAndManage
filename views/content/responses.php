@@ -26,7 +26,7 @@ $this->widget('bootstrap.widgets.TbGridView', array(
                 ))
         ),
     'afterAjaxUpdate' => "js:function(id,data){ $('#'+id).trigger('ajaxUpdated'); }",
-    //~ 'selectableRows'=>2,
+    'selectableRows' => $selectableRows,
 ));
 Yii::app()->getController()->renderPartial("responseListAndManage.views.content.subContent.modalSurvey",array('lang'=>$lang));
 if($allowAddUser) {

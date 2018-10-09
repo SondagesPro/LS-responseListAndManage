@@ -152,7 +152,7 @@ class responseListAndManage extends PluginBase {
                 ),
                 'linkManagement'=>array(
                     'type'=>'info',
-                    'content'=> CHtml::link($this->_translate("Manage settings of responses listing"),$accesUrl,array("target"=>'_blank','class'=>'btn btn-block btn-default btn-lg')),
+                    'content'=> CHtml::link($this->_translate("Manage settings of responses listing"),$managementUrl,array("target"=>'_blank','class'=>'btn btn-block btn-default btn-lg')),
                 ),
             )
         ));
@@ -238,6 +238,7 @@ class responseListAndManage extends PluginBase {
                 'showFooter',
                 'filterOnDate','filterSubmitdate','filterStartdate','filterDatestamp',
                 'showLogOut','showSurveyAdminpageLink',
+                'showExportLink','exportType','exportHeadexports','exportAnswers',
             );
             foreach($settings as $setting) {
                 $this->set($setting, App()->getRequest()->getPost($setting), 'Survey', $surveyId);
@@ -621,6 +622,10 @@ class responseListAndManage extends PluginBase {
                 'help'=>$this->_translate('Need add response right.'),
                 'current'=>$this->get('allowAddUser','Survey',$surveyId,'admin')
             ),
+        );
+
+        $exportList = $this->_getExportList();
+        $aSettings[$this->_translate('User tools')] = array(
             'showLogOut' => array(
                 'type'=>'select',
                 'label'=>$this->_translate('Show log out button'),
@@ -646,8 +651,47 @@ class responseListAndManage extends PluginBase {
                 'help'=>$this->_translate('Need add response right.'),
                 'current'=>$this->get('showSurveyAdminpageLink','Survey',$surveyId,$this->get('showAdminLink',null,null,$this->settings['showAdminLink']['default']) ? 'admin': null)
             ),
+            'showExportLink' => array(
+                'type'=>'select',
+                'label'=>$this->_translate('Show export for checked response'),
+                'options'=>array(
+                    'limesurvey'=>$this->_translate("Only for LimeSurvey administrator"),
+                    'all'=>gT("Yes"),
+                ),
+                'current'=>$this->get('showExportLink','Survey',$surveyId,$this->get('showExportLink',null,null,'limesurvey')),
+            ),
+            'exportType' => array(
+                'type' => 'select',
+                'label'=>$this->_translate('Export type'),
+                'options'=>$exportList,
+                'htmlOptions'=>array(
+                    'empty'=>gT("None"),
+                ),
+                'current'=>$this->get('exportType','Survey',$surveyId),
+            ),
+            'exportHeadexports' => array(
+                'type' => 'select',
+                'label'=>$this->_translate('Export questions as'),
+                'options'=> array(
+                    'code' => gT("Question code"),
+                    'abbreviated' => gT("Abbreviated question text"),
+                    'full' => gT("Full question text"),
+                    'codetext' => gT("Question code & question text"),
+                ),
+                'current'=>$this->get('exportHeadexports','Survey',$surveyId,'full'),
+            ),
+            'exportAnswers' => array(
+                'type' => 'select',
+                'label'=>$this->_translate('Export responses as'),
+                'options'=> array(
+                    'short' => gT("Answer codes"),
+                    'long' => gT("Full answers"),
+                ),
+                'current'=>$this->get('exportAnswers','Survey',$surveyId,'long'),
+            ),
         );
 
+        
         $aData['pluginClass']=get_class($this);
         $aData['surveyId']=$surveyId;
         $aData['title'] = "";
@@ -656,6 +700,87 @@ class responseListAndManage extends PluginBase {
         $aData['assetUrl']=Yii::app()->assetManager->publish(dirname(__FILE__) . '/assets/settings');
         $content = $this->renderPartial('settings', $aData, true);
         return $content;
+    }
+
+    /**
+     * Export response
+     * @param int $surveyId Survey id
+     * @param string|null $currenttoken token to be used for export : seems not sent currently (see LS issue)
+     * @return mixed
+     */
+    public function actionExport($surveyId,$currenttoken = null)
+    {
+        $currenttoken = Yii::app()->getRequest()->getParam('currenttoken');
+        $userHaveRight = false;
+        $settingAllowAccess = $this->get('showExportLink','Survey',$surveyId,'limesurvey');
+        if(empty($settingAllowAccess)) {
+            throw new CHttpException(403,$this->_translate("This action was not allowed"));
+        }
+        $exportType = $this->get('exportType','Survey',$surveyId);
+        if(empty($exportType)) {
+            throw new CHttpException(403,$this->_translate("This action was not allowed"));
+        }
+        if (Permission::model()->hasSurveyPermission($surveyId, 'responses', 'export')) {
+            $userHaveRight = true;
+        }
+        if (!$userHaveRight && $settingAllowAccess == 'limesurvey') {
+            throw new CHttpException(401,$this->_translate("This action was not allowed with your current rights."));
+        }
+        if (!$userHaveRight && !$this->_allowTokenLink($oSurvey)) {
+            throw new CHttpException(403,$this->_translate("This action was not allowed"));
+        }
+        if(!$userHaveRight && !$currenttoken) {
+            throw new CHttpException(401,$this->_translate("This action was not allowed without a valid token."));
+        }
+        $checkeds = Yii::app()->getRequest()->getParam("checkeds","");
+        $aFilters = array();
+        $aChecked = explode(",",$checkeds);
+        $aChecked = array_filter($aChecked,  function($id) {
+            return ctype_digit($id) || is_int($id);
+        });
+        if(!empty($aChecked)) {
+            $aFilters[] = " id IN (".implode(",",$aChecked).")";
+        }
+        if($currenttoken) {
+            $aTokens = $this->_getTokensList($surveyId,$currenttoken);
+            $aTokens = array_map( function($token) {
+                return Yii::app()->getDb()->quoteValue($token);
+            },$aTokens);
+        }
+        if(!empty($aTokens)) {
+            $aFilters[] = ' {{survey_' . $surveyId . '}}.token IN ('.implode(",",$aTokens).')';
+        }
+        $sFilter = implode(" AND ",$aFilters);
+
+        /* language … */
+        $language = Survey::model()->findByPk($surveyId)->language;
+        /* columns : add an option */
+        $survey = \Survey::model()->findByPk($surveyId);
+        if(intval(Yii::app()->getConfig('versionnumber')) < 3) {
+            $survey = $surveyId;
+        }
+        $aFields=array_keys(createFieldMap($survey,'full',true,false,$language));
+        
+        Yii::app()->loadHelper('admin/exportresults');
+        Yii::import('application.helpers.viewHelper');
+        $oExport=new \ExportSurveyResultsService();
+        $exports = $oExport->getExports();
+        $oFormattingOptions=new \FormattingOptions();
+        $oFormattingOptions->responseMinRecord = 1;
+        $oFormattingOptions->responseMaxRecord = SurveyDynamic::model($surveyId)->getMaxId();
+        $oFormattingOptions->selectedColumns=$aFields;
+        $oFormattingOptions->responseCompletionState = 'all';
+        $oFormattingOptions->headingFormat = $this->get('exportHeadexports','Survey',$surveyId,'full');
+        $oFormattingOptions->answerFormat = $this->get('exportAnswers','Survey',$surveyId,'long');
+        $oFormattingOptions->output='display';
+        /* Hack action id to set to remotecontrol */
+        $action = new stdClass();
+        $action->id='remotecontrol';
+        Yii::app()->controller->__set('action',$action);
+        /* Export as display */
+        //viewHelper::disableHtmlLogging();
+        $oExport->exportSurvey($surveyId,$language, $exportType,$oFormattingOptions, $sFilter);
+        exit;
     }
     /**
     * @see newSurveySettings
@@ -901,6 +1026,17 @@ class responseListAndManage extends PluginBase {
             }
         }
         Yii::app()->user->setState('responseListAndManagePageSize',intval(Yii::app()->request->getParam('pageSize',Yii::app()->user->getState('responseListAndManagePageSize',50))));
+        // Check if allow check
+        $selectableRows = 0;
+        if($this->get('exportType','Survey',$surveyId) && $this->get('showExportLink','Survey',$surveyId,$this->get('showExportLink',null,null,'limesurvey'))) {
+            if(Permission::model()->hasSurveyPermission($surveyId, 'response', 'export')) {
+                $selectableRows = 2;
+            }
+            if($selectableRows == 1 && $currentToken && $this->get('showExportLink','Survey',$surveyId) == 'all') {
+                $selectableRows = 2;
+            }
+        }
+
         /* Add a new */
         $tokenList = null;
         $singleToken = null;
@@ -1098,15 +1234,19 @@ class responseListAndManage extends PluginBase {
         $mResponse->setRestrictedColumns($aRestrictedColumns);
         $aColumns = $mResponse->getGridColumns($disableTokenPermission);
         /* Get columns by order now … */
-        $aOrderedColumn = array(
-            'button' => array(
-                'htmlOptions' => array('nowrap'=>'nowrap'),
-                'class'=>'bootstrap.widgets.TbButtonColumn',
-                'template'=>'{update}{delete}',
-                'updateButtonUrl'=>$updateButtonUrl,
-                'deleteButtonUrl'=>$deleteButtonUrl,
-                'footer' => ($this->get('showFooter','Survey',$surveyId,false) ? $this->_translate("Answered count and sum") : null),
-            )
+        $aOrderedColumn = array();
+        if($selectableRows) {
+            $aOrderedColumn['selected'] = array(
+                'class'=>'CCheckBoxColumn',
+            );
+        }
+        $aOrderedColumn['button'] = array(
+            'htmlOptions' => array('nowrap'=>'nowrap'),
+            'class'=>'bootstrap.widgets.TbButtonColumn',
+            'template'=>'{update}{delete}',
+            'updateButtonUrl'=>$updateButtonUrl,
+            'deleteButtonUrl'=>$deleteButtonUrl,
+            'footer' => ($this->get('showFooter','Survey',$surveyId,false) ? $this->_translate("Answered count and sum") : null),
         );
         foreach($aRestrictedColumns as $key) {
             if(isset($aColumns[$key])) {
@@ -1150,6 +1290,8 @@ class responseListAndManage extends PluginBase {
         } else {
             $sDescriptionCurrent = LimeExpressionManager::ProcessString($sDescriptionCurrent,null,$aReplacement);
         }
+
+        $this->aRenderData['selectableRows'] = $selectableRows;
         $this->aRenderData['description'] = $sDescriptionCurrent;
         $this->aRenderData['columns'] = $aOrderedColumn;
         $this->_render('responses');
@@ -1922,65 +2064,102 @@ class responseListAndManage extends PluginBase {
             $showLogOut = $this->get('showLogOut','Survey',$surveyId,$this->get('showLogOut',null,null,$this->settings['showLogOut']['default']) ? 'admin': null);
             $showAdminSurveyLink = $this->get('showSurveyAdminpageLink','Survey',$surveyId,$this->get('showAdminLink',null,null,$this->settings['showAdminLink']['default']) ? 'admin': null);
             $showAdminLink = $showAdminSurveyLink && $this->get('showAdminLink',null,null,$this->settings['showAdminLink']['default']);
+            $showExportLink = $this->get('showExportLink','Survey',$surveyId,$this->get('showExportLink',null,null,'limesurvey'));
         }
         if(version_compare(App()->getConfig('versionnumber'),"3",">=")) {
             $userId = Permission::getUserId();
         } else {
             $userId = Yii::app()->session['loginID'];
         }
+        $actionLinks = array();
+        $currentToken = null;
         if(!$userId) {
             if($surveyId && $showLogOut == 'all') {
-                $adminAction = CHtml::link("<i class='fa fa-sign-out' aria-hidden='true'></i> ".$this->_translate("Log out"),
+                $actionLinks[] = CHtml::link("<i class='fa fa-sign-out' aria-hidden='true'></i> ".$this->_translate("Log out"),
                     array("plugins/direct",'plugin' => get_class(),'sid'=>$surveyId,'logout'=>"logout"),
                     array('class'=>'btn btn-default btn-sm btn-logout')
                 );
+                $currentToken = $this->_getCurrentToken($surveyId);
             }
-            return $adminAction;
         }
-
-        $actionLinks = array();
-        if($showLogOut) {
+        if($userId && $showLogOut) {
             $actionLinks[] = array(
                 'text'=>"<i class='fa fa-sign-out' aria-hidden='true'></i> ".$this->_translate("Log out"),
                 'link'=> array("plugins/direct",'plugin' => get_class(),'sid'=>$surveyId,'logout'=>"logout"),
             );
         }
-        if($showAdminLink) {
+        if($userId && $showAdminLink) {
             $actionLinks[] = array(
                 'text'=>"<i class='fa fa-cogs' aria-hidden='true'></i> ".$this->_translate("Administration"),
                 'link'=> array("admin/index"),
             );
         }
-        if($surveyId && (Permission::model()->hasSurveyPermission($surveyId, 'surveysettings', 'read') || $showAdminSurveyLink == 'limesurvey') && $showAdminSurveyLink) {
+        if($userId && $surveyId && (Permission::model()->hasSurveyPermission($surveyId, 'survey', 'read') || $showAdminSurveyLink == 'limesurvey') && $showAdminSurveyLink) {
             $actionLinks[] = array(
-                'text'=>"<i class='fa fa-cog' aria-hidden='true'></i> ".$this->_translate("Survey settings"),
+                'text'=>"<i class='fa fa-cog' aria-hidden='true'></i> ".$this->_translate("Survey administration"),
                 'link'=>array("admin/survey/sa/view",'surveyid'=>$surveyId),
             );
+            if(Permission::model()->hasSurveyPermission($surveyId, 'surveysettings', 'update')) {
+                $actionLinks[] = array(
+                    'text'=>"<i class='fa fa-cog' aria-hidden='true'></i> ".$this->_translate("Manage responses listing"),
+                    'link'=>array('admin/pluginhelper',
+                        'sa' => 'sidebody',
+                        'plugin' => get_class($this),
+                        'method' => 'actionSettings',
+                        'surveyId' => $surveyId
+                    ),
+                );
+            }
+        }
+
+        if($showExportLink && $this->get('exportType','Survey',$surveyId)) {
+            $actionExportLink = array(
+                'text'=>"<i class='fa fa-download' aria-hidden='true'></i> ".$this->_translate("Export checked response"),
+                'link'=>array('admin/pluginhelper',
+                    'sa' => 'sidebody',
+                    'plugin' => get_class($this),
+                    'method' => 'actionExport',
+                    'surveyId' => $surveyId,
+                    'currenttoken' => $currentToken,
+                ),
+                'htmlOptions'=>array('data-export-checked' => true,'download'=>1),
+            );
+            if(!$userId && $showExportLink == 'all') {
+                $actionLinks[] = $actionExportLink;
+            }
+            if(Permission::model()->hasSurveyPermission($surveyId, 'response', 'export')) {
+                unset($actionExportLink['link']['currenttoken']);
+                $actionLinks[] = $actionExportLink;
+            }
         }
         if(count($actionLinks) == 1) {
+            $actionLink = array_merge_recursive(array('htmlOptions'=>array('class'=>'btn btn-default btn-sm btn-admin')),$actionLinks[0]);
             $adminAction = CHtml::link($actionLinks[0]['text'],
-                    $actionLinks[0]['link'],
-                    array('class'=>'btn btn-default btn-sm btn-admin')
+                    $actionLink['link'],
+                    $actionLink['htmlOptions']
                 );;
         }
         if(count($actionLinks) > 1) {
-            $oUser = User::model()->findByPk($userId);
+            $btnLabel = $this->_translate("Tools");
+            if($userId) {
+                $oUser = User::model()->findByPk($userId);
+                $btnLabel = $oUser->full_name;
+            }
+            
             $adminAction = '<div class="dropup">'.
                            '<button class="btn btn-default btn-sm dropdown-toggle" type="button" id="dropdownAdminAction" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">'.
-                           $oUser->full_name.
+                           $btnLabel.
                            '<span class="caret"></span>'.
                            '</button>'.
                            '<ul class="dropdown-menu" aria-labelledby="dropdownAdminAction">';
             $adminAction.= implode('',array_map(function($link){
-                return CHtml::tag('li',array(),CHtml::link($link['text'],$link['link']));
+                $link = array_merge_recursive(array('htmlOptions'=>array('class'=>'btn btn-default btn-sm btn-admin')),$link);
+                return CHtml::tag('li',array(),CHtml::link($link['text'],$link['link'],$link['htmlOptions']));
             },$actionLinks));
             $adminAction.= '</ul>';
             $adminAction.= '</div>';
         }
         return $adminAction;
-
-
-        return $adminAction; // Never happen currently
     }
     /**
      * get the current token
@@ -2150,6 +2329,25 @@ class responseListAndManage extends PluginBase {
       return CHtml::listData($oTokenGroup,'token','token');
     }
 
+    /**
+     * get available export type
+     */
+    private function _getExportList()
+    {
+        Yii::app()->loadHelper("admin/exportresults");
+        $resultsService = new ExportSurveyResultsService();
+        $exports = $resultsService->getExports();
+        $exports = array_filter($exports);
+        $exportData = array();
+        foreach ($exports as $key => $plugin) {
+            $event = new PluginEvent('listExportOptions');
+            $event->set('type', $key);
+            $oPluginManager = App()->getPluginManager();
+            $oPluginManager->dispatchEvent($event, $plugin);
+            $exportData[$key] = $event->get('label');
+        }
+        return array_filter($exportData);
+    }
     /**
      * @todo : get the array of current rights
      * @param $surveyid

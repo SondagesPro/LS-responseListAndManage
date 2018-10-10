@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.13.0
+ * @version 1.13.1
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -714,7 +714,7 @@ class responseListAndManage extends PluginBase {
      * @param string|null $currenttoken token to be used for export : seems not sent currently (see LS issue)
      * @return mixed
      */
-    public function actionExport($surveyId,$currenttoken = null)
+    public function _doExport($surveyId)
     {
         $currenttoken = Yii::app()->getRequest()->getParam('currenttoken');
         $userHaveRight = false;
@@ -723,6 +723,7 @@ class responseListAndManage extends PluginBase {
             throw new CHttpException(403,$this->_translate("This action was not allowed"));
         }
         $exportType = $this->get('exportType','Survey',$surveyId);
+
         if(empty($exportType)) {
             throw new CHttpException(403,$this->_translate("This action was not allowed"));
         }
@@ -732,6 +733,7 @@ class responseListAndManage extends PluginBase {
         if (!$userHaveRight && $settingAllowAccess == 'limesurvey') {
             throw new CHttpException(401,$this->_translate("This action was not allowed with your current rights."));
         }
+        $oSurvey = \Survey::model()->findByPk($surveyId);
         if (!$userHaveRight && !$this->_allowTokenLink($oSurvey)) {
             throw new CHttpException(403,$this->_translate("This action was not allowed"));
         }
@@ -828,6 +830,10 @@ class responseListAndManage extends PluginBase {
         }
         if($surveyId && App()->getRequest()->getQuery('action')=='download' ) {
             $this->_downloadFile($surveyId);
+            App()->end(); // Not needed but more clear
+        }
+        if($surveyId && App()->getRequest()->getQuery('action')=='export' ) {
+            $this->_doExport($surveyId);
             App()->end(); // Not needed but more clear
         }
         if($surveyId) {
@@ -2090,12 +2096,12 @@ class responseListAndManage extends PluginBase {
         $actionLinks = array();
         $currentToken = null;
         if(!$userId) {
+            $currentToken = $this->_getCurrentToken($surveyId);
             if($surveyId && $showLogOut == 'all') {
                 $actionLinks[] = CHtml::link("<i class='fa fa-sign-out' aria-hidden='true'></i> ".$this->_translate("Log out"),
                     array("plugins/direct",'plugin' => get_class(),'sid'=>$surveyId,'logout'=>"logout"),
                     array('class'=>'btn btn-default btn-sm btn-logout')
                 );
-                $currentToken = $this->_getCurrentToken($surveyId);
             }
         }
         if($userId && $showLogOut) {
@@ -2131,11 +2137,10 @@ class responseListAndManage extends PluginBase {
         if($showExportLink && $this->get('exportType','Survey',$surveyId)) {
             $actionExportLink = array(
                 'text'=>"<i class='fa fa-download' aria-hidden='true'></i> ".$this->_translate("Export (checked) response"),
-                'link'=>array('admin/pluginhelper',
-                    'sa' => 'sidebody',
+                'link'=>array('plugins/direct',
                     'plugin' => get_class($this),
-                    'method' => 'actionExport',
-                    'surveyId' => $surveyId,
+                    'action' => 'export',
+                    'sid' => $surveyId,
                     'currenttoken' => $currentToken,
                 ),
                 'htmlOptions'=>array('data-export-checked' => true,'download'=>1),

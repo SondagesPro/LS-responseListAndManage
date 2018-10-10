@@ -2090,7 +2090,7 @@ class responseListAndManage extends PluginBase {
         }
         if($userId && $showAdminLink) {
             $actionLinks[] = array(
-                'text'=>"<i class='fa fa-cogs' aria-hidden='true'></i> ".$this->_translate("Administration"),
+                'text'=>"<i class='fa fa-cogs' aria-hidden='true'></i> ".$this->_translate("LimeSurvey administration"),
                 'link'=> array("admin/index"),
             );
         }
@@ -2114,7 +2114,7 @@ class responseListAndManage extends PluginBase {
 
         if($showExportLink && $this->get('exportType','Survey',$surveyId)) {
             $actionExportLink = array(
-                'text'=>"<i class='fa fa-download' aria-hidden='true'></i> ".$this->_translate("Export checked response"),
+                'text'=>"<i class='fa fa-download' aria-hidden='true'></i> ".$this->_translate("Export (checked) response"),
                 'link'=>array('admin/pluginhelper',
                     'sa' => 'sidebody',
                     'plugin' => get_class($this),

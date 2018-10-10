@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: responseListAndManage\n"
-"POT-Creation-Date: 2018-10-10 10:06+0200\n"
-"PO-Revision-Date: 2018-10-10 10:10+0200\n"
+"POT-Creation-Date: 2018-10-10 10:14+0200\n"
+"PO-Revision-Date: 2018-10-10 10:15+0200\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: fr\n"
@@ -516,24 +516,27 @@ msgid "Log out"
 msgstr "Déconnexion"
 
 #: responseListAndManage.php:2093
-msgid "Administration"
-msgstr "Administration"
+msgid "LimeSurvey administration"
+msgstr "Administration de LimeSurvey"
 
 #: responseListAndManage.php:2099
 msgid "Survey administration"
-msgstr "Administration de LimeSurvey"
+msgstr "Administration du questionnaire"
 
 #: responseListAndManage.php:2104
 msgid "Manage responses listing"
 msgstr "Gérer la liste des réponses"
 
 #: responseListAndManage.php:2117
-msgid "Export checked response"
-msgstr "Exporter les réponses sélectionées"
+msgid "Export (checked) response"
+msgstr "Exporter les réponses (sélectionnées)"
 
 #: responseListAndManage.php:2143
 msgid "Tools"
 msgstr "Outils"
+
+#~ msgid "Administration"
+#~ msgstr "Administration"
 
 #~ msgid "Survey settings"
 #~ msgstr "Paramètre du questionnaire"

@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.12.1
+ * @version 1.13.0
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -45,6 +45,12 @@ class responseListAndManage extends PluginBase {
             'type' => 'boolean',
             'default' => 1,
             'label' => 'Show administration link',
+        ),
+        'forceDownloadImage' => array(
+            'type' => 'boolean',
+            'default' => 1,
+            'label' => 'Force download of image',
+            'help' => 'When click on an image (png,jpg,gif or pdf) : image is directly open in browser (if able). You need a javascript solution if you want to open it in new tab',
         ),
     );
 
@@ -869,17 +875,27 @@ class responseListAndManage extends PluginBase {
         if (is_null($mimeType)) {
             $mimeType = "application/octet-stream";
         }
+        $shownInline = false;
+        if( !$this->get('forceDownloadImage',null,null,$this->settings['forceDownloadImage']['default']) && in_array($mimeType,array("image/gif","image/jpeg","image/pjpeg","image/png","application/pdf")) ) {
+            $shownInline = true;
+        }
         @ob_clean();
-        header('Content-Description: File Transfer');
+        if(!$shownInline) {
+            header('Content-Description: File Transfer');
+        }
         header('Content-Type: '.$mimeType);
-        header('Content-Disposition: attachment; filename="'.sanitize_filename(rawurldecode($aFile['name'])).'"');
+        if(!$shownInline) {
+            header('Content-Disposition: attachment; filename="'.sanitize_filename(rawurldecode($aFile['name'])).'"');
+        } else {
+            header('Content-Disposition: inline; filename="'.sanitize_filename(rawurldecode($aFile['name'])).'"');
+        }
         header('Content-Transfer-Encoding: binary');
         header('Expires: 0');
         header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
         header('Pragma: public');
         header('Content-Length: '.filesize($sFileRealName));
         readfile($sFileRealName);
-        exit;
+        Yii::app()->end();
     }
     /**
      * Managing access to survey

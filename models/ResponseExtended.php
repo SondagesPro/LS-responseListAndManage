@@ -2,6 +2,7 @@
 /**
  * This file is part of reloadAnyResponse plugin
  * @see SurveyDynamic
+ * @version 1.0.1
  */
 //~ namespace responseListAndManage\models;
 //~ use Yii;
@@ -461,7 +462,7 @@ class ResponseExtended extends LSActiveRecord
         $attributes = $this->getAttributes();
         foreach($columns as $column) {
             if(array_key_exists($column,$attributes) ) {
-                $restrictedColumns[] = $column;
+                $restrictedColumns[] = Yii::app()->db->quoteColumnName($column);
             }
         }
         $this->restrictedColumns = $restrictedColumns;

@@ -182,7 +182,7 @@ class ResponseExtended extends LSActiveRecord
         if($this->id) {
             $criteria->compare('id',$this->id,true);
         }
-        if($this->token) {
+        if(self::$survey->anonymized != "Y" && $this->token) {
             if(is_array($this->token)) {
                 $criteria->addInCondition('t.token',$this->token);
             } else {
@@ -340,7 +340,6 @@ class ResponseExtended extends LSActiveRecord
         if($this->getHaveToken()) {
             $aColumns = array_merge($aColumns,$this->getTokensColumns());
         }
-
         $allQuestionsColumns = $surveyColumnsInformation->allQuestionsColumns();
         if(!empty($aFooter)) {
             $allQuestionsColumns = array_map(function ($questionsColumn) use ($aFooter) {

@@ -24,7 +24,7 @@
 .grid-view .pager,.grid-view .pagination{margin:0.5em 0}
 .grid-view .summary{padding:0.5em 0}
 .grid-view .table > thead > tr > th{vertical-align: top;}
-.grid-view .table tbody td .answer-value{height:1.4em;overflow:hidden;text-overflow: ellipsis;cursor: zoom-in;}
+.grid-view .table tbody td .answer-value,.grid-view .table tbody td .tokenattribute-value{height:1.4em;overflow:hidden;text-overflow: ellipsis;cursor: zoom-in;}
 
 .grid-view th small{white-space: nowrap;overflow:hidden;max-width:12rem;
 text-overflow: ellipsis;}

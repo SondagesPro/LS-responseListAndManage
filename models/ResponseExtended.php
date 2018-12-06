@@ -2,7 +2,7 @@
 /**
  * This file is part of reloadAnyResponse plugin
  * @see SurveyDynamic
- * @version 1.0.1
+ * @version 1.1.0
  */
 //~ namespace responseListAndManage\models;
 //~ use Yii;
@@ -411,14 +411,15 @@ class ResponseExtended extends LSActiveRecord
             'header' => '<strong>[firstname]</strong><small>'.gT('First name').'</small>',
             'name' => 'tokens.firstname',
             'type' => 'raw',
-            'value' => 'empty($data->tokens) ? "" : $data->tokens->firstname;',
+            'value' => 'empty($data->tokens) ? "" : "<div class=\'tokenattribute-value\'>".$data->tokens->firstname."</div>";',
             'htmlOptions' => array('class' => 'data-column column-token-firstname'),
             'filter' => CHtml::activeTextField($this->tokenRelated,"firstname",array('class'=>'form-control input-sm filter-token-firstname')),
         );
         $aColumns['tokens.lastname']=array(
             'header' => '<strong>[lastname]</strong><small>'.gT('Last name').'</small>',
             'name' => 'tokens.lastname',
-            'value' => 'empty($data->tokens) ? "" : $data->tokens->lastname;',
+            'value' => 'empty($data->tokens) ? "" : "<div class=\'tokenattribute-value\'>".CHtml::encode($data->tokens->lastname)."</div>";',
+            'type' => 'raw',
             'htmlOptions' => array('class' => 'data-column column-token-lastname'),
             'filter' => CHtml::activeTextField($this->tokenRelated,"lastname",array('class'=>'form-control input-sm filter-token-lastname')),
         );
@@ -427,7 +428,9 @@ class ResponseExtended extends LSActiveRecord
             $aColumns['tokens.'.$attribute]=array(
                 'header' => '<strong>['.$attribute.']</strong><small>'.$aDescrition['description'].'</small>',
                 'name' => 'tokens.'.$attribute,
-                'value' => 'empty($data->tokens) ? "" : $data->tokens->'.$attribute.';',
+                'value' => 'empty($data->tokens->'.$attribute.') ? "" : "<div class=\'tokenattribute-value\'>".$data->tokens->'.$attribute.'."</div>";',
+                'type' => 'raw',
+                //~ 'value' => 'empty($data->tokens) ? "" : $data->tokens->'.$attribute.';',
                 'htmlOptions' => array('class' => 'data-column column-token-attribute'),
                 'filter' => CHtml::activeTextField($this->tokenRelated,$attribute,array('class'=>'form-control input-sm filter-token-attribute')),
             );

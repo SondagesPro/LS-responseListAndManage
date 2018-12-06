@@ -23,7 +23,7 @@ $(document).on("ajaxUpdated","#responses-grid",function(event){
             return this.$element[0];
         }
     });
-    $('#responses-grid .answer-value').popover({
+    $('#responses-grid .answer-value,#responses-grid .tokenattribute-value').popover({
         html:true,
         placement:'bottom',
         viewport: function() {

@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.13.1
+ * @version 1.13.2
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -2281,6 +2281,10 @@ class responseListAndManage extends PluginBase {
         return tableExists("{{tokens_".$oSurvey->sid."}}");
     }
 
+    /**
+     * Action to do before all other :
+     * purpose if user can have access to a response by group  : update related token
+     */
     public function beforeControllerAction() {
       if(!$this->getEvent()->get("controller") == "survey") {
         return;
@@ -2299,6 +2303,9 @@ class responseListAndManage extends PluginBase {
         return;
       }
       if($oSurvey->active != "Y") {
+        return;
+      }
+      if($oSurvey->anonymized == "Y") {
         return;
       }
       $oToken =  Token::model($surveyId)->find("token = :token",array(":token"=>$token));

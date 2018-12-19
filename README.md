@@ -9,7 +9,7 @@ Allow to manage response in different way for admin and for particpant with toke
 To use this plugin, you **need** [getQuestionInformation](https://gitlab.com/SondagesPro/coreAndTools/getQuestionInformation) and [reloadAnyResponse](https://gitlab.com/SondagesPro/coreAndTools/reloadAnyResponse) plugins activated.
 
 ### Via GIT
-- Go to your LimeSurvey Directory (version up to 3.0)
+- Go to your LimeSurvey Directory (version up to 2.50)
 - Clone in plugins/responseListAndManage directory
 
 ### Via ZIP dowload

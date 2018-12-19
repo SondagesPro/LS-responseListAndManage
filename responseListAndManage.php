@@ -2342,6 +2342,7 @@ class responseListAndManage extends PluginBase {
       if(in_array($token,$aTokens)) {
         $oResponseToken->token = $token;
         $oResponseToken->save();
+        \reloadAnyResponse\models\surveySession::saveSessionTime($surveyId,$currentSrid,$token);
       }
 
     }

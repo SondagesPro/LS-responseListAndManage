@@ -1,6 +1,6 @@
 # responseListAndManage for LimeSurvey
 
-Allow to manage response in different way for admin and with tokens
+Allow to manage response in different way for admin and for particpant with tokens
 
 **This plugin is compatible with LimeSurvey 2.76 and 3.0 and up version.** This plugin was testes with version 2.76, 3.6 and 3.14.
 
@@ -25,6 +25,8 @@ A new login page can be used for admin. This page can show whole active survey w
 For each survey : if survey have token and is not anonymous : user with token can “log in” with their token and manage their response.
 
 Two elements are added in survey tools menu : one for survey alternate management, and one for managing settings of alternate management.
+
+With survey with token table : you can set group and group manager. Then particpant can view, add, update response. According to survey settings about anonymous, token answer persistance and allow multiple response.
 
 ## Issues and feature
 

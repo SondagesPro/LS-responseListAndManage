@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.13.2
+ * @version 1.13.3
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -480,7 +480,6 @@ class responseListAndManage extends PluginBase {
         if(version_compare(Yii::app()->getConfig('versionnumber'),"3",">=")) {
             $oTemplates = TemplateConfiguration::model()->findAll(array(
                 'condition'=>'sid IS NULL',
-                'order'=>'template_name',
             ));
             $aTemplates = CHtml::listData($oTemplates,'template_name','template_name');
         }
@@ -1487,7 +1486,6 @@ class responseListAndManage extends PluginBase {
         if(version_compare(Yii::app()->getConfig('versionnumber'),"3",">=")) {
             $oTemplates = TemplateConfiguration::model()->findAll(array(
                 'condition'=>'sid IS NULL',
-                'order'=>'template_name',
             ));
             $aTemplates = CHtml::listData($oTemplates,'template_name','template_name');
         }

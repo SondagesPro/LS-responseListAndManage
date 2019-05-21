@@ -2080,6 +2080,7 @@ class responseListAndManage extends PluginBase {
         $showLogOut = $this->get('showLogOut',null,null,$this->settings['showLogOut']['default']);
         $showAdminSurveyLink = false;
         $showAdminLink = $this->get('showAdminLink',null,null,$this->settings['showAdminLink']['default']);
+        $showExportLink = false;
         if($surveyId) {
             $showLogOut = $this->get('showLogOut','Survey',$surveyId,$this->get('showLogOut',null,null,$this->settings['showLogOut']['default']) ? 'admin': null);
             $showAdminSurveyLink = $this->get('showSurveyAdminpageLink','Survey',$surveyId,$this->get('showAdminLink',null,null,$this->settings['showAdminLink']['default']) ? 'admin': null);

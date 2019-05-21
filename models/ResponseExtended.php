@@ -464,8 +464,8 @@ class ResponseExtended extends LSActiveRecord
         );
         $attributes = $this->getAttributes();
         foreach($columns as $column) {
-            if(array_key_exists($column,$attributes) ) {
-                $restrictedColumns[] = Yii::app()->db->quoteColumnName($column);
+            if(array_key_exists($column,$attributes) && !in_array($column,$restrictedColumns)) {
+                $restrictedColumns[] = $column;
             }
         }
         $this->restrictedColumns = $restrictedColumns;

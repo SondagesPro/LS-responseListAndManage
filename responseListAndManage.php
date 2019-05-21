@@ -2097,9 +2097,9 @@ class responseListAndManage extends PluginBase {
         if(!$userId) {
             $currentToken = $this->_getCurrentToken($surveyId);
             if($surveyId && $showLogOut == 'all') {
-                $actionLinks[] = CHtml::link("<i class='fa fa-sign-out' aria-hidden='true'></i> ".$this->_translate("Log out"),
-                    array("plugins/direct",'plugin' => get_class(),'sid'=>$surveyId,'logout'=>"logout"),
-                    array('class'=>'btn btn-default btn-sm btn-logout')
+                $actionLinks[] = array(
+                    'text'=>"<i class='fa fa-sign-out' aria-hidden='true'></i> ".$this->_translate("Log out"),
+                    'link'=> array("plugins/direct",'plugin' => get_class(),'sid'=>$surveyId,'logout'=>"logout"),
                 );
             }
         }
@@ -2154,7 +2154,7 @@ class responseListAndManage extends PluginBase {
         }
         if(count($actionLinks) == 1) {
             $actionLink = array_merge_recursive(array('htmlOptions'=>array('class'=>'btn btn-default btn-sm btn-admin')),$actionLinks[0]);
-            $adminAction = CHtml::link($actionLinks[0]['text'],
+            $adminAction = CHtml::link($actionLinks['text'],
                     $actionLink['link'],
                     $actionLink['htmlOptions']
                 );;

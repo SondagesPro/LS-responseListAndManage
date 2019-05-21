@@ -1388,16 +1388,17 @@ class responseListAndManage extends PluginBase {
         }
         $allowAddSetting = $this->get('allowAdd','Survey',$surveyId,'admin');
         $allowAddUserSetting =  $this->get('allowAddUser','Survey',$surveyId,'admin');
-        $token = App()->getRequest()->getParam('currenttoken');
+        $currenttoken = App()->getRequest()->getParam('currenttoken');
         $tokenGroup = null;
         $tokenAdmin = null;
         $allowAdd = false;
         if($token) {
+            $oCurrentToken =  Token::model($surveyId)->findByToken($currenttoken);
             $tokenAttributeGroup = $this->get('tokenAttributeGroup','Survey',$surveyId,null);
             $tokenAttributeGroupManager = $this->get('tokenAttributeGroupManager','Survey',$surveyId,null);
-            $tokenGroup = (!empty($tokenAttributeGroup) && !empty($oToken->$tokenAttributeGroup)) ? $oToken->$tokenAttributeGroup : null;
-            $tokenAdmin = (!empty($tokenAttributeGroupManager) && !empty($oToken->$tokenAttributeGroupManager)) ? $oToken->$tokenAttributeGroupManager : null;
-            $isAdmin == ((bool) $tokenAdmin) && trim($tokenAdmin) !== '' && trim($tokenAdmin) !== '0';
+            $tokenGroup = (!empty($tokenAttributeGroup) && !empty($oCurrentToken->$tokenAttributeGroup)) ? $oCurrentToken->$tokenAttributeGroup : null;
+            $tokenAdmin = (!empty($tokenAttributeGroupManager) && !empty($oCurrentToken->$tokenAttributeGroupManager)) ? $oCurrentToken->$tokenAttributeGroupManager : null;
+            $isAdmin = ((bool) $tokenAdmin) && trim($tokenAdmin) !== '' && trim($tokenAdmin) !== '0';
             $allowAddUser = ($allowAddUserSetting == 'all' || ($allowAddUserSetting == 'admin' && $isAdmin));
         }
         

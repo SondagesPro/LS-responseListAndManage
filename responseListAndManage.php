@@ -3,9 +3,9 @@
  * Responses List And Manage
  *
  * @author Denis Chenu <denis@sondages.pro>
- * @copyright 2018 Denis Chenu <http://www.sondages.pro>
+ * @copyright 2018-2019 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.13.3
+ * @version 1.13.4
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -1392,7 +1392,7 @@ class responseListAndManage extends PluginBase {
         $tokenGroup = null;
         $tokenAdmin = null;
         $allowAdd = false;
-        if($token) {
+        if($currenttoken) {
             $oCurrentToken =  Token::model($surveyId)->findByToken($currenttoken);
             $tokenAttributeGroup = $this->get('tokenAttributeGroup','Survey',$surveyId,null);
             $tokenAttributeGroupManager = $this->get('tokenAttributeGroupManager','Survey',$surveyId,null);

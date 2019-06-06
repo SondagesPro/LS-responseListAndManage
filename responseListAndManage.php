@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2019 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.13.4
+ * @version 1.13.5
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -2342,7 +2342,7 @@ class responseListAndManage extends PluginBase {
       if(in_array($token,$aTokens)) {
         $oResponseToken->token = $token;
         $oResponseToken->save();
-        \reloadAnyResponse\models\surveySession::saveSessionTime($surveyId,$currentSrid,$token);
+        \reloadAnyResponse\models\surveySession::saveSessionTime($surveyId,$responseid,$token);
       }
 
     }

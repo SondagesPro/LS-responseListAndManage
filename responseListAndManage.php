@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2019 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.13.5
+ * @version 1.13.6
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -963,7 +963,7 @@ class responseListAndManage extends PluginBase {
         }
         $this->aRenderData['aSurveyInfo'] = getSurveyInfo($surveyId, $language);
         /* See https://github.com/LimeSurvey/LimeSurvey/commit/0ffc127bfceac4aa7658595b624ac18a2dcce2aa */
-        if(Yii::app()->getConfig('debug') && version_compare(Yii::app()->getConfig('versionnumber'),"3.14.8","<=") && version_compare(Yii::app()->getConfig('versionnumber'),"3.0.0",">=")) {
+        if(version_compare(Yii::app()->getConfig('versionnumber'),"3.14.8","<=") && version_compare(Yii::app()->getConfig('versionnumber'),"3.0.0",">=")) {
             $sessionSurvey = array(
                 "s_lang" => $language
             );
@@ -1173,9 +1173,9 @@ class responseListAndManage extends PluginBase {
             $deleteButtonUrl = 'App()->createUrl("plugins/direct",array("plugin"=>"'.get_class().'","sid"=>'.$surveyId.',"token"=>$data["token"],"delete"=>$data["id"]))';
             if($currentToken) {
                 if( $allowDelete ) {
-                    $deleteButtonUrl = 'App()->createUrl("plugins/direct",array("plugin"=>"'.get_class().'","sid"=>'.$surveyId.',"token"=>$data["token"],"delete"=>$data["id"]))';
+                    $deleteButtonUrl = 'App()->createUrl("plugins/direct",array("plugin"=>"'.get_class().'","sid"=>'.$surveyId.',"token"=>"'.$currentToken.'","delete"=>$data["id"]))';
                 } elseif($settingAllowDelete) {
-                    $deleteButtonUrl = '("'.$currentToken.'" == $data["token"]) ? App()->createUrl("plugins/direct",array("plugin"=>"'.get_class().'","sid"=>'.$surveyId.',"token"=>$data["token"],"delete"=>$data["id"])) : null';
+                    $deleteButtonUrl = '("'.$currentToken.'" == $data["token"]) ? App()->createUrl("plugins/direct",array("plugin"=>"'.get_class().'","sid"=>'.$surveyId.',"token"=>"'.$currentToken.'","delete"=>$data["id"])) : null';
                 } else {
                     $deleteButtonUrl = "";
                 }

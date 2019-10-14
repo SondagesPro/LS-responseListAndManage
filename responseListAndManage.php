@@ -1213,7 +1213,6 @@ class responseListAndManage extends PluginBase {
         $surveyAttributesPrimary = $this->get('surveyAttributesPrimary','Survey',$surveyId);
         $filteredArr = array();
         $aRestrictedColumns = array();
-        tracevar($this->get('tokenAttributesNone','Survey',$surveyId,0));
         if(empty($tokenAttributes)) {
             if($this->get('tokenAttributesNone','Survey',$surveyId,0)) {
                 $tokenAttributes = array();

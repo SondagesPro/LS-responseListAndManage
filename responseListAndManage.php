@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2019 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.13.6
+ * @version 1.13.7
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -1287,7 +1287,7 @@ class responseListAndManage extends PluginBase {
             $this->aRenderData['lang'] = array();
         }
         $this->aRenderData['lang']['Close'] = gT("Close");
-        //$this->aRenderData['lang']['Delete'] = $this->_translate("Delete");
+        $this->aRenderData['lang']['Delete'] = $this->_translate("Delete");
         if($oSurvey->allowprev == "Y") {
             $this->aRenderData['lang']['Previous'] = gT("Previous");
         }
@@ -2164,7 +2164,7 @@ class responseListAndManage extends PluginBase {
             $btnLabel = $this->_translate("Tools");
             if($userId) {
                 $oUser = User::model()->findByPk($userId);
-                $btnLabel = $oUser->full_name;
+                $btnLabel = \CHtml::encode($oUser->full_name);
             }
             
             $adminAction = '<div class="dropup">'.

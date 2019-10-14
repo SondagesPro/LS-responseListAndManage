@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2019 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.13.7
+ * @version 1.14.2
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -173,6 +173,7 @@ class responseListAndManage extends PluginBase {
     {
         $event = $this->getEvent();
         $surveyId = $event->get('surveyId');
+        $oSurvey = Survey::model()->findByPk($surveyId);
         if(Permission::model()->hasSurveyPermission($surveyId, 'surveysettings', 'update')) {
             $aMenuItem = array(
                 'label' => $this->_translate('Response listing settings'),
@@ -194,7 +195,7 @@ class responseListAndManage extends PluginBase {
             }
             $event->append('menuItems', array($menuItem));
         }
-        if(Permission::model()->hasSurveyPermission($surveyId, 'responses', 'read') && $this->get('allowAccess','Survey',$surveyId,'all') ) {
+        if($oSurvey->active == "Y" && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'read') && $this->get('allowAccess','Survey',$surveyId,'all') ) {
             $aMenuItem = array(
                 'label' => $this->_translate('Response listing'),
                 'iconClass' => 'fa fa-list-alt ',
@@ -236,7 +237,7 @@ class responseListAndManage extends PluginBase {
             $settings = array(
                 'showId','showCompleted','showSubmitdate','showStartdate','showDatestamp',
                 'tokenAttributes','surveyAttributes','surveyAttributesPrimary',
-                'tokenColumnOrder',
+                'tokenColumnOrder','tokenAttributesNone',
                 'tokenAttributesHideToUser','surveyAttributesHideToUser',
                 'tokenAttributeGroup', 'tokenAttributeGroupManager', 'tokenAttributeGroupWhole',
                 'allowAccess','allowSee','allowEdit','allowDelete', 'allowAdd','allowAddSelf','allowAddUser',
@@ -278,10 +279,20 @@ class responseListAndManage extends PluginBase {
         $surveyColumnsInformation = new \getQuestionInformation\helpers\surveyColumnsInformation($surveyId,App()->getLanguage());
         $aQuestionList = $surveyColumnsInformation->allQuestionListData();
         $accesUrl = Yii::app()->createUrl("plugins/direct", array('plugin' => get_class(),'sid'=>$surveyId));
+        $linkManagement = CHtml::link(
+            $this->_translate("Link to response alternate management"),
+            $accesUrl,array("target"=>'_blank','class'=>'btn btn-block btn-default btn-lg')
+        );
+        if($oSurvey->active != "Y") {
+            $linkManagement = CHtml::htmlButton(
+                $this->_translate("Link to response alternate management"),
+                array('class'=>'btn btn-block btn-default btn-lg','disabled'=>'disabled','title'=>$this->_translate("Survey is not activated"))
+            );
+        }
         $aSettings[$this->_translate('Response Management')] = array(
             'link'=>array(
                 'type'=>'info',
-                'content'=> CHtml::link($this->_translate("Link to response alternate management"),$accesUrl,array("target"=>'_blank','class'=>'btn btn-block btn-default btn-lg')),
+                'content'=> $linkManagement,
             ),
             'infoList' => array(
                 'type'=>'info',
@@ -312,6 +323,11 @@ class responseListAndManage extends PluginBase {
                     'placeholder'=>gT("All"),
                 ),
                 'current'=>$this->get('tokenAttributes','Survey',$surveyId)
+            ),
+            'tokenAttributesNone' => array(
+                'type'=>'boolean',
+                'label'=>$this->_translate('Hide all token attributes.'),
+                'current'=>$this->get('tokenAttributesNone','Survey',$surveyId,0)
             ),
             'tokenColumnOrder' => array(
                 'type'=>'select',
@@ -916,6 +932,12 @@ class responseListAndManage extends PluginBase {
         if(empty($settingAllowAccess)) {
             throw new CHttpException(403);
         }
+        if($oSurvey->active != 'Y') {
+            if (Permission::model()->hasSurveyPermission($surveyId, 'responses', 'read')) {
+                throw new CHttpException(400, $this->_translate("Survey is not activated"));
+            }
+            throw new CHttpException(403);
+        }
         if (Permission::model()->hasSurveyPermission($surveyId, 'responses', 'read')) {
             if(App()->getRequest()->isPostRequest && App()->getRequest()->getPost('login_submit')) {
                 /* redirect to avoid CRSF when reload */
@@ -1166,22 +1188,23 @@ class responseListAndManage extends PluginBase {
             }
         }
         $deleteButtonUrl = "";
-        if(Permission::model()->hasSurveyPermission($surveyId, 'responses', 'delete')) {
-            $deleteButtonUrl = 'App()->createUrl("plugins/direct",array("plugin"=>"'.get_class().'","sid"=>'.$surveyId.',"delete"=>$data["id"]))';
-        }
-        if($this->_allowTokenLink($oSurvey) && $oSurvey->anonymized != 'Y') {
-            $deleteButtonUrl = 'App()->createUrl("plugins/direct",array("plugin"=>"'.get_class().'","sid"=>'.$surveyId.',"token"=>$data["token"],"delete"=>$data["id"]))';
-            if($currentToken) {
-                if( $allowDelete ) {
-                    $deleteButtonUrl = 'App()->createUrl("plugins/direct",array("plugin"=>"'.get_class().'","sid"=>'.$surveyId.',"token"=>"'.$currentToken.'","delete"=>$data["id"]))';
-                } elseif($settingAllowDelete) {
-                    $deleteButtonUrl = '("'.$currentToken.'" == $data["token"]) ? App()->createUrl("plugins/direct",array("plugin"=>"'.get_class().'","sid"=>'.$surveyId.',"token"=>"'.$currentToken.'","delete"=>$data["id"])) : null';
-                } else {
-                    $deleteButtonUrl = "";
+        if($allowDelete) {
+            if(Permission::model()->hasSurveyPermission($surveyId, 'responses', 'delete')) {
+                $deleteButtonUrl = 'App()->createUrl("plugins/direct",array("plugin"=>"'.get_class().'","sid"=>'.$surveyId.',"delete"=>$data["id"]))';
+            }
+            if($this->_allowTokenLink($oSurvey) && $oSurvey->anonymized != 'Y') {
+                $deleteButtonUrl = 'App()->createUrl("plugins/direct",array("plugin"=>"'.get_class().'","sid"=>'.$surveyId.',"token"=>$data["token"],"delete"=>$data["id"]))';
+                if($currentToken) {
+                    if( $allowDelete ) {
+                        $deleteButtonUrl = 'App()->createUrl("plugins/direct",array("plugin"=>"'.get_class().'","sid"=>'.$surveyId.',"token"=>"'.$currentToken.'","delete"=>$data["id"]))';
+                    } elseif($settingAllowDelete) {
+                        $deleteButtonUrl = '("'.$currentToken.'" == $data["token"]) ? App()->createUrl("plugins/direct",array("plugin"=>"'.get_class().'","sid"=>'.$surveyId.',"token"=>"'.$currentToken.'","delete"=>$data["id"])) : null';
+                    } else {
+                        $deleteButtonUrl = "";
+                    }
                 }
             }
         }
-
         $aColumns = array();
         $disableTokenPermission = (bool) $currentToken;
         /* Get the selected columns only */
@@ -1190,8 +1213,13 @@ class responseListAndManage extends PluginBase {
         $surveyAttributesPrimary = $this->get('surveyAttributesPrimary','Survey',$surveyId);
         $filteredArr = array();
         $aRestrictedColumns = array();
+        tracevar($this->get('tokenAttributesNone','Survey',$surveyId,0));
         if(empty($tokenAttributes)) {
-            $tokenAttributes = array_keys($this->_getTokensAttributeList($surveyId,'tokens.'));
+            if($this->get('tokenAttributesNone','Survey',$surveyId,0)) {
+                $tokenAttributes = array();
+            } else {
+                $tokenAttributes = array_keys($this->_getTokensAttributeList($surveyId,'tokens.'));
+            }
         }
         /* remove tokens.token if user didn't have right to edit */
         if($currentToken && !$allowEdit) {

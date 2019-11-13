@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2019 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.14.2
+ * @version 1.14.3
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -2313,7 +2313,7 @@ class responseListAndManage extends PluginBase {
      * purpose if user can have access to a response by group  : update related token
      */
     public function beforeControllerAction() {
-      if(!$this->getEvent()->get("controller") == "survey") {
+      if($this->getEvent()->get("controller") != "survey") {
         return;
       }
       $token = Yii::app()->getRequest()->getQuery("token");
@@ -2326,6 +2326,9 @@ class responseListAndManage extends PluginBase {
         return;
       }
       $oSurvey = Survey::model()->findByPk($surveyId);
+      if(empty($oSurvey)) {
+        return;
+      }
       if(!$this->_surveyHasTokens($oSurvey)) {
         return;
       }

@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2019 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.14.3
+ * @version 1.14.4
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -2182,7 +2182,7 @@ class responseListAndManage extends PluginBase {
         }
         if(count($actionLinks) == 1) {
             $actionLink = array_merge_recursive(array('htmlOptions'=>array('class'=>'btn btn-default btn-sm btn-admin')),$actionLinks[0]);
-            $adminAction = CHtml::link($actionLinks['text'],
+            $adminAction = CHtml::link($actionLink['text'],
                     $actionLink['link'],
                     $actionLink['htmlOptions']
                 );;

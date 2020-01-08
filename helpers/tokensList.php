@@ -1,9 +1,15 @@
 <?php
 /**
  * This file is part of reloadAnyResponse plugin
- * @version 0.1.0
+ * @version 0.2.0
  */
 namespace responseListAndManage\helpers;
+use Yii;
+use Survey;
+use Plugin;
+use PluginSetting;
+use Token;
+use CHtml;
 
 class tokensList
 {
@@ -16,11 +22,21 @@ class tokensList
     public static function getTokensList($surveyId, $token)
     {
         $tokensList = array($token=>$token);
-        $oPluginResponseListAndManage = Plugin::model()->find("name = :name", array(":name"=>'responseListAndManage'));
-        if (empty($oPluginResponseListAndManage)) {
+        if (!Survey::model()->findByPk($surveyId)->hasTokensTable) {
             return $tokensList;
         }
-        $tokenAttributeGroup = trim(json_decode($oPluginResponseListAndManage->value));
+        $oPluginResponseListAndManage = Plugin::model()->find("name = :name",array(":name"=>'responseListAndManage'));
+        if(empty($oPluginResponseListAndManage) || !$oPluginResponseListAndManage->active) {
+            return $tokensList;
+        }
+        $oTokenAttributeGroup = PluginSetting::model()->find(
+            "plugin_id = :plugin_id AND model = :model AND model_id = :model_id AND ".Yii::app()->db->quoteColumnName('key')." = :setting",
+            array(":plugin_id"=>$oPluginResponseListAndManage->id,':model'=>"Survey",':model_id'=>$surveyId,':setting'=>"tokenAttributeGroup")
+        );
+        if(empty($oTokenAttributeGroup)) {
+            return $tokensList;
+        }
+        $tokenAttributeGroup = trim(json_decode($oTokenAttributeGroup->value));
         if (empty($tokenAttributeGroup)) {
             return $tokensList;
         }

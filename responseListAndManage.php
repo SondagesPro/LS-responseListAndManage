@@ -2286,6 +2286,7 @@ class responseListAndManage extends PluginBase {
             'catalog'=>'messages',// default from Yii
         );
         Yii::app()->setComponent(get_class($this),$messageSource);
+        Yii::setPathOfAlias(get_class($this), dirname(__FILE__));
     }
 
     /**

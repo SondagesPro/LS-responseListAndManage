@@ -3,9 +3,9 @@
  * Responses List And Manage
  *
  * @author Denis Chenu <denis@sondages.pro>
- * @copyright 2018-2019 Denis Chenu <http://www.sondages.pro>
+ * @copyright 2018-2020 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.16.0
+ * @version 1.16.1
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -2181,11 +2181,12 @@ class responseListAndManage extends PluginBase {
             }
         }
         if(count($actionLinks) == 1) {
-            $actionLink = array_merge_recursive(array('htmlOptions'=>array('class'=>'btn btn-default btn-sm btn-admin')),$actionLinks[0]);
-            $adminAction = CHtml::link($actionLink['text'],
-                    $actionLink['link'],
-                    $actionLink['htmlOptions']
-                );;
+            $actionLink = array_merge(array('htmlOptions'=>array('class'=>'btn btn-default btn-sm btn-admin')),$actionLinks[0]);
+            $adminAction = CHtml::link(
+                $actionLink['text'],
+                $actionLink['link'],
+                $actionLink['htmlOptions']
+            );
         }
         if(count($actionLinks) > 1) {
             $btnLabel = $this->_translate("Tools");

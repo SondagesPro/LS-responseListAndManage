@@ -109,6 +109,7 @@ class responseListAndManage extends PluginBase {
                     $oResponse->save();
                 }
                 killSurveySession($surveyId);
+                Yii::app()->session['responseListAndManage'] = null;
                 \reloadAnyResponse\models\surveySession::model()->deleteByPk(array('sid'=>$surveyId,'srid'=>$currentSrid));
                 if(Yii::getPathOfAlias('renderMessage')) {
                     \renderMessage\messageHelper::renderAlert($this->_translate("Your responses was saved with success, you can close this windows."));
@@ -116,6 +117,7 @@ class responseListAndManage extends PluginBase {
             }
         }
         if(Yii::app()->getRequest()->getParam("clearall")=="clearall" && Yii::app()->getRequest()->getParam("confirm-clearall")) {
+            Yii::app()->session['responseListAndManage'] = null;
             App()->getClientScript()->registerScript("justsaved","autoclose();\n",CClientScript::POS_END);
             \reloadAnyResponse\models\surveySession::model()->deleteByPk(array('sid'=>$surveyId,'srid'=>$currentSrid));
         }

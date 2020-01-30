@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2020 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.16.1
+ * @version 1.16.2
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -88,15 +88,19 @@ class responseListAndManage extends PluginBase {
         if(!$this->_isUsable()) {
             return;
         }
-        if(Yii::app()->session['responseListAndManage'] != $this->getEvent()->get('surveyId')) {
+        $plugin = Yii::app()->getRequest()->getParam('plugin');
+        if($plugin != 'responseListAndManage') {
             return;
         }
         $surveyId = $this->getEvent()->get('surveyId');
         $currentSrid = isset($_SESSION['survey_'.$surveyId]['srid']) ? $_SESSION['survey_'.$surveyId]['srid'] : null;
+        if(empty($currentSrid)) {
+            $currentSrid = Yii::app()->getRequest()->getQuery('srid');
+        }
         App()->getClientScript()->registerScriptFile(Yii::app()->assetManager->publish(dirname(__FILE__) . '/assets/surveymanaging/surveymanaging.js'),CClientScript::POS_BEGIN);
 
         if(Yii::app()->getRequest()->getParam("saveall")) {
-            App()->getClientScript()->registerScript("justsaved","autoclose();\n",CClientScript::POS_END);
+            App()->getClientScript()->registerScript("justsaved","responseListAndManage.autoclose();\n",CClientScript::POS_END);
             if($currentSrid) {
                 $oSurvey = Survey::model()->findByPk($surveyId);
                 if($oSurvey->active == "Y") {
@@ -116,7 +120,7 @@ class responseListAndManage extends PluginBase {
             }
         }
         if(Yii::app()->getRequest()->getParam("clearall")=="clearall" && Yii::app()->getRequest()->getParam("confirm-clearall")) {
-            App()->getClientScript()->registerScript("justsaved","autoclose();\n",CClientScript::POS_END);
+            App()->getClientScript()->registerScript("justsaved","responseListAndManage.autoclose();\n",CClientScript::POS_END);
             \reloadAnyResponse\models\surveySession::model()->deleteByPk(array('sid'=>$surveyId,'srid'=>$currentSrid));
         }
 
@@ -1134,14 +1138,14 @@ class responseListAndManage extends PluginBase {
         $addNew ='';
         if(Permission::model()->hasSurveyPermission($surveyId, 'responses', 'create') && !$this->_surveyHasTokens($oSurvey)) {
             $addNew = CHtml::link("<i class='fa fa-plus-circle' aria-hidden='true'></i> ".$this->_translate("Create an new response"),
-                array("survey/index",'sid'=>$surveyId,'newtest'=>"Y"),
+                array("survey/index",'sid'=>$surveyId,'newtest'=>"Y",'plugin'=>get_class($this)),
                 array('class'=>'btn btn-default btn-sm  addnew')
             );
         }
         if($allowAdd && $singleToken) {
             if($this->_allowMultipleResponse($oSurvey)) {
                 $addNew = CHtml::link("<i class='fa fa-plus-circle' aria-hidden='true'></i> ".$this->_translate("Create an new response"),
-                    array("survey/index",'sid'=>$surveyId,'newtest'=>"Y",'srid'=>'new','token'=>$singleToken),
+                    array("survey/index",'sid'=>$surveyId,'newtest'=>"Y",'srid'=>'new','token'=>$singleToken,'plugin'=>get_class($this)),
                     array('class'=>'btn btn-default btn-sm addnew')
                 );
             }
@@ -1149,7 +1153,7 @@ class responseListAndManage extends PluginBase {
         if(!$allowAdd && $currentToken) {
             if($this->get('allowAddSelf','Survey',$surveyId,true) && $this->_allowMultipleResponse($oSurvey)) {
                 $addNew = CHtml::link("<i class='fa fa-plus-circle' aria-hidden='true'></i> ".$this->_translate("Create an new response"),
-                    array("survey/index",'sid'=>$surveyId,'newtest'=>"Y",'srid'=>'new','token'=>$currentToken),
+                    array("survey/index",'sid'=>$surveyId,'newtest'=>"Y",'srid'=>'new','token'=>$currentToken,'plugin'=>get_class($this)),
                     array('class'=>'btn btn-default btn-sm addnew')
                 );
             }
@@ -1158,6 +1162,7 @@ class responseListAndManage extends PluginBase {
             $addNew  = CHtml::beginForm(array("survey/index"),'get',array('class'=>"form-inline"));
             $addNew .= CHtml::hiddenField('sid',$surveyId);
             $addNew .= CHtml::hiddenField('newtest',"Y");
+            $addNew .= CHtml::hiddenField('plugin',get_class($this));
             //~ $addNew .= '<div class="form-group"><div class="input-group">';
             $addNew .= CHtml::dropDownList('token',$currentToken,$tokenList,array('class'=>'form-control input-sm','empty'=>gT("Please choose...")));
             $addNew .= CHtml::htmlButton("<i class='fa fa-plus-circle' aria-hidden='true'></i> ".$this->_translate("Create an new response"),
@@ -1173,15 +1178,15 @@ class responseListAndManage extends PluginBase {
         /* Put the button here, more easy */
         $updateButtonUrl = "";
         if(Permission::model()->hasSurveyPermission($surveyId, 'responses', 'update')) {
-            $updateButtonUrl = 'App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"srid"=>$data["id"],"newtest"=>"Y"))';
+            $updateButtonUrl = 'App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"srid"=>$data["id"],"newtest"=>"Y","plugin"=>"'.get_class($this).'"))';
         }
         if($this->_allowTokenLink($oSurvey)) {
-            $updateButtonUrl = 'App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"srid"=>$data["id"],"newtest"=>"Y"))';
+            $updateButtonUrl = 'App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"srid"=>$data["id"],"newtest"=>"Y","plugin"=>"'.get_class($this).'"))';
             if($currentToken) {
                 if( $allowEdit ) {
-                    $updateButtonUrl = 'App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"token"=>"'.$currentToken.'","srid"=>$data["id"],"newtest"=>"Y"))';
+                    $updateButtonUrl = 'App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"token"=>"'.$currentToken.'","srid"=>$data["id"],"newtest"=>"Y","plugin"=>"'.get_class($this).'"))';
                 } elseif($settingAllowEdit) {
-                    $updateButtonUrl = '("'.$currentToken.'" == $data["token"]) ? App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"token"=>"'.$currentToken.'","srid"=>$data["id"],"newtest"=>"Y")) : null';
+                    $updateButtonUrl = '("'.$currentToken.'" == $data["token"]) ? App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"token"=>"'.$currentToken.'","srid"=>$data["id"],"newtest"=>"Y","plugin"=>"'.get_class($this).'")) : null';
                 } else {
                     $updateButtonUrl = '';
                 }
@@ -1953,6 +1958,15 @@ class responseListAndManage extends PluginBase {
                     }
                 }
             }
+            App()->getClientScript()->registerPackage("bootstrap-datetimepicker");
+            Yii::setPathOfAlias(get_class($this),dirname(__FILE__));
+            Yii::app()->clientScript->addPackage('responselistandmanage', array(
+                'basePath'    => get_class($this).'.assets.responselistandmanage',
+                'js'          => array('responselistandmanage.js'),
+                'css'          => array('responselistandmanage.css'),
+                'depends'      =>array('jquery'),
+            ));
+            Yii::app()->getClientScript()->registerPackage('responselistandmanage');
             Template::model()->getInstance($templateName, null);
             Template::model()->getInstance($templateName, null)->oOptions->ajaxmode = 'off';
             //~ tracevar(Template::model()->getInstance($templateName, null));
@@ -1968,11 +1982,6 @@ class responseListAndManage extends PluginBase {
             $renderTwig['aSurveyInfo']['showprogress'] = 'N'; // Didn't show progress bar
             $renderTwig['aSurveyInfo']['include_content'] = 'responselistandmanage';
             $renderTwig['responseListAndManage']['responselist'] = $responselist;
-            App()->getClientScript()->registerPackage("bootstrap-datetimepicker");
-            $assetUrl = Yii::app()->assetManager->publish(dirname(__FILE__) . '/assets/responselistandmanage');
-            App()->getClientScript()->registerCssFile($assetUrl."/responselistandmanage.css");
-            App()->getClientScript()->registerScriptFile(Yii::app()->assetManager->publish(dirname(__FILE__) . '/assets/responselistandmanage/responselistandmanage.js'));
-            //~ App()->getClientScript()->registerScriptFile($assetUrl."/responselistandmanage.js");
             Yii::app()->twigRenderer->renderTemplateFromFile('layout_global.twig', $renderTwig, false);
             Yii::app()->end();
         }

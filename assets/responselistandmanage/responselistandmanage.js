@@ -53,7 +53,7 @@ $(document).on("ajaxUpdated","#responses-grid",function(event){
 });
 $(document).on('show.bs.popover','#responses-grid .answer-value', function () {
     $('#responses-grid .answer-value').not(this).popover('hide');
-})
+});
 $(document).on("click","a.update[href]",function(event){
     event.preventDefault();
     $('#responses-grid .answer-value').popover('hide');

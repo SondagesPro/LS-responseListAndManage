@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2020 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.17.0
+ * @version 1.18.0
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -113,10 +113,20 @@ class responseListAndManage extends PluginBase {
             if(!$currentSrid) {
                 return;
             }
+            $oSurvey = Survey::model()->findByPk($surveyId);
             $_SESSION['survey_'.$surveyId]['scid'] = $currentSrid;
-            $afterSaveAll = $this->get('afterSaveALl','Survey',$surveyId,null);
+            $saveAllAsDraft = $this->get('saveAllAsDraft','Survey',$surveyId,1);
+            if($saveAllAsDraft && $oSurvey->active == "Y") {
+                $oResponse = SurveyDynamic::model($surveyId)->findByPk($currentSrid);
+                if($oResponse && $oResponse->submitdate) {
+                    $oResponse->submitdate = null;
+                    $oResponse->save();
+                }
+            }
+
+            $afterSaveAll = $this->get('afterSaveAll','Survey',$surveyId,null);
             if(empty($afterSaveAll)) {
-                $afterSaveAll = $this->get('afterSaveALl',null,null,'replace');
+                $afterSaveAll = $this->get('afterSaveAll',null,null,'replace');
             }
             if($afterSaveAll == 'none') {
                 return;
@@ -125,22 +135,19 @@ class responseListAndManage extends PluginBase {
             if($afterSaveAll == 'js') {
                 return;
             }
-            if($currentSrid) {
-                $oSurvey = Survey::model()->findByPk($surveyId);
-                if($oSurvey->active == "Y") {
-                    $step = isset($_SESSION['survey_'.$surveyId]['step']) ? $_SESSION['survey_'.$surveyId]['step'] : 0;
-                    LimeExpressionManager::JumpTo($step, false);
-                    $oResponse = SurveyDynamic::model($surveyId)->findByPk($currentSrid);
-                    $oResponse->lastpage = $step; // Or restart at 1st page ?
-                    // Save must force always to not submitted (draft)
-                    $oResponse->submitdate = null;
-                    $oResponse->save();
-                }
-                killSurveySession($surveyId);
-                \reloadAnyResponse\models\surveySession::model()->deleteByPk(array('sid'=>$surveyId,'srid'=>$currentSrid));
-                if(Yii::getPathOfAlias('renderMessage')) {
-                    \renderMessage\messageHelper::renderAlert($this->_translate("Your responses was saved with success, you can close this windows."));
-                }
+            if($oSurvey->active == "Y") {
+                $step = isset($_SESSION['survey_'.$surveyId]['step']) ? $_SESSION['survey_'.$surveyId]['step'] : 0;
+                LimeExpressionManager::JumpTo($step, false);
+                $oResponse = SurveyDynamic::model($surveyId)->findByPk($currentSrid);
+                $oResponse->lastpage = $step; // Or restart at 1st page ?
+                // Save must force always to not submitted (draft)
+                $oResponse->submitdate = null;
+                $oResponse->save();
+            }
+            killSurveySession($surveyId);
+            \reloadAnyResponse\models\surveySession::model()->deleteByPk(array('sid'=>$surveyId,'srid'=>$currentSrid));
+            if(Yii::getPathOfAlias('renderMessage')) {
+                \renderMessage\messageHelper::renderAlert($this->_translate("Your responses was saved with success, you can close this windows."));
             }
         }
         if(Yii::app()->getRequest()->getParam("clearall")=="clearall" && Yii::app()->getRequest()->getParam("confirm-clearall")) {
@@ -274,7 +281,7 @@ class responseListAndManage extends PluginBase {
                 'filterOnDate','filterSubmitdate','filterStartdate','filterDatestamp',
                 'showLogOut','showSurveyAdminpageLink',
                 'showExportLink','exportType','exportHeadexports','exportAnswers',
-                'afterSaveAll'
+                'afterSaveAll','saveAllAsDraft',
             );
             foreach($settings as $setting) {
                 $this->set($setting, App()->getRequest()->getPost($setting), 'Survey', $surveyId);
@@ -753,7 +760,19 @@ class responseListAndManage extends PluginBase {
                 'htmlOptions'=>array(
                     'empty'=> sprintf($this->_translate("Leave default (%s)"),$this->get('afterSaveAll',null,null,'replace')),
                 ),
-                'current'=>$this->get('afterSaveALl','Survey',$surveyId,''),
+                'current'=>$this->get('afterSaveAll','Survey',$surveyId,''),
+            ),
+            'saveAllAsDraft' => array(
+                'type'=>'select',
+                'label'=>$this->_translate('Save all reset submitdate (set as draft)'),
+                'options'=>array(
+                    1 => gT("Yes"),
+                ),
+                'htmlOptions'=>array(
+                    'empty'=>gT("No"),
+                ),
+                'current'=>$this->get('saveAllAsDraft','Survey',$surveyId,1),
+                'help' => ($oSurvey->alloweditaftercompletion != "Y") ? "<div class='text-danger'>".$this->_translate("Survey participant settings, allow multiple responses is off : survey is set as draft when opened")."</div>": "",
             ),
         );
         $aData['pluginClass']=get_class($this);

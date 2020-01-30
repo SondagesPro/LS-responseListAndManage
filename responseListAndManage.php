@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2020 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.16.2
+ * @version 1.17.0
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -45,6 +45,16 @@ class responseListAndManage extends PluginBase {
             'type' => 'boolean',
             'default' => 1,
             'label' => 'Show administration link',
+        ),
+        'afterSaveAll' => array(
+            'type' => 'select',
+            'label'=>'Action to do after save',
+            'options'=>array(
+                'replace' => 'Replace totally the content and close dialog box, this can disable other plugin system.',
+                'js' => 'Only close dialog box',
+                'none' => 'Return to survey',
+            ),
+            'default' => 'replace',
         ),
         'forceDownloadImage' => array(
             'type' => 'boolean',
@@ -100,7 +110,21 @@ class responseListAndManage extends PluginBase {
         App()->getClientScript()->registerScriptFile(Yii::app()->assetManager->publish(dirname(__FILE__) . '/assets/surveymanaging/surveymanaging.js'),CClientScript::POS_BEGIN);
 
         if(Yii::app()->getRequest()->getParam("saveall")) {
+            if(!$currentSrid) {
+                return;
+            }
+            $_SESSION['survey_'.$surveyId]['scid'] = $currentSrid;
+            $afterSaveAll = $this->get('afterSaveALl','Survey',$surveyId,null);
+            if(empty($afterSaveAll)) {
+                $afterSaveAll = $this->get('afterSaveALl',null,null,'replace');
+            }
+            if($afterSaveAll == 'none') {
+                return;
+            }
             App()->getClientScript()->registerScript("justsaved","responseListAndManage.autoclose();\n",CClientScript::POS_END);
+            if($afterSaveAll == 'js') {
+                return;
+            }
             if($currentSrid) {
                 $oSurvey = Survey::model()->findByPk($surveyId);
                 if($oSurvey->active == "Y") {
@@ -250,6 +274,7 @@ class responseListAndManage extends PluginBase {
                 'filterOnDate','filterSubmitdate','filterStartdate','filterDatestamp',
                 'showLogOut','showSurveyAdminpageLink',
                 'showExportLink','exportType','exportHeadexports','exportAnswers',
+                'afterSaveAll'
             );
             foreach($settings as $setting) {
                 $this->set($setting, App()->getRequest()->getPost($setting), 'Survey', $surveyId);
@@ -716,7 +741,21 @@ class responseListAndManage extends PluginBase {
             ),
         );
 
-        
+        $aSettings[$this->_translate('Survey behaviour')] = array(
+            'afterSaveAll' => array(
+                'type'=>'select',
+                'label'=>$this->_translate('Action to do after save'),
+                'options'=>array(
+                    'replace' => $this->_translate('Replace totally the content and close dialog box, this can disable other plugin system.'),
+                    'js' => $this->_translate('Only close dialog box'),
+                    'none' => $this->_translate('Return to survey'),
+                ),
+                'htmlOptions'=>array(
+                    'empty'=> sprintf($this->_translate("Leave default (%s)"),$this->get('afterSaveAll',null,null,'replace')),
+                ),
+                'current'=>$this->get('afterSaveALl','Survey',$surveyId,''),
+            ),
+        );
         $aData['pluginClass']=get_class($this);
         $aData['surveyId']=$surveyId;
         $aData['title'] = "";

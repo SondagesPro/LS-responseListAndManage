@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2020 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.18.0
+ * @version 1.18.1
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -303,14 +303,20 @@ class responseListAndManage extends PluginBase {
         $stateInfo = "<ul class='list'>";
         if($this->_allowTokenLink($oSurvey)) {
             $stateInfo .= CHtml::tag("li",array("class"=>'text-success'),$this->_translate("Token link and creation work in managing."));
+            if($this->_allowMultipleResponse($oSurvey)) {
+                $stateInfo .= CHtml::tag("li",array("class"=>'text-success'),$this->_translate("You can create new response for all token."));
+            } else {
+                $stateInfo .= CHtml::tag("li",array("class"=>'text-warning'),$this->_translate("You can not create new response for all token. Only one response is available for each token (see participation setting panel)."));
+            }
         } else {
             $stateInfo .= CHtml::tag("li",array("class"=>'text-warning'),$this->_translate("No Token link and creation can be done in managing. Survey is anonymous or token table didn‘t exist."));
+            if($oSurvey->alloweditaftercompletion == "Y") {
+                $stateInfo .= CHtml::tag("li",array("class"=>'text-success'),$this->_translate("You can edit submitted response."));
+            } else {
+                $stateInfo .= CHtml::tag("li",array("class"=>'text-warning'),$this->_translate("When editing submitted reponse : you reset the submit date (see allow edit after completion settings)."));
+            }
         }
-        if($this->_allowMultipleResponse($oSurvey)) {
-            $stateInfo .= CHtml::tag("li",array("class"=>'text-success'),$this->_translate("You can create new response for all token."));
-        } else {
-            $stateInfo .= CHtml::tag("li",array("class"=>'text-warning'),$this->_translate("You can not create new response for all token. Only one response is available for each token (see participation setting panel)."));
-        }
+
         $stateInfo .= "</ul>";
         $surveyColumnsInformation = new \getQuestionInformation\helpers\surveyColumnsInformation($surveyId,App()->getLanguage());
         $aQuestionList = $surveyColumnsInformation->allQuestionListData();
@@ -937,8 +943,8 @@ class responseListAndManage extends PluginBase {
                 throw new CHttpException(403);
             }
             $currentToken = $this->_getCurrentToken($surveyId);
-            if($currentToken) {
-                throw new CHttpException(403);
+            if(empty($currentToken)) {
+                throw new CHttpException(401);
             }
             if($currentToken != $oResponse->token) {
                 throw new CHttpException(403);

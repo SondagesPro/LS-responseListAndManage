@@ -1,6 +1,6 @@
 # responseListAndManage for LimeSurvey
 
-Allow to manage response in different way for admin and for particpant with tokens
+Allow to manage response in different way for administrator or for participant with tokens
 
 **This plugin is compatible with LimeSurvey 2.76 and 3.0 and up version.** This plugin was testes with version 2.76, 3.6 and 3.14.
 

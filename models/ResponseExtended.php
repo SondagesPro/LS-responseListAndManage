@@ -2,7 +2,7 @@
 /**
  * This file is part of reloadAnyResponse plugin
  * @see SurveyDynamic
- * @version 1.1.0
+ * @version 1.1.1
  */
 //~ namespace responseListAndManage\models;
 //~ use Yii;
@@ -572,7 +572,7 @@ class ResponseExtended extends LSActiveRecord
 
     public function getSort() {
         $sort     = new CSort;
-        $sort->defaultOrder = 'id ASC';
+        $sort->defaultOrder = Yii::app()->db->quoteColumnName($this->tableAlias.'.id').' ASC';
         $sort->multiSort = true;
         $sort->attributes = array();
         // Token sort
@@ -583,8 +583,8 @@ class ResponseExtended extends LSActiveRecord
             array(
                 'completed' =>
                     array(
-                    'asc'=>'submitdate ASC',
-                    'desc'=>'submitdate DESC',
+                    'asc'=>Yii::app()->db->quoteColumnName($this->tableAlias.'.submitdate').' ASC',
+                    'desc'=>Yii::app()->db->quoteColumnName($this->tableAlias.'.submitdate').' DESC',
                 )
             )
         );

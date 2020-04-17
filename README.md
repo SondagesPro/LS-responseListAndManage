@@ -17,7 +17,9 @@ To use this plugin, you **need** [getQuestionInformation](https://gitlab.com/Son
 - Extract : `unzip responseListAndManage.zip`
 - Move the directory to plugins/ directory inside LimeSUrvey
 
+## Demonstration
 
+You can see and use demonstrantion at [demo.sondages.pro](https://demo.sondages.pro/index.php/plugins/direct?plugin=responseListAndManage&sid=639175) as administrator. Just click login.
 ## Usage
 
 A new login page can be used for admin. This page can show whole active survey where this plugin is activated.

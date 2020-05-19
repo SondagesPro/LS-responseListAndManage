@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2020 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.18.1
+ * @version 1.18.2
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -854,7 +854,8 @@ class responseListAndManage extends PluginBase {
         
         Yii::app()->loadHelper('admin/exportresults');
         Yii::import('application.helpers.viewHelper');
-        $oExport=new \ExportSurveyResultsService();
+        \viewHelper::disableHtmlLogging();
+        $oExport = new \ExportSurveyResultsService();
         $exports = $oExport->getExports();
         $oFormattingOptions=new \FormattingOptions();
         $oFormattingOptions->responseMinRecord = 1;
@@ -866,12 +867,15 @@ class responseListAndManage extends PluginBase {
         $oFormattingOptions->output='display';
         /* Hack action id to set to remotecontrol */
         $action = new stdClass();
-        $action->id='remotecontrol';
+        $action->id ='remotecontrol';
         Yii::app()->controller->__set('action',$action);
         /* Export as display */
-        //viewHelper::disableHtmlLogging();
-        $oExport->exportSurvey($surveyId,$language, $exportType,$oFormattingOptions, $sFilter);
-        exit;
+        if (version_compare(Yii::app()->getConfig('versionnumber'),"3.17.14",">=")) {
+            $oExport->exportResponses($surveyId,$language, $exportType,$oFormattingOptions, $sFilter);
+        } else {
+            $oExport->exportSurvey($surveyId,$language, $exportType,$oFormattingOptions, $sFilter);
+        }
+        Yii::app()->end();
     }
     /**
     * @see newSurveySettings

@@ -24,8 +24,9 @@ $(document).on("ajaxUpdated","#responses-grid",function(event){
         }
     });
     $('#responses-grid .answer-value,#responses-grid .tokenattribute-value').popover({
-        html:true,
-        placement:'bottom',
+        html : true,
+        sanitize : false,
+        placement : 'bottom',
         viewport: function() {
             return this.$element[0];
         },

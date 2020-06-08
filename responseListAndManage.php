@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2020 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.18.3
+ * @version 1.18.4
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -823,14 +823,20 @@ class responseListAndManage extends PluginBase {
         if(!$userHaveRight && !$currenttoken) {
             throw new CHttpException(401,$this->_translate("This action was not allowed without a valid token."));
         }
-        $checkeds = Yii::app()->getRequest()->getParam("checkeds","");
         $aFilters = array();
-        $aChecked = explode(",",$checkeds);
-        $aChecked = array_filter($aChecked,  function($id) {
-            return ctype_digit($id) || is_int($id);
-        });
-        if(!empty($aChecked)) {
-            $aFilters[] = " id IN (".implode(",",$aChecked).")";
+        $checkeds = Yii::app()->getRequest()->getParam("checkeds","");
+        if(!empty($checkeds)) {
+            $aChecked = explode(",",$checkeds);
+            $aChecked = array_filter($aChecked,  function($id) {
+                return ctype_digit($id) || is_int($id);
+            });
+            if(!empty($aChecked)) {
+                $aFilters[] = " id IN (".implode(",",$aChecked).")";
+            }
+        } else {
+            if(Yii::app()->getRequest()->getParam("complete")) {
+                $aFilters[] = " submitdate IS NOT NULL ";
+            }
         }
         if($currenttoken) {
             $aTokens = $this->_getTokensList($surveyId,$currenttoken);

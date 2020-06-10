@@ -4,10 +4,10 @@
         <name>reponseListAndManage</name>
         <type>plugin</type>
         <creationDate>2018-06-20</creationDate>
-        <last_update>2020-05-20</last_update>
+        <last_update>2020-06-10</last_update>
         <author>Denis Chenu</author>
         <authorUrl>https://www.sondages.pro</authorUrl>
-        <version>1.18.3</version>
+        <version>1.18.5</version>
         <lastSecurityUpdate>1.0.0</lastSecurityUpdate>
         <license>GNU General Public License version 3 or later</license>
         <description><![CDATA[ different way to manage response of a survey.]]></description>
@@ -15,7 +15,6 @@
 
     <compatibility>
         <version>3</version>
-        <version>4</version>
     </compatibility>
 
     <updaters>

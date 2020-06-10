@@ -2,7 +2,7 @@
 /**
  * This file is part of reloadAnyResponse plugin
  * @see SurveyDynamic
- * @version 1.1.1
+ * @version 1.1.2
  */
 //~ namespace responseListAndManage\models;
 //~ use Yii;
@@ -507,7 +507,7 @@ class ResponseExtended extends LSActiveRecord
             $footer = self::model()->count($cloneCriteria);
             if(isset($allQuestionsType[$column])) {
                 if(in_array($allQuestionsType[$column],array('decimal','float','integer','number')) ) {
-                    $sum = array_sum(Chtml::listData($this->search()->getData(),$column,$column));
+                    $sum = array_sum(Chtml::listData($this->search()->getData(),'id',$column));
                     $footer .= " / ".$sum;
                 }
             }

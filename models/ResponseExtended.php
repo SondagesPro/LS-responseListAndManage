@@ -2,7 +2,7 @@
 /**
  * This file is part of reloadAnyResponse plugin
  * @see SurveyDynamic
- * @version 1.1.2
+ * @version 1.1.3
  */
 //~ namespace responseListAndManage\models;
 //~ use Yii;
@@ -50,23 +50,14 @@ class ResponseExtended extends LSActiveRecord
      * @return SurveyDynamic
      */
     public static function model($sid = null) {
-        $refresh = false;
         $survey = Survey::model()->findByPk($sid);
         if ($survey) {
-            //~ if(self::sid != $survey->sid) {
-                //~ $refresh = true;
-            //~ }
             self::sid($survey->sid);
             self::$survey = $survey;
         }
 
         /** @var self $model */
         $model = parent::model(__CLASS__);
-
-        //We need to refresh if we changed sid
-        if ($refresh) {
-            $model->refreshMetaData();
-        }
         return $model;
     }
 
@@ -171,7 +162,13 @@ class ResponseExtended extends LSActiveRecord
         }
         $sort = $this->getSort();
         if(!empty($this->restrictedColumns)) {
-            $criteria->select = $this->restrictedColumns;
+            $quotedRestrictedColumns = array_map(
+                function($column) {
+                    return Yii::app()->getDb()->quoteColumnName($column);
+                },
+                $this->restrictedColumns
+            );
+            $criteria->select = $quotedRestrictedColumns;
         }
         // Completed filters
         if ($this->completed == "Y") {

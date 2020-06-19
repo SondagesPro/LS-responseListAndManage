@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2020 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.18.6
+ * @version 1.18.7
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -1517,7 +1517,9 @@ class responseListAndManage extends PluginBase {
         $oToken->setAttributes(Yii::app()->getRequest()->getParam('tokenattribute'));
         if(!is_null($tokenGroup)) {
             $oToken->$tokenAttributeGroup = $tokenGroup;
-            $oToken->$tokenAttributeGroupManager = '';
+            if(!empty($tokenAttributeGroupManager)) {
+                $oToken->$tokenAttributeGroupManager = '';
+            }
         }
         $resultToken = $oToken->save();
         if(!$resultToken) {

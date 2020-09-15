@@ -78,8 +78,6 @@ class responseListAndManage extends PluginBase {
         $this->subscribe('beforeSurveySettings');
         //~ $this->subscribe('newSurveySettings');
         $this->subscribe('beforeToolsMenuRender');
-        /* API dependant */
-        $this->subscribe('getPluginTwigPath');
 
         /* Need some event in iframe survey */
         $this->subscribe('beforeSurveyPage');
@@ -2024,6 +2022,7 @@ class responseListAndManage extends PluginBase {
             $this->aRenderData['plugin'] = $this;
             $this->aRenderData['username'] = $this->_isLsAdmin() ? Yii::app()->user->getName() : null;
             /* @todo move it to twig if able */
+            /* $this->subscribe('getPluginTwigPath'); */
             $responselist = Yii::app()->getController()->renderPartial(get_class($this).".views.content.".$fileRender,$this->aRenderData,true);
             $templateName = Template::templateNameFilter($this->get('template',null,null,Yii::app()->getConfig('defaulttheme')));
             if($surveyId) {
@@ -2042,6 +2041,7 @@ class responseListAndManage extends PluginBase {
                 'css'          => array('responselistandmanage.css'),
                 'depends'      =>array('jquery'),
             ));
+            $this->subscribe('getPluginTwigPath');
             Yii::app()->getClientScript()->registerPackage('responselistandmanage');
             Template::model()->getInstance($templateName, null);
             Template::model()->getInstance($templateName, null)->oOptions->ajaxmode = 'off';

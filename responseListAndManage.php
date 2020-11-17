@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2020 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.18.7
+ * @version 1.18.8
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -912,6 +912,9 @@ class responseListAndManage extends PluginBase {
             App()->end(); // Not needed but more clear
         }
         if($surveyId && App()->getRequest()->getQuery('delete') ) {
+            if (!app()->getRequest()->isPostRequest) {
+                throw new CHttpException(405,gT("Method Not Allowed"));
+            }
             $this->_deleteResponseSurvey($surveyId,App()->getRequest()->getQuery('delete'));
             App()->end(); // Not needed but more clear
         }
@@ -1432,7 +1435,6 @@ class responseListAndManage extends PluginBase {
         if(!$oResponse) {
             throw new CHttpException(404, $this->_translate("Invalid response id."));
         }
-        //echo "Work in progress";
         $allowed = false;
         /* Is an admin */
         if($this->get('allowDelete','Survey',$surveyId,'admin') && Permission::model()->hasSurveyPermission($surveyId, 'response', 'delete')) {

@@ -1,0 +1,48 @@
+<!-- Bootstrap Modal Survey -->
+<div id="modal-responseListAndManage" class="modal fade modal-survey modal-responseListAndManage"  tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <div class="h4 modal-title"></div>
+      </div>
+      <div class="modal-body">
+        <iframe name="frame-responseListAndManage" id="frame-responseListAndManage" class="modal-survey-frame"></iframe></div>
+      <div class="modal-footer">
+        {{ C.Html.htmlButton(gT('Close'),
+          ({'type' : 'button','class' : 'btn btn-warning btn-close','data-dismiss' : 'modal'})
+        ) }}
+        {% if modalButtons.clearall %}
+          {{ C.Html.htmlButton(lang['Delete'],
+            ({'type' : 'button','class' : 'btn btn-danger btn-delete','data-action' : 'clearall', 'disabled' : true})
+          ) }}
+        {% endif %}
+        {% if modalButtons.moveprev %}
+          {{ C.Html.htmlButton(gT('Previous'),
+            ({'type' : 'button','class' : 'btn btn-default btn-moveprev','data-action' : 'moveprev', 'disabled' : true})
+          ) }}
+        {% endif %}
+        {% if modalButtons.saveall %}
+          {{ C.Html.htmlButton(gT('Save'),
+            ({'type' : 'button','class' : 'btn btn-info btn-saveall','data-action' : 'saveall', 'disabled' : true})
+          ) }}
+        {% endif %}
+        {% if modalButtons.saveallquit %}
+          {{ C.Html.htmlButton(lang["Save and quit"],
+            ({'type' : 'button','class' : 'btn btn-primary btn-saveall','data-action-extra' : 'saveallquit', 'disabled' : true})
+          ) }}
+        {% endif %}
+        {% if modalButtons.movenext %}
+        {{ C.Html.htmlButton(gT('Next'),
+          ({'type' : 'button','class' : 'btn btn-default btn-movenext','data-action' : 'movenext', 'disabled' : true})
+        ) }}
+        {% endif %}
+        {% if modalButtons.movesubmit %}
+          {{ C.Html.htmlButton(gT('Submit'),
+            ({'type' : 'button','class' : 'btn btn-success btn-movesubmit','data-action' : 'movesubmit', 'disabled' : true})
+          ) }}
+        {% endif %}
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->

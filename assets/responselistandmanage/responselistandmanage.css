@@ -65,9 +65,9 @@ text-overflow: ellipsis;}
 .grid-view a:not([href]){display:none}
 .grid-view .bootstrap-datetimepicker-widget a:not([href]){display:inline} /* but show this inside datetimepicker */
 
-#modal-survey-update{width:100%;}
-#modal-survey-update iframe{border:0 none;width:100%;height:100%}
-#modal-survey-update .modal-body
+.modal-survey{width:100%;}
+.modal-survey-frame{border:0 none;width:100%;height:100%}
+.modal-survey .modal-body
 {
   height:auto;
   width:auto;
@@ -77,8 +77,8 @@ text-overflow: ellipsis;}
   overflow-x:show;
   padding:0;
 }
-#modal-survey-update .modal-footer{margin-top:0}
-#modal-survey-update .modal-dialog{width:100%;margin: 0 auto;}
+.modal-survey .modal-footer{margin-top:0}
+.modal-survey .modal-dialog{width:100%;margin: 0 auto;}
 
 .btn-link:focus, .btn-link:hover {
     color: inherit;

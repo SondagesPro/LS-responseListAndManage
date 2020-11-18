@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2020 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 2.0.0-alpha1
+ * @version 2.0.0-alpha2
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -116,12 +116,6 @@ class responseListAndManage extends PluginBase {
         if (empty(Yii::app()->session["responseListAndManage"][$surveyId])) {
             return;
         }
-
-        /* Move this part to twig poart ... */
-        $currentSrid = isset($_SESSION['survey_'.$surveyId]['srid']) ? $_SESSION['survey_'.$surveyId]['srid'] : null;
-        if(empty($currentSrid)) {
-            $currentSrid = Yii::app()->getRequest()->getQuery('srid');
-        }
         $this->surveyId = $surveyId;
         App()->getClientScript()->registerScriptFile(
             Yii::app()->assetManager->publish(dirname(__FILE__) . '/assets/surveymanaging/surveymanaging.js'),
@@ -151,11 +145,6 @@ class responseListAndManage extends PluginBase {
         if(App()->getrequest()->getPost('clearall') == "clearall" && App()->getrequest()->getPost('delete') == 'delete') {
             $this->checkDeletion($surveyId);
         }
-    }
-
-    public function beforeCloseHtml()
-    {
-        
     }
 
     public function afterSurveyComplete()
@@ -2351,7 +2340,7 @@ class responseListAndManage extends PluginBase {
      * @return string
      */
     private function translate($string){
-        return Yii::t('',$string,array(),get_class($this));
+        return Yii::t('',$string,array(),get_class($this).'Messages');
     }
 
     /**
@@ -2360,16 +2349,16 @@ class responseListAndManage extends PluginBase {
      */
     public function afterPluginLoad(){
         // messageSource for this plugin:
-        $messageSource=array(
+        $messageSource = array(
             'class' => 'CGettextMessageSource',
-            'cacheID' => get_class($this).'Lang',
+            'cacheID' => 'ResponseListAndManageLang',
             'cachingDuration'=>3600,
             'forceTranslation' => true,
             'useMoFile' => true,
             'basePath' => __DIR__ . DIRECTORY_SEPARATOR.'locale',
             'catalog'=>'messages',// default from Yii
         );
-        Yii::app()->setComponent(get_class($this),$messageSource);
+        Yii::app()->setComponent(get_class($this).'Messages',$messageSource);
         Yii::setPathOfAlias(get_class($this), dirname(__FILE__));
     }
 

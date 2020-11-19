@@ -76,12 +76,13 @@ class responseListAndManage extends PluginBase {
     private $aRenderData = array();
 
     public function init() {
-        if(version_compare(Yii::app()->getConfig('versionnumber'),"3.10","<")) {
-            return;
-        }
+        Yii::setPathOfAlias(get_class($this), dirname(__FILE__));
+        $this->subscribe('afterPluginLoad');
+
+        /* Primary system: show the list of surey or response */
         $this->subscribe('newDirectRequest');
+
         $this->subscribe('beforeSurveySettings');
-        //~ $this->subscribe('newSurveySettings');
         $this->subscribe('beforeToolsMenuRender');
 
         /* Need some event in iframe survey */
@@ -89,9 +90,83 @@ class responseListAndManage extends PluginBase {
 
         /* Regsiter when need close */
         $this->subscribe('afterSurveyComplete');
+    }
 
-        /* Need for own language system */
-        $this->subscribe('afterPluginLoad');
+    /**
+     * Check if we can use this plugin
+     * @return boolean
+     */
+    private function getIsUsable()
+    {
+        return version_compare(Yii::app()->getConfig('versionnumber'),"3.10",">=")
+            && (defined('\reloadAnyResponse\Utilities::API') && \reloadAnyResponse\Utilities::API >= 3.2)
+            && Yii::getPathOfAlias('getQuestionInformation');
+    }
+
+    /**
+     * Add an error for admin user if activated but can not used
+     */
+    public function beforeControllerAction()
+    {
+        $aFlashMessage = App()->session['aFlashMessage'];
+        if(!empty($aFlashMessage['responseListAndManage'])) {
+            return;
+        }
+        if (Permission::getUserId()) {
+            $controller = $this->getEvent()->get('controller');
+            $action = $this->getEvent()->get('action');
+            $subaction = $this->getEvent()->get('subaction');
+            if($controller == 'admin' && $action != "pluginmanager")  {
+                $aFlashMessage['responseListAndManage'] = array(
+                    'message' => sprintf($this->translate("%s can not be used due to a lack of functionnality on your instance"),'responseListAndManage'),
+                    'type' => 'danger'
+                );
+                App()->session['aFlashMessage'] = $aFlashMessage;
+            }
+        }
+        return;
+    }
+    /**
+     * Checkj if can be activated , show a message if not
+     * @return boolean
+     */
+    public function beforeActivate()
+    {
+        if (!$this->getIsUsable()) {
+            $this->getEvent()->set(
+                'success',
+                false
+            );
+            $this->getEvent()->set(
+                'message', 
+                sprintf($this->translate("%s can not be used due to a lack of functionnality on your instance. Please check setting to have the list of errors."),'responseListAndManage')
+            );
+        }
+    }
+    /**
+     * Get the error string for availability
+     * @todo : replace by installed in 4.X ?
+     * @return null[string[]
+     */
+    private function getErrorsUnUsable()
+    {
+        $errors = array();
+        if(version_compare(Yii::app()->getConfig('versionnumber'),"3.10","<")) {    
+            $errors[] = sprintf($this->translate("%s plugin need LimeSurvey version 3.10 and up"),'responseListAndManage');
+        }
+        if(!Yii::getPathOfAlias('reloadAnyResponse')) {
+            $errors[] = sprintf($this->translate("%s plugin need %s version 3.2 and up"),'responseListAndManage','reloadAnyResponse');
+        }
+        if(!defined('\reloadAnyResponse\Utilities::API')) {
+            $errors[] = sprintf($this->translate("%s plugin need %s version 3.2 and up"),'responseListAndManage','reloadAnyResponse');
+        }
+        if(\reloadAnyResponse\Utilities::API < 3.2) {
+            $errors[] = sprintf($this->translate("%s plugin need %s version 3.2 and up"),'responseListAndManage','reloadAnyResponse');
+        }
+        if(!Yii::getPathOfAlias('getQuestionInformation')) {
+            $errors[] = sprintf($this->translate("%s plugin need %s"),'responseListAndManage','getQuestionInformation');
+        }
+        return $errors;
     }
 
     /**
@@ -99,9 +174,6 @@ class responseListAndManage extends PluginBase {
      */
     public function beforeSurveyPage()
     {
-        if(!$this->_isUsable()) {
-            return;
-        }
         $surveyId = $this->event->get('surveyId');
         $oSurvey = Survey::model()->findByPk($surveyId);
         if(empty($oSurvey)) {
@@ -149,8 +221,9 @@ class responseListAndManage extends PluginBase {
 
     public function afterSurveyComplete()
     {
-        $iSurveyId = $this->getEvent()->get('surveyId');
-        $currentSrid = $this->getEvent()->get('responseId');
+        $afterSurveyCompleteEvent = $this->getEvent(); // because eupdate in twig renderPartial
+        $iSurveyId = $afterSurveyCompleteEvent->get('surveyId');
+        $currentSrid = $afterSurveyCompleteEvent->get('responseId');
         $aSessionManageSurvey = (array) Yii::app()->session["responseListAndManage"];
         if (!isset($aSessionManageSurvey[$iSurveyId])) {
             /* Quit if we are not in survey inside surey system */
@@ -168,7 +241,7 @@ class responseListAndManage extends PluginBase {
             'aSurveyInfo' => getSurveyInfo($iSurveyId, App()->getLanguage()),
         );
         $this->subscribe('getPluginTwigPath');
-        $extraContent = Yii::app()->twigRenderer->renderPartial('/subviews/messages/reloadAnyResponse_submitted.twig', $renderData);
+        $extraContent = Yii::app()->twigRenderer->renderPartial('/subviews/messages/responseListAndManage_submitted.twig', $renderData);
         if($extraContent) {
             $afterSurveyCompleteEvent->getContent($this)
                 ->addContent($extraContent);
@@ -187,9 +260,6 @@ class responseListAndManage extends PluginBase {
     /** @inheritdoc **/
     public function beforeSurveySettings()
     {
-        if(!$this->_isUsable()) {
-            return;
-        }
         /* @Todo move this to own page */
         $oEvent = $this->getEvent();
         $iSurveyId = $this->getEvent()->get('survey');
@@ -907,9 +977,6 @@ class responseListAndManage extends PluginBase {
     */
     public function newSurveySettings()
     {
-        if(!$this->_isUsable()) {
-            return;
-        }
         $event = $this->event;
         foreach ($event->get('settings') as $name => $value) {
             $this->set($name, $value, 'Survey', $event->get('survey'));
@@ -920,10 +987,6 @@ class responseListAndManage extends PluginBase {
     public function newDirectRequest()
     {
         if($this->getEvent()->get('target') != get_class($this)) {
-            return;
-        }
-        if(!$this->_isUsable()) {
-            // throw error ?
             return;
         }
         $this->_setConfig();
@@ -1122,7 +1185,7 @@ class responseListAndManage extends PluginBase {
         $settingAllowDelete = $this->get('allowDelete','Survey',$surveyId,'admin');
         $settingAllowAdd = $this->get('allowAdd','Survey',$surveyId,'admin');
         $settingAllowAddUser = $this->get('allowAddUser','Survey',$surveyId,'admin');
-
+        /* Set forced allow accedd */
         $tokenAttributeGroup = $this->get('tokenAttributeGroup','Survey',$surveyId,null);
         $tokenAttributeGroupManager = $this->get('tokenAttributeGroupManager','Survey',$surveyId,null);
         $tokenGroup = null;
@@ -1139,6 +1202,9 @@ class responseListAndManage extends PluginBase {
             $allowDelete = $allowSee && $settingAllowDelete && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'delete');
             $allowAdd = $settingAllowAdd && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'create');
             $allowAddUser = $this->_allowTokenLink($oSurvey) && $settingAllowAddUser && Permission::model()->hasSurveyPermission($surveyId, 'token', 'create');
+            if($allowEdit) {
+                \reloadAnyResponse\Utilities::setForcedAllowedSettings($surveyId,'allowAdminUser');
+            }
         }
         if($currentToken) {
             $aTokens = (array) $currentToken;
@@ -1160,9 +1226,15 @@ class responseListAndManage extends PluginBase {
                 }
             }
             $mResponse->setAttribute('token', $aTokens);
-
             if(!$allowAccess && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'read')) {
                 throw new CHttpException(403, $this->translate('You are not allowed to use reponse management with this token.'));
+            }
+            if($allowEdit) {
+                \reloadAnyResponse\Utilities::setForcedAllowedSettings($surveyId,'allowAdminUser');
+                \reloadAnyResponse\Utilities::setForcedAllowedSettings($surveyId,'allowTokenUser');
+                if($isManager || ($settingAllowSee  == 'all' && $settingAllowEdit == 'all')) {
+                    \reloadAnyResponse\Utilities::setForcedAllowedSettings($surveyId,'allowTokenGroupUser');
+                }
             }
         }
         Yii::app()->user->setState('responseListAndManagePageSize',intval(Yii::app()->request->getParam('pageSize',Yii::app()->user->getState('responseListAndManagePageSize',50))));
@@ -1597,30 +1669,19 @@ class responseListAndManage extends PluginBase {
     }
 
     /** @inheritdoc **/
-    public function getPluginSettings($getValues=true)
+    public function getPluginSettings($getValues = true)
     {
         if(Yii::app() instanceof CConsoleApplication) {
             return;
         }
-        //~ if(!$getValues) {
-            //~ return;
-        //~ }
-        if(!$this->_isUsable()){
-            $warningMessage = "";
-            $haveGetQuestionInformation = Yii::getPathOfAlias('getQuestionInformation');
-            if(!$haveGetQuestionInformation) {
-                $warningMessage .= CHtml::tag("p",array(),sprintf($this->translate("Unable to use this plugin, you need %s plugin."),CHtml::link("getQuestionInformation","https://gitlab.com/SondagesPro/coreAndTools/getQuestionInformation")));
-            }
-            $haveReloadAnyResponse = Yii::getPathOfAlias('reloadAnyResponse');
-            if(!$haveReloadAnyResponse) {
-                $warningMessage .= CHtml::tag("p",array(),sprintf($this->translate("Unable to use this plugin, you need %s plugin."),CHtml::link("getQuestionInformation","https://gitlab.com/SondagesPro/coreAndTools/getQuestionInformation")));
-            }
+        if(!$this->getIsUsable()){
+            $warningMessages = $this->getErrorsUnUsable();
             $this->settings = array(
                 'unable'=> array(
                     'type' => 'info',
-                    'content' => CHtml::tag("div",
+                    'content' => CHtml::tag("ul",
                         array('class'=>'alert alert-warning'),
-                        $warningMessage
+                        "<li>".implode("</li><li>",$warningMessages)."</li>"
                     ),
                 ),
             );
@@ -1632,15 +1693,10 @@ class responseListAndManage extends PluginBase {
         $accesUrl = Yii::app()->createUrl("plugins/direct", array('plugin' => get_class()));
         $accesHtmlUrl = CHtml::link($accesUrl,$accesUrl);
         $pluginSettings['information']['content'] = sprintf($this->translate("Access link for survey listing : %s."),$accesHtmlUrl);
-        if(version_compare(Yii::app()->getConfig('versionnumber'),"3",">=")) {
-            $oTemplates = TemplateConfiguration::model()->findAll(array(
-                'condition'=>'sid IS NULL',
-            ));
-            $aTemplates = CHtml::listData($oTemplates,'template_name','template_name');
-        }
-        if(version_compare(Yii::app()->getConfig('versionnumber'),"3","<")) {
-          $aTemplates = array_keys(Template::getTemplateList());
-        }
+        $oTemplates = TemplateConfiguration::model()->findAll(array(
+            'condition'=>'sid IS NULL',
+        ));
+        $aTemplates = CHtml::listData($oTemplates,'template_name','template_name');
         $pluginSettings['template'] = array_merge($pluginSettings['template'],array(
             'type' => 'select',
             'options'=>$aTemplates,
@@ -1654,20 +1710,17 @@ class responseListAndManage extends PluginBase {
             'label'=> $this->translate('Show LimeSurvey admininstration link.'),
             'help' => $this->translate('On survey list and by default for admin'),
         ));
-        /* Validate version_number more than 3.0 ?*/
-        if(version_compare(App()->getConfig("versionnumber"),"3",">=") ) {
-            /* Find if menu already exist */
-            $oSurveymenuEntries = SurveymenuEntries::model()->find("name = :name",array(":name"=>'reponseListAndManage'));
-            $state = !empty($oSurveymenuEntries);
-            $help = $state ? $this->translate('Menu exist, to delete : uncheck box and validate.') : $this->translate("Menu didn‘t exist, to create check box and validate." );
-            $pluginSettings['createSurveyMenu'] = array(
-                'type' => 'checkbox',
-                'label'=> $this->translate('Add a menu to responses management in surveys.'),
-                'default' => false,
-                'help' => $help,
-                'current' => $state,
-            );
-        }
+        /* Find if menu already exist */
+        $oSurveymenuEntries = SurveymenuEntries::model()->find("name = :name",array(":name"=>'reponseListAndManage'));
+        $state = !empty($oSurveymenuEntries);
+        $help = $state ? $this->translate('Menu exist, to delete : uncheck box and validate.') : $this->translate("Menu didn‘t exist, to create check box and validate." );
+        $pluginSettings['createSurveyMenu'] = array(
+            'type' => 'checkbox',
+            'label'=> $this->translate('Add a menu to responses management in surveys.'),
+            'default' => false,
+            'help' => $help,
+            'current' => $state,
+        );
         return $pluginSettings;
     }
 
@@ -2151,24 +2204,9 @@ class responseListAndManage extends PluginBase {
         return $this->_allowTokenLink($oSurvey) && $oSurvey->alloweditaftercompletion == "Y" && $oSurvey->tokenanswerspersistence != "Y";
     }
 
-    /**
-     * Check if getQuestionInformation plugin is here and activated
-     * Log as error if not
-     * @return boolean
-     */
-    private function _isUsable()
-    {
-        $haveGetQuestionInformation = Yii::getPathOfAlias('getQuestionInformation');
-        if(!$haveGetQuestionInformation) {
-            $this->log("You need getQuestionInformation plugin",'error');
-        }
-        $haveReloadAnyResponse = Yii::getPathOfAlias('reloadAnyResponse');
-        if(!$haveReloadAnyResponse) {
-            $this->log("You need reloadAnyResponse plugin",'error');
-        }
-        return $haveGetQuestionInformation && $haveReloadAnyResponse;
-    }
 
+
+    
     /**
      * Get the administration menu
      * @param $surveyId
@@ -2344,10 +2382,21 @@ class responseListAndManage extends PluginBase {
     }
 
     /**
-     * Add this translation just after loaded all plugins
+     * register to needed event according to usability
      * @see event afterPluginLoad
      */
     public function afterPluginLoad(){
+        if(!$this->getIsUsable()) {
+            $this->subscribe('beforeActivate');
+            $this->subscribe('beforeControllerAction');
+            $this->unsubscribe('newDirectRequest');
+            $this->unsubscribe('beforeSurveySettings');
+            $this->unsubscribe('beforeToolsMenuRender');
+            $this->unsubscribe('beforeSurveyPage');
+            $this->unsubscribe('afterSurveyComplete');
+            return;
+        }
+
         // messageSource for this plugin:
         $messageSource = array(
             'class' => 'CGettextMessageSource',
@@ -2359,7 +2408,7 @@ class responseListAndManage extends PluginBase {
             'catalog'=>'messages',// default from Yii
         );
         Yii::app()->setComponent(get_class($this).'Messages',$messageSource);
-        Yii::setPathOfAlias(get_class($this), dirname(__FILE__));
+        
     }
 
     /**

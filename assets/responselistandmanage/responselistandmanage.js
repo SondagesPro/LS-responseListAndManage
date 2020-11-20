@@ -197,7 +197,10 @@ $(document).on('surveyiniframe:on',function(event,data) {
     'disabled',
     $("#frame-responseListAndManage").contents().find("form#limesurvey button:submit[value='saveall']").length < 1
   );
-
+  $("#modal-responseListAndManage .modal-footer button[data-action-extra='delete']").prop(
+    'disabled',
+    $("#frame-responseListAndManage").contents().find("form#limesurvey button:submit[value='clearall']").length < 1
+  );
 });
 $(document).on('surveyiniframe:off',function(event,data) {
   $("#modal-responseListAndManage .modal-footer button[data-action], #modal-responseListAndManage .modal-footer button[data-action-extra]").each(function(){
@@ -216,6 +219,9 @@ $(document).on('click',"button[data-action]:not('disabled')",function(e) {
 $(document).on('click',"button[data-action-extra='saveallquit']:not('disabled')",function(e) {
   $("#frame-responseListAndManage").contents().find("form#limesurvey").append("<input type='hidden' name='autosaveandquit' value=1>");
   $("#frame-responseListAndManage").contents().find("form#limesurvey button:submit[value='saveall']").last().click();
+});
+$(document).on('click',"button[data-action-extra='delete']:not('disabled')",function(e) {
+  $("#frame-responseListAndManage").contents().find("form#limesurvey button:submit[value='clearall']").last().click();
 });
 
 function activateExport(){

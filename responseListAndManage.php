@@ -214,9 +214,6 @@ class responseListAndManage extends PluginBase {
             $script = "responseListAndManage.autoclose();";
             Yii::app()->getClientScript()->registerScript("responseListAndManageClearAll", $script, CClientScript::POS_END);
         }
-        if(App()->getrequest()->getPost('clearall') == "clearall" && App()->getrequest()->getPost('delete') == 'delete') {
-            $this->checkDeletion($surveyId);
-        }
     }
 
     public function afterSurveyComplete()
@@ -1499,7 +1496,7 @@ class responseListAndManage extends PluginBase {
         );
         $clearAllAction = \reloadAnyResponse\Utilities::getSetting($surveyId, 'clearAllAction');
         if ($clearAllAction == 'all') {
-            $modalButtons['clearall'] = "clearall";
+            $modalButtons['delete'] = "delete";
         }
         if($oSurvey->format!="A" && $oSurvey->allowprev == "Y") {
             $modalButtons['moveprev'] = "moveprev";

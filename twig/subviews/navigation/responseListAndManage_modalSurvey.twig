@@ -12,9 +12,9 @@
         {{ C.Html.htmlButton(gT('Close'),
           ({'type' : 'button','class' : 'btn btn-warning btn-close','data-dismiss' : 'modal'})
         ) }}
-        {% if modalButtons.clearall %}
+        {% if modalButtons.delete %}
           {{ C.Html.htmlButton(lang['Delete'],
-            ({'type' : 'button','class' : 'btn btn-danger btn-delete','data-action' : 'clearall', 'disabled' : true})
+            ({'type' : 'button','class' : 'btn btn-danger btn-delete','data-action-extra' : 'delete', 'disabled' : true})
           ) }}
         {% endif %}
         {% if modalButtons.moveprev %}

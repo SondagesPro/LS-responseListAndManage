@@ -993,6 +993,9 @@ class responseListAndManage extends PluginBase {
             App()->end(); // Not needed but more clear
         }
         if($surveyId && App()->getRequest()->getQuery('delete') ) {
+            if (!app()->getRequest()->isPostRequest) {
+                throw new CHttpException(405,gT("Method Not Allowed"));
+            }
             $this->_deleteResponseSurvey($surveyId,App()->getRequest()->getQuery('delete'));
             App()->end(); // Not needed but more clear
         }
@@ -1543,7 +1546,6 @@ class responseListAndManage extends PluginBase {
         if(!$oResponse) {
             throw new CHttpException(404, $this->translate("Invalid response id."));
         }
-        //echo "Work in progress";
         $allowed = false;
         /* Is an admin */
         if($this->get('allowDelete','Survey',$surveyId,'admin') && Permission::model()->hasSurveyPermission($surveyId, 'response', 'delete')) {

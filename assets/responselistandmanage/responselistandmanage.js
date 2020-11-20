@@ -1,12 +1,18 @@
+/**
+ * @todo : move to js class
+ */
+
 $(window).scroll(function(){
     $('#responses-grid > .row-fluid').css({
         'left': $(this).scrollLeft()
     });
 });
+
 $(window).on('resize', function(){
-  updateHeightModalbody("#modal-survey-update");
+  updateHeightModalbody("#modal-responseListAndManage");
   $("#responses-grid").css("padding-bottom",$("#responses-grid > .row").height()+"px");
 });
+
 $(function() {
   $('#responses-grid > .row-fluid').css({
         'left': $(window).scrollLeft()
@@ -14,6 +20,7 @@ $(function() {
   $("body").find('.outerframe.container').removeClass('container').addClass('container-fluid'); // Needed for 2.5X 
   $("#responses-grid").trigger('ajaxUpdated');
 });
+
 $(document).on("ajaxUpdated","#responses-grid",function(event){
     $(this).css('padding-bottom',$(this).children('.row').height()+'px');
     $('#responses-grid thead small[title]').tooltip({
@@ -52,23 +59,25 @@ $(document).on("ajaxUpdated","#responses-grid",function(event){
         $('#responses-grid .filters input:not(.filter-date)').first().trigger('change'); /* Simulate a chang on first input, : change on self seems disable by datetimepicker */
     });
 });
+
 $(document).on('show.bs.popover','#responses-grid .answer-value', function () {
     $('#responses-grid .answer-value').not(this).popover('hide');
 });
+
 $(document).on("click","a.update[href]",function(event){
     event.preventDefault();
     $('#responses-grid .answer-value').popover('hide');
-    $("iframe#survey-update").attr("src",$(this).attr("href"));
-    $("#modal-survey-update").modal('show');
-    updateHeightModalbody("#modal-survey-update");
+    $("iframe#frame-responseListAndManage").attr("src",$(this).attr("href"));
+    $("#modal-responseListAndManage").modal('show');
+    updateHeightModalbody("#modal-responseListAndManage");
 });
 
 $(document).on("click","a.addnew",function(event){
     event.preventDefault();
     $('#responses-grid .answer-value').popover('hide');
-    $("iframe#survey-update").attr("src",$(this).attr("href"));
-    $("#modal-survey-update").modal('show');
-    updateHeightModalbody("#modal-survey-update");
+    $("iframe#frame-responseListAndManage").attr("src",$(this).attr("href"));
+    $("#modal-responseListAndManage").modal('show');
+    updateHeightModalbody("#modal-responseListAndManage");
 });
 
 $(document).on("click","button.addnew",function(event){
@@ -76,18 +85,14 @@ $(document).on("click","button.addnew",function(event){
     $('#responses-grid .answer-value').popover('hide');
     if(!$("#token").val()) {
         $("#token").focus();
-        // TODO : show a warning error
+        // TODO : move to validate
         return;
     }
-    var href = $(this).closest('form').attr('action');
-    href += (href.indexOf('?') > -1) ? '&' : '?';
-    href += 'sid='+$("#sid").val();
-    href += '&newtest=Y';
-    href += '&token='+$("#token").val();
-    href += '&srid='+$(this).val();
-    $("iframe#survey-update").attr("src",href);
-    $("#modal-survey-update").modal('show');
-    updateHeightModalbody("#modal-survey-update");
+    var urlParams =  $(this).closest('form').serialize();
+    var href = $(this).closest('form').attr('action')+"?"+urlParams;
+    $("iframe#frame-responseListAndManage").attr("src",href);
+    $("#modal-responseListAndManage").modal('show');
+    updateHeightModalbody("#modal-responseListAndManage");
 });
 
 $(document).on("click","[name='adduser']",function(event){
@@ -99,6 +104,7 @@ $(document).on("click","[name='adduser']",function(event){
     $(".wysihtml5-toolbar .icon-pencil").addClass("fa fa-edit");
     $("#modal-create-token").modal('show');
 });
+
 $(document).on("click","#modal-create-token button:submit",function(event,data){
     data = $.extend({source:null}, data);
     $('#responses-grid .answer-value').popover('hide');
@@ -158,18 +164,18 @@ function updateHeightModalbody(modal)
     var modalHeader=$(modal).find(".modal-header").outerHeight();
     var modalFooter=$(modal).find(".modal-footer").outerHeight();
     var finalHeight=Math.max(150,$(window).height()-(marginTopModal+modalHeader+modalFooter+marginBottomModal+28));// Not less than 150px
-    console.log(finalHeight);
     $(modal).find(".modal-lg").css("margin-top",marginTopModal);
     $(modal).find(".modal-body").css("height",finalHeight);
     $(modal).find(".modal-body iframe").css("height",finalHeight);
 }
-$(document).on("shown.bs.modal","#modal-survey-update",function(e) {
-    updateHeightModalbody("#modal-survey-update");
+$(document).on("shown.bs.modal","#modal-responseListAndManage",function(e) {
+    updateHeightModalbody("#modal-responseListAndManage");
 });
-$(document).on("hide.bs.modal","#modal-survey-update",function(e) {
+$(document).on("hide.bs.modal","#modal-responseListAndManage",function(e) {
     $.fn.yiiGridView.update('responses-grid');
-    $("#survey-update").attr('src',"");
+    $("#frame-responseListAndManage").attr('src',"");
 });
+
 $(document).on("hide.bs.modal","#modal-create-token",function(e) {
     $("#modal-create-token form").find("input[type='email'],input:text,textarea").each(function(){
         $(this).val("");
@@ -184,34 +190,38 @@ $(document).on("hide.bs.modal","#modal-create-token",function(e) {
 });
 
 $(document).on('surveyiniframe:on',function(event,data) {
-  $("#modal-survey-update .modal-footer button[data-action]").each(function(){
-    //~ $(this).prop('disabled',true);
-    $(this).prop('disabled',$("#survey-update").contents().find("form#limesurvey button:submit[value='"+$(this).data('action')+"']").length < 1);
-    if($("#survey-update").contents().find(".completed-text").length) {
-        $("#modal-survey-update").modal('hide');
-    }
+  $("#modal-responseListAndManage .modal-footer button[data-action]").each(function(){
+    $(this).prop('disabled',$("#frame-responseListAndManage").contents().find("form#limesurvey button:submit[value='"+$(this).data('action')+"']").length < 1);
   });
+  $("#modal-responseListAndManage .modal-footer button[data-action-extra='saveallquit']").prop(
+    'disabled',
+    $("#frame-responseListAndManage").contents().find("form#limesurvey button:submit[value='saveall']").length < 1
+  );
+  $("#modal-responseListAndManage .modal-footer button[data-action-extra='delete']").prop(
+    'disabled',
+    $("#frame-responseListAndManage").contents().find("form#limesurvey button:submit[value='clearall']").length < 1
+  );
 });
 $(document).on('surveyiniframe:off',function(event,data) {
-  $("#modal-survey-update .modal-footer button[data-action]").each(function(){
+  $("#modal-responseListAndManage .modal-footer button[data-action], #modal-responseListAndManage .modal-footer button[data-action-extra]").each(function(){
     $(this).prop('disabled',true);
   });
 });
 
 $(document).on('surveyiniframe:autoclose',function(event,data) {
-  $("#modal-survey-update").modal('hide');
+  $("#modal-responseListAndManage").modal('hide');
 });
 
 $(document).on('click',"button[data-action]:not('disabled')",function(e) {
     $('#responses-grid .answer-value').popover('hide');
-    //console.log($(this).data($("#survey-update").contents().find("button:submit[value='"+$(this).data('action')+"']").length));
-    //$("#survey-update").contents().find("form#limesurvey button:submit[value='"+$(this).data('action')+"']").last().click();
-    //~ if($(this).data('action')=='saveall') {
-        //~ //$("#survey-update").contents().find("form#limesurvey button:submit[value='"+$(this).data('action')+"']").last().click();
-        //~ var submit=$(this).data('limesurvey-submit');
-        //~ return;
-    //~ }
-    $("#survey-update").contents().find("form#limesurvey button:submit[value='"+$(this).data('action')+"']").last().click();
+    $("#frame-responseListAndManage").contents().find("form#limesurvey button:submit[value='"+$(this).data('action')+"']").last().click();
+});
+$(document).on('click',"button[data-action-extra='saveallquit']:not('disabled')",function(e) {
+  $("#frame-responseListAndManage").contents().find("form#limesurvey").append("<input type='hidden' name='autosaveandquit' value=1>");
+  $("#frame-responseListAndManage").contents().find("form#limesurvey button:submit[value='saveall']").last().click();
+});
+$(document).on('click',"button[data-action-extra='delete']:not('disabled')",function(e) {
+  $("#frame-responseListAndManage").contents().find("form#limesurvey button:submit[value='clearall']").last().click();
 });
 
 function activateExport(){

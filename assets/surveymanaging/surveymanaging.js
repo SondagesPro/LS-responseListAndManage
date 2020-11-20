@@ -10,9 +10,10 @@ window.onbeforeunload = function() {
     }
 };
 var responseListAndManage = {
+    timeOut : 1,
     autoclose : function () {
-        if(window.location != window.parent.location) {
+        window.setTimeout(function(){
             window.parent.$(window.parent.document).trigger("surveyiniframe:autoclose");
-        }
+        }, responseListAndManage.timeOut * 1000);
     }
 }

@@ -28,7 +28,8 @@ $this->widget('bootstrap.widgets.TbGridView', array(
     'afterAjaxUpdate' => "js:function(id,data){ $('#'+id).trigger('ajaxUpdated'); }",
     'selectableRows' => $selectableRows,
 ));
-Yii::app()->getController()->renderPartial("responseListAndManage.views.content.subContent.modalSurvey",array('lang'=>$lang));
+echo App()->twigRenderer->renderPartial('/subviews/navigation/responseListAndManage_modalSurvey.twig', $responseListAndManage);
+
 if($allowAddUser) {
     Yii::app()->getController()->renderPartial("responseListAndManage.views.content.subContent.modalUser",array('lang'=>$lang,'addUser'=>$addUser));
 }

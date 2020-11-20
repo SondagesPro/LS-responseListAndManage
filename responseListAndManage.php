@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2020 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 1.18.8
+ * @version 2.0.0-alpha2
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -23,6 +23,8 @@ class responseListAndManage extends PluginBase {
     static protected $description = 'A different way to manage response for a survey';
     static protected $name = 'responseListAndManage';
 
+    /* @var integer|null surveyId get track of current sureyId between action */
+    private $surveyId;
     /**
      * @var array[] the settings
      */
@@ -74,18 +76,97 @@ class responseListAndManage extends PluginBase {
     private $aRenderData = array();
 
     public function init() {
+        Yii::setPathOfAlias(get_class($this), dirname(__FILE__));
+        $this->subscribe('afterPluginLoad');
+
+        /* Primary system: show the list of surey or response */
         $this->subscribe('newDirectRequest');
+
         $this->subscribe('beforeSurveySettings');
-        //~ $this->subscribe('newSurveySettings');
         $this->subscribe('beforeToolsMenuRender');
 
         /* Need some event in iframe survey */
         $this->subscribe('beforeSurveyPage');
-        /* Replace token by the valid one before beforeSurveyPage @todo */
-        $this->subscribe('beforeControllerAction');
 
-        /* Need for own language system */
-        $this->subscribe('afterPluginLoad');
+        /* Regsiter when need close */
+        $this->subscribe('afterSurveyComplete');
+    }
+
+    /**
+     * Check if we can use this plugin
+     * @return boolean
+     */
+    private function getIsUsable()
+    {
+        return version_compare(Yii::app()->getConfig('versionnumber'),"3.10",">=")
+            && (defined('\reloadAnyResponse\Utilities::API') && \reloadAnyResponse\Utilities::API >= 3.2)
+            && Yii::getPathOfAlias('getQuestionInformation');
+    }
+
+    /**
+     * Add an error for admin user if activated but can not used
+     */
+    public function beforeControllerAction()
+    {
+        $aFlashMessage = App()->session['aFlashMessage'];
+        if(!empty($aFlashMessage['responseListAndManage'])) {
+            return;
+        }
+        if (Permission::getUserId()) {
+            $controller = $this->getEvent()->get('controller');
+            $action = $this->getEvent()->get('action');
+            $subaction = $this->getEvent()->get('subaction');
+            if($controller == 'admin' && $action != "pluginmanager")  {
+                $aFlashMessage['responseListAndManage'] = array(
+                    'message' => sprintf($this->translate("%s can not be used due to a lack of functionnality on your instance"),'responseListAndManage'),
+                    'type' => 'danger'
+                );
+                App()->session['aFlashMessage'] = $aFlashMessage;
+            }
+        }
+        return;
+    }
+    /**
+     * Checkj if can be activated , show a message if not
+     * @return boolean
+     */
+    public function beforeActivate()
+    {
+        if (!$this->getIsUsable()) {
+            $this->getEvent()->set(
+                'success',
+                false
+            );
+            $this->getEvent()->set(
+                'message', 
+                sprintf($this->translate("%s can not be used due to a lack of functionnality on your instance. Please check setting to have the list of errors."),'responseListAndManage')
+            );
+        }
+    }
+    /**
+     * Get the error string for availability
+     * @todo : replace by installed in 4.X ?
+     * @return null[string[]
+     */
+    private function getErrorsUnUsable()
+    {
+        $errors = array();
+        if(version_compare(Yii::app()->getConfig('versionnumber'),"3.10","<")) {    
+            $errors[] = sprintf($this->translate("%s plugin need LimeSurvey version 3.10 and up"),'responseListAndManage');
+        }
+        if(!Yii::getPathOfAlias('reloadAnyResponse')) {
+            $errors[] = sprintf($this->translate("%s plugin need %s version 3.2 and up"),'responseListAndManage','reloadAnyResponse');
+        }
+        if(!defined('\reloadAnyResponse\Utilities::API')) {
+            $errors[] = sprintf($this->translate("%s plugin need %s version 3.2 and up"),'responseListAndManage','reloadAnyResponse');
+        }
+        if(\reloadAnyResponse\Utilities::API < 3.2) {
+            $errors[] = sprintf($this->translate("%s plugin need %s version 3.2 and up"),'responseListAndManage','reloadAnyResponse');
+        }
+        if(!Yii::getPathOfAlias('getQuestionInformation')) {
+            $errors[] = sprintf($this->translate("%s plugin need %s"),'responseListAndManage','getQuestionInformation');
+        }
+        return $errors;
     }
 
     /**
@@ -93,67 +174,77 @@ class responseListAndManage extends PluginBase {
      */
     public function beforeSurveyPage()
     {
-        if(!$this->_isUsable()) {
+        $surveyId = $this->event->get('surveyId');
+        $oSurvey = Survey::model()->findByPk($surveyId);
+        if(empty($oSurvey)) {
             return;
         }
-        $plugin = Yii::app()->getRequest()->getParam('plugin');
-        if($plugin != 'responseListAndManage') {
+        $aSessionManageSurvey = (array) Yii::app()->session["responseListAndManage"];
+        if (Yii::app()->getRequest()->getQuery('srid') && Yii::app()->getRequest()->getParam('plugin') == 'responseListAndManage') {
+            /* @todo : check if allowed */
+            $aSessionManageSurvey[$surveyId] = $surveyId;
+        }
+        Yii::app()->session["responseListAndManage"] = $aSessionManageSurvey;
+        if (empty(Yii::app()->session["responseListAndManage"][$surveyId])) {
             return;
         }
-        $surveyId = $this->getEvent()->get('surveyId');
-        $currentSrid = isset($_SESSION['survey_'.$surveyId]['srid']) ? $_SESSION['survey_'.$surveyId]['srid'] : null;
-        if(empty($currentSrid)) {
-            $currentSrid = Yii::app()->getRequest()->getQuery('srid');
-        }
-        App()->getClientScript()->registerScriptFile(Yii::app()->assetManager->publish(dirname(__FILE__) . '/assets/surveymanaging/surveymanaging.js'),CClientScript::POS_BEGIN);
-
-        if(Yii::app()->getRequest()->getParam("saveall")) {
-            if(!$currentSrid) {
-                return;
-            }
-            $oSurvey = Survey::model()->findByPk($surveyId);
-            $_SESSION['survey_'.$surveyId]['scid'] = $currentSrid;
-            $saveAllAsDraft = $this->get('saveAllAsDraft','Survey',$surveyId,1);
-            if($saveAllAsDraft && $oSurvey->active == "Y") {
-                $oResponse = SurveyDynamic::model($surveyId)->findByPk($currentSrid);
-                if($oResponse && $oResponse->submitdate) {
-                    $oResponse->submitdate = null;
-                    $oResponse->save();
-                }
-            }
-
-            $afterSaveAll = $this->get('afterSaveAll','Survey',$surveyId,null);
-            if(empty($afterSaveAll)) {
-                $afterSaveAll = $this->get('afterSaveAll',null,null,'replace');
-            }
-            if($afterSaveAll == 'none') {
-                return;
-            }
-            App()->getClientScript()->registerScript("justsaved","responseListAndManage.autoclose();\n",CClientScript::POS_END);
-            if($afterSaveAll == 'js') {
-                return;
-            }
-            if($oSurvey->active == "Y") {
-                $step = isset($_SESSION['survey_'.$surveyId]['step']) ? $_SESSION['survey_'.$surveyId]['step'] : 0;
-                LimeExpressionManager::JumpTo($step, false);
-                $oResponse = SurveyDynamic::model($surveyId)->findByPk($currentSrid);
-                $oResponse->lastpage = $step; // Or restart at 1st page ?
-                // Save must force always to not submitted (draft)
-                $oResponse->submitdate = null;
-                $oResponse->save();
-            }
-            killSurveySession($surveyId);
-            \reloadAnyResponse\models\surveySession::model()->deleteByPk(array('sid'=>$surveyId,'srid'=>$currentSrid));
-            if(Yii::getPathOfAlias('renderMessage')) {
-                \renderMessage\messageHelper::renderAlert($this->_translate("Your responses was saved with success, you can close this windows."));
-            }
-        }
-        if(Yii::app()->getRequest()->getParam("clearall")=="clearall" && Yii::app()->getRequest()->getParam("confirm-clearall")) {
-            App()->getClientScript()->registerScript("justsaved","responseListAndManage.autoclose();\n",CClientScript::POS_END);
-            \reloadAnyResponse\models\surveySession::model()->deleteByPk(array('sid'=>$surveyId,'srid'=>$currentSrid));
+        $this->surveyId = $surveyId;
+        App()->getClientScript()->registerScriptFile(
+            Yii::app()->assetManager->publish(dirname(__FILE__) . '/assets/surveymanaging/surveymanaging.js'),
+            CClientScript::POS_BEGIN
+        );
+        if(App()->getrequest()->getPost('saveall') && App()->getrequest()->getPost('autosaveandquit')) {
+            $script = "responseListAndManage.autoclose();";
+            Yii::app()->getClientScript()->registerScript("responseListAndManageSaveAllQuit", $script, CClientScript::POS_END);
+            return;
         }
 
+        if(App()->getrequest()->getPost('saveall') && $oSurvey->allowsave == "Y") {
+            $isSaveandQuit = false;
+            if(Yii::getPathOfAlias('autoSaveAndQuit')) {
+                $isSaveandQuit = \autoSaveAndQuit\Utilities::isSaveAndQuit($surveyId) && !\autoSaveAndQuit\Utilities::isDisableSaveAndQuit($surveyId);
+            }
+            if ($isSaveandQuit) {
+                $script = "responseListAndManage.autoclose();";
+                Yii::app()->getClientScript()->registerScript("responseListAndManageSaveAll", $script, CClientScript::POS_END);
+            }
+            return;
+        }
+        if(App()->getrequest()->getPost('clearall') == "clearall" && App()->getrequest()->getPost('confirm-clearall')) {
+            $script = "responseListAndManage.autoclose();";
+            Yii::app()->getClientScript()->registerScript("responseListAndManageClearAll", $script, CClientScript::POS_END);
+        }
     }
+
+    public function afterSurveyComplete()
+    {
+        $afterSurveyCompleteEvent = $this->getEvent(); // because eupdate in twig renderPartial
+        $iSurveyId = $afterSurveyCompleteEvent->get('surveyId');
+        $currentSrid = $afterSurveyCompleteEvent->get('responseId');
+        $aSessionManageSurvey = (array) Yii::app()->session["responseListAndManage"];
+        if (!isset($aSessionManageSurvey[$iSurveyId])) {
+            /* Quit if we are not in survey inside surey system */
+            return;
+        }
+        unset($aSessionManageSurvey[$iSurveyId]);
+        Yii::app()->session["responseListAndManage"] = $aSessionManageSurvey;
+
+        $script = "responseListAndManage.autoclose();";
+        Yii::app()->getClientScript()->registerScript("responseListAndManageComplete", $script, CClientScript::POS_END);
+        $renderData=array(
+            'language' => array(
+                "Your responses was saved as complete, you can close this windows." => $this->translate("Your responses was saved as complete, you can close this windows."),
+            ),
+            'aSurveyInfo' => getSurveyInfo($iSurveyId, App()->getLanguage()),
+        );
+        $this->subscribe('getPluginTwigPath');
+        $extraContent = Yii::app()->twigRenderer->renderPartial('/subviews/messages/responseListAndManage_submitted.twig', $renderData);
+        if($extraContent) {
+            $afterSurveyCompleteEvent->getContent($this)
+                ->addContent($extraContent);
+        }
+    }
+
     /**
      * Add some views for this and other plugin
      */
@@ -166,9 +257,6 @@ class responseListAndManage extends PluginBase {
     /** @inheritdoc **/
     public function beforeSurveySettings()
     {
-        if(!$this->_isUsable()) {
-            return;
-        }
         /* @Todo move this to own page */
         $oEvent = $this->getEvent();
         $iSurveyId = $this->getEvent()->get('survey');
@@ -187,11 +275,11 @@ class responseListAndManage extends PluginBase {
             'settings' => array(
                 'link'=>array(
                     'type'=>'info',
-                    'content'=> CHtml::link($this->_translate("Access to responses listing"),$accesUrl,array("target"=>'_blank','class'=>'btn btn-block btn-default btn-lg')),
+                    'content'=> CHtml::link($this->translate("Access to responses listing"),$accesUrl,array("target"=>'_blank','class'=>'btn btn-block btn-default btn-lg')),
                 ),
                 'linkManagement'=>array(
                     'type'=>'info',
-                    'content'=> CHtml::link($this->_translate("Manage settings of responses listing"),$managementUrl,array("target"=>'_blank','class'=>'btn btn-block btn-default btn-lg')),
+                    'content'=> CHtml::link($this->translate("Manage settings of responses listing"),$managementUrl,array("target"=>'_blank','class'=>'btn btn-block btn-default btn-lg')),
                 ),
             )
         ));
@@ -209,7 +297,7 @@ class responseListAndManage extends PluginBase {
         $oSurvey = Survey::model()->findByPk($surveyId);
         if(Permission::model()->hasSurveyPermission($surveyId, 'surveysettings', 'update')) {
             $aMenuItem = array(
-                'label' => $this->_translate('Response listing settings'),
+                'label' => $this->translate('Response listing settings'),
                 'iconClass' => 'fa fa-list-alt ',
                 'href' => Yii::app()->createUrl(
                     'admin/pluginhelper',
@@ -230,7 +318,7 @@ class responseListAndManage extends PluginBase {
         }
         if($oSurvey->active == "Y" && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'read') && $this->get('allowAccess','Survey',$surveyId,'all') ) {
             $aMenuItem = array(
-                'label' => $this->_translate('Response listing'),
+                'label' => $this->translate('Response listing'),
                 'iconClass' => 'fa fa-list-alt ',
                 'href' => Yii::app()->createUrl(
                     'plugins/direct',
@@ -300,18 +388,18 @@ class responseListAndManage extends PluginBase {
         }
         $stateInfo = "<ul class='list'>";
         if($this->_allowTokenLink($oSurvey)) {
-            $stateInfo .= CHtml::tag("li",array("class"=>'text-success'),$this->_translate("Token link and creation work in managing."));
+            $stateInfo .= CHtml::tag("li",array("class"=>'text-success'),$this->translate("Token link and creation work in managing."));
             if($this->_allowMultipleResponse($oSurvey)) {
-                $stateInfo .= CHtml::tag("li",array("class"=>'text-success'),$this->_translate("You can create new response for all token."));
+                $stateInfo .= CHtml::tag("li",array("class"=>'text-success'),$this->translate("You can create new response for all token."));
             } else {
-                $stateInfo .= CHtml::tag("li",array("class"=>'text-warning'),$this->_translate("You can not create new response for all token. Only one response is available for each token (see participation setting panel)."));
+                $stateInfo .= CHtml::tag("li",array("class"=>'text-warning'),$this->translate("You can not create new response for all token. Only one response is available for each token (see participation setting panel)."));
             }
         } else {
-            $stateInfo .= CHtml::tag("li",array("class"=>'text-warning'),$this->_translate("No Token link and creation can be done in managing. Survey is anonymous or token table didn‘t exist."));
+            $stateInfo .= CHtml::tag("li",array("class"=>'text-warning'),$this->translate("No Token link and creation can be done in managing. Survey is anonymous or token table didn‘t exist."));
             if($oSurvey->alloweditaftercompletion == "Y") {
-                $stateInfo .= CHtml::tag("li",array("class"=>'text-success'),$this->_translate("You can edit submitted response."));
+                $stateInfo .= CHtml::tag("li",array("class"=>'text-success'),$this->translate("You can edit submitted response."));
             } else {
-                $stateInfo .= CHtml::tag("li",array("class"=>'text-warning'),$this->_translate("When editing submitted reponse : you reset the submit date (see allow edit after completion settings)."));
+                $stateInfo .= CHtml::tag("li",array("class"=>'text-warning'),$this->translate("When editing submitted reponse : you reset the submit date (see allow edit after completion settings)."));
             }
         }
 
@@ -320,16 +408,16 @@ class responseListAndManage extends PluginBase {
         $aQuestionList = $surveyColumnsInformation->allQuestionListData();
         $accesUrl = Yii::app()->createUrl("plugins/direct", array('plugin' => get_class(),'sid'=>$surveyId));
         $linkManagement = CHtml::link(
-            $this->_translate("Link to response alternate management"),
+            $this->translate("Link to response alternate management"),
             $accesUrl,array("target"=>'_blank','class'=>'btn btn-block btn-default btn-lg')
         );
         if($oSurvey->active != "Y") {
             $linkManagement = CHtml::htmlButton(
-                $this->_translate("Link to response alternate management"),
-                array('class'=>'btn btn-block btn-default btn-lg','disabled'=>'disabled','title'=>$this->_translate("Survey is not activated"))
+                $this->translate("Link to response alternate management"),
+                array('class'=>'btn btn-block btn-default btn-lg','disabled'=>'disabled','title'=>$this->translate("Survey is not activated"))
             );
         }
-        $aSettings[$this->_translate('Response Management')] = array(
+        $aSettings[$this->translate('Response Management')] = array(
             'link'=>array(
                 'type'=>'info',
                 'content'=> $linkManagement,
@@ -339,20 +427,20 @@ class responseListAndManage extends PluginBase {
                 'content'=> CHtml::tag("div",array('class'=>'well well-sm'),$stateInfo),
             ),
         );
-        $aSettings[$this->_translate('Response Management table')] = array(
+        $aSettings[$this->translate('Response Management table')] = array(
             'showId' => array(
                 'type'=>'boolean',
-                'label'=>$this->_translate('Show id of response.'),
+                'label'=>$this->translate('Show id of response.'),
                 'current'=>$this->get('showId','Survey',$surveyId,1)
             ),
             'showCompleted' => array(
                 'type'=>'boolean',
-                'label'=>$this->_translate('Show completed state.'),
+                'label'=>$this->translate('Show completed state.'),
                 'current'=>$this->get('showCompleted','Survey',$surveyId,1)
             ),
             'tokenAttributes' => array(
                 'type'=>'select',
-                'label'=>$this->_translate('Token attributes to show in management'),
+                'label'=>$this->translate('Token attributes to show in management'),
                 'options'=>$this->_getTokensAttributeList($surveyId,'tokens.'),
                 'htmlOptions'=>array(
                     'multiple'=>true,
@@ -366,22 +454,22 @@ class responseListAndManage extends PluginBase {
             ),
             'tokenAttributesNone' => array(
                 'type'=>'boolean',
-                'label'=>$this->_translate('Hide all token attributes.'),
+                'label'=>$this->translate('Hide all token attributes.'),
                 'current'=>$this->get('tokenAttributesNone','Survey',$surveyId,0)
             ),
             'tokenColumnOrder' => array(
                 'type'=>'select',
-                'label'=>$this->_translate('Token attributes order'),
+                'label'=>$this->translate('Token attributes order'),
                 'options'=>array(
-                    'start' => $this->_translate("At start (before primary columns)"),
-                    'default' => $this->_translate("Between primary columns and secondary columns (default)"),
-                    'end' => $this->_translate("At end (after all other columns)"),
+                    'start' => $this->translate("At start (before primary columns)"),
+                    'default' => $this->translate("Between primary columns and secondary columns (default)"),
+                    'end' => $this->translate("At end (after all other columns)"),
                 ),
                 'current'=>$this->get('tokenColumnOrder','Survey',$surveyId,'default')
             ),
             'surveyAttributes' => array(
                 'type'=>'select',
-                'label'=>$this->_translate('Survey columns to be show in management'),
+                'label'=>$this->translate('Survey columns to be show in management'),
                 'options'=>$aQuestionList['data'],
                 'htmlOptions'=>array(
                     'multiple'=>true,
@@ -400,8 +488,8 @@ class responseListAndManage extends PluginBase {
             ),
             'surveyAttributesPrimary' => array(
                 'type'=>'select',
-                'label'=> $this->_translate('Survey columns to be show at first'),
-                'help' => $this->_translate('This question are shown at first, just after the id of the reponse.'),
+                'label'=> $this->translate('Survey columns to be show at first'),
+                'help' => $this->translate('This question are shown at first, just after the id of the reponse.'),
                 'options'=>$aQuestionList['data'],
                 'htmlOptions'=>array(
                     'multiple'=>true,
@@ -420,8 +508,8 @@ class responseListAndManage extends PluginBase {
             ),
             'tokenAttributesHideToUser' => array(
                 'type'=>'select',
-                'label'=> $this->_translate('Token columns to be hidden to user (include group administrator)'),
-                'help' => $this->_translate('This column are shown only to LimeSurvey administrator.'),
+                'label'=> $this->translate('Token columns to be hidden to user (include group administrator)'),
+                'help' => $this->translate('This column are shown only to LimeSurvey administrator.'),
                 'options'=>$this->_getTokensAttributeList($surveyId,'tokens.'),
                 'htmlOptions'=>array(
                     'multiple'=>true,
@@ -439,8 +527,8 @@ class responseListAndManage extends PluginBase {
             ),
             'surveyAttributesHideToUser' => array(
                 'type'=>'select',
-                'label'=> $this->_translate('Survey columns to be hidden to user (include group administrator)'),
-                'help' => $this->_translate('This column are shown only to LimeSurvey administrator.'),
+                'label'=> $this->translate('Survey columns to be hidden to user (include group administrator)'),
+                'help' => $this->translate('This column are shown only to LimeSurvey administrator.'),
                 'options'=>$aQuestionList['data'],
                 'htmlOptions'=>array(
                     'multiple'=>true,
@@ -459,23 +547,23 @@ class responseListAndManage extends PluginBase {
             ),
             'showFooter' => array(
                 'type'=>'boolean',
-                'label'=>$this->_translate('Show footer with count and sum.'),
+                'label'=>$this->translate('Show footer with count and sum.'),
                 'current'=>$this->get('showFooter','Survey',$surveyId,0)
             ),
         );
-        $aSettings[$this->_translate('Date/time response management')] = array(
+        $aSettings[$this->translate('Date/time response management')] = array(
             'filterOnDate' => array(
                 'type'=>'boolean',
-                'label'=>$this->_translate('Show filter on date question.'),
+                'label'=>$this->translate('Show filter on date question.'),
                 'current'=>$this->get('filterOnDate','Survey',$surveyId,1)
             ),
             'showDateInfo' => array(
                 'type' => 'info',
-                'content' => CHtml::tag("div",array("class"=>"well"),$this->_translate("All this settings after need date stamped survey.")),
+                'content' => CHtml::tag("div",array("class"=>"well"),$this->translate("All this settings after need date stamped survey.")),
             ),
             'showStartdate' => array(
                 'type'=>'boolean',
-                'label'=>$this->_translate('Show start date.'),
+                'label'=>$this->translate('Show start date.'),
                 
                 'current'=>$this->get('showStartdate','Survey',$surveyId,0)
             ),
@@ -484,14 +572,14 @@ class responseListAndManage extends PluginBase {
                 'options' => array(
                     0 => gT("No"),
                     1 => gT("Yes"),
-                    2 => $this->_translate("Yes with time"),
+                    2 => $this->translate("Yes with time"),
                 ),
-                'label'=>$this->_translate('Show filter on start date.'),
+                'label'=>$this->translate('Show filter on start date.'),
                 'current'=>$this->get('filterStartdate','Survey',$surveyId,0)
             ),
             'showSubmitdate' => array(
                 'type'=>'boolean',
-                'label'=>$this->_translate('Show submit date.'),
+                'label'=>$this->translate('Show submit date.'),
                 'current'=>$this->get('showSubmitdate','Survey',$surveyId,0)
             ),
             'filterSubmitdate' => array(
@@ -499,14 +587,14 @@ class responseListAndManage extends PluginBase {
                 'options' => array(
                     0 => gT("No"),
                     1 => gT("Yes"),
-                    2 => $this->_translate("Yes with time"),
+                    2 => $this->translate("Yes with time"),
                 ),
-                'label'=>$this->_translate('Show filter on submit date.'),
+                'label'=>$this->translate('Show filter on submit date.'),
                 'current'=>$this->get('filterSubmitdate','Survey',$surveyId,0)
             ),
             'showDatestamp' => array(
                 'type'=>'boolean',
-                'label'=>$this->_translate('Show last action date.'),
+                'label'=>$this->translate('Show last action date.'),
                 'current'=>$this->get('showDatestamp','Survey',$surveyId,0)
             ),
             'filterDatestamp' => array(
@@ -514,9 +602,9 @@ class responseListAndManage extends PluginBase {
                 'options' => array(
                     0 => gT("No"),
                     1 => gT("Yes"),
-                    2 => $this->_translate("Yes with time"),
+                    2 => $this->translate("Yes with time"),
                 ),
-                'label'=>$this->_translate('Show filter on start date.'),
+                'label'=>$this->translate('Show filter on start date.'),
                 'current'=>$this->get('filterDatestamp','Survey',$surveyId,0)
             ),
         );
@@ -527,11 +615,11 @@ class responseListAndManage extends PluginBase {
         foreach($oSurvey->getAllLanguages() as $language) {
             $aDescription['description_'.$language] = array(
                 'type' => 'text',
-                'label' => sprintf($this->_translate("In %s language (%s)"),$languageData[$language]['description'],$languageData[$language]['nativedescription']),
+                'label' => sprintf($this->translate("In %s language (%s)"),$languageData[$language]['description'],$languageData[$language]['nativedescription']),
                 'current' => (isset($aDescriptionCurrent[$language]) ? $aDescriptionCurrent[$language] : ""),
             );
         }
-        $aSettings[$this->_translate('Description and helper for responses listing')] = $aDescription;
+        $aSettings[$this->translate('Description and helper for responses listing')] = $aDescription;
         /* Template to be used */
         if(version_compare(Yii::app()->getConfig('versionnumber'),"3",">=")) {
             $oTemplates = TemplateConfiguration::model()->findAll(array(
@@ -543,155 +631,155 @@ class responseListAndManage extends PluginBase {
           $aTemplates = array_keys(Template::getTemplateList());
         }
         $default = $this->get('template',null,null,App()->getConfig('defaulttheme',App()->getConfig('defaulttemplate')));
-        $aSettings[$this->_translate('Template to be used')] = array(
+        $aSettings[$this->translate('Template to be used')] = array(
             'template' => array(
                 'type' => 'select',
-                'label'=> $this->_translate('Template to be used'),
+                'label'=> $this->translate('Template to be used'),
                 'options'=>$aTemplates,
                 'htmlOptions' => array(
-                    'empty'=> sprintf($this->_translate("Leave default (%s)"),$default),
+                    'empty'=> sprintf($this->translate("Leave default (%s)"),$default),
                 ),
                 'current' => $this->get('template','Survey',$surveyId),
             )
         );
         /* Token attribute usage */
-        $aSettings[$this->_translate('Response Management token attribute usage')] = array(
+        $aSettings[$this->translate('Response Management token attribute usage')] = array(
             'tokenAttributeGroup' => array(
                 'type'=>'select',
-                'label'=>$this->_translate('Token attributes for group'),
+                'label'=>$this->translate('Token attributes for group'),
                 'options'=>$this->_getTokensAttributeList($surveyId,''),
                 'htmlOptions'=>array(
-                    'empty'=>$this->_translate("None"),
+                    'empty'=>$this->translate("None"),
                 ),
                 'current'=>$this->get('tokenAttributeGroup','Survey',$surveyId)
             ),
             'tokenAttributeGroupManager' => array(
                 'type'=>'select',
-                'label'=>$this->_translate('Token attributes for group manager'),
+                'label'=>$this->translate('Token attributes for group manager'),
                 'options'=>$this->_getTokensAttributeList($surveyId,''),
                 'htmlOptions'=>array(
-                    'empty'=>$this->_translate("None"),
+                    'empty'=>$this->translate("None"),
                 ),
                 'current'=>$this->get('tokenAttributeGroupManager','Survey',$surveyId)
             ),
             //~ 'tokenAttributeGroupWhole' => array(
                 //~ 'type'=>'boolean',
-                //~ 'label'=>$this->_translate('User of group can see and manage all group response'),
-                //~ 'help'=>$this->_translate('Else only group manager can manage other group response.'),
+                //~ 'label'=>$this->translate('User of group can see and manage all group response'),
+                //~ 'help'=>$this->translate('Else only group manager can manage other group response.'),
                 //~ 'current'=>$this->get('tokenAttributeGroupWhole','Survey',$surveyId,1)
             //~ ),
         );
         /* @todo : get settings of reloadAnyResponse and set warning + readonly on some settings */
         
-        $aSettings[$this->_translate('Response Management access and right')] = array(
+        $aSettings[$this->translate('Response Management access and right')] = array(
             'infoRights' => array(
                 'type'=>'info',
                 'content'=>CHtml::tag("ul",array('class'=>'well well-sm list-unstyled'),
-                    CHtml::tag("li",array(),$this->_translate("Currently, for LimeSurvey admin user, for survey with token, need token read right.")) .
-                    CHtml::tag("li",array(),$this->_translate("For user, except for No : they always have same rights than other, for example if you allow delete to admin user, an user with token can delete his response with token.")) .
-                    CHtml::tag("li",array(),$this->_translate("To disable access for user with token you can set this settings to No or only for LimeSurvey admin.")) .
-                    CHtml::tag("li",array('class'=>'text-warning'),sprintf("<strong>%s</strong>%s",$this->_translate("Warning"),$this->_translate(": you need to update reloadAnyResponse settings and right. This was not fixed here."))) .
+                    CHtml::tag("li",array(),$this->translate("Currently, for LimeSurvey admin user, for survey with token, need token read right.")) .
+                    CHtml::tag("li",array(),$this->translate("For user, except for No : they always have same rights than other, for example if you allow delete to admin user, an user with token can delete his response with token.")) .
+                    CHtml::tag("li",array(),$this->translate("To disable access for user with token you can set this settings to No or only for LimeSurvey admin.")) .
+                    CHtml::tag("li",array('class'=>'text-warning'),sprintf("<strong>%s</strong>%s",$this->translate("Warning"),$this->translate(": you need to update reloadAnyResponse settings and right. This was not fixed here."))) .
                     ""
                 ),
             ),
             'allowAccess' => array(
                 'type'=>'select',
-                'label'=>$this->_translate('Allow to access of tool.'),
+                'label'=>$this->translate('Allow to access of tool.'),
                 'options'=>array(
-                    'limesurvey'=>$this->_translate("Only for LimeSurvey administrator (According to LimeSurvey Permission)"),
-                    'all'=>$this->_translate("All (need a valid token)"),
+                    'limesurvey'=>$this->translate("Only for LimeSurvey administrator (According to LimeSurvey Permission)"),
+                    'all'=>$this->translate("All (need a valid token)"),
                 ),
                 'htmlOptions'=>array(
                     'empty'=>gT("None"),
                 ),
-                'help'=>$this->_translate('You can disable all access with token here. If user can access to the tool, he have same right than LimeSurvey admin on his responses.'),
+                'help'=>$this->translate('You can disable all access with token here. If user can access to the tool, he have same right than LimeSurvey admin on his responses.'),
                 'current'=>$this->get('allowAccess','Survey',$surveyId,'all')
             ),
             'allowSee' => array(
                 'type'=>'select',
-                'label'=>$this->_translate('Allow view response of group'),
+                'label'=>$this->translate('Allow view response of group'),
                 'options'=>array(
-                    'limesurvey'=>$this->_translate("Only for LimeSurvey administrator"),
-                    'admin'=>$this->_translate("For group administrator and LimeSurvey administrator"),
-                    'all'=>$this->_translate("All (with a valid token)"),
+                    'limesurvey'=>$this->translate("Only for LimeSurvey administrator"),
+                    'admin'=>$this->translate("For group administrator and LimeSurvey administrator"),
+                    'all'=>$this->translate("All (with a valid token)"),
                 ),
                 'htmlOptions'=>array(
                     'empty'=>gT("No"),
                 ),
-                'help'=>$this->_translate('Only related to Group responses not to single user responses with token.'),
+                'help'=>$this->translate('Only related to Group responses not to single user responses with token.'),
                 'current'=>$this->get('allowSee','Survey',$surveyId,'all')
             ),
             'allowEdit' => array(
                 'type'=>'select',
-                'label'=>$this->_translate('Allow edit response of group'),
+                'label'=>$this->translate('Allow edit response of group'),
                 'options'=>array(
-                    'limesurvey'=>$this->_translate("Only for LimeSurvey administrator"),
-                    'admin'=>$this->_translate("For group administrator and LimeSurvey administrator"),
-                    'all'=>$this->_translate("All (with a valid token)"),
+                    'limesurvey'=>$this->translate("Only for LimeSurvey administrator"),
+                    'admin'=>$this->translate("For group administrator and LimeSurvey administrator"),
+                    'all'=>$this->translate("All (with a valid token)"),
                 ),
                 'htmlOptions'=>array(
                     'empty'=>gT("No"),
                 ),
-                'help'=>$this->_translate('Need view rights.'),
+                'help'=>$this->translate('Need view rights.'),
                 'current'=>$this->get('allowEdit','Survey',$surveyId,'admin')
             ),
             'allowDelete' => array(
                 'type'=>'select',
-                'label'=>$this->_translate('Allow deletion of response'),
+                'label'=>$this->translate('Allow deletion of response'),
                 'options'=>array(
-                    'limesurvey'=>$this->_translate("Only for LimeSurvey administrator"),
-                    'admin'=>$this->_translate("For group administrator and LimeSurvey administrator"),
-                    'all'=>$this->_translate("All (with a valid token)"),
+                    'limesurvey'=>$this->translate("Only for LimeSurvey administrator"),
+                    'admin'=>$this->translate("For group administrator and LimeSurvey administrator"),
+                    'all'=>$this->translate("All (with a valid token)"),
                 ),
                 'htmlOptions'=>array(
                     'empty'=>gT("No"),
                 ),
-                'help'=>$this->_translate('Need view rights.'),
+                'help'=>$this->translate('Need view rights.'),
                 'current'=>$this->get('allowDelete','Survey',$surveyId,'admin')
             ),
             'allowAdd' => array(
                 'type'=>'select',
-                'label'=>$this->_translate('Allow add response'),
+                'label'=>$this->translate('Allow add response'),
                 'options'=>array(
-                    'limesurvey'=>$this->_translate("Only for LimeSurvey administrator"),
-                    'admin'=>$this->_translate("For group administrator and LimeSurvey administrator"),
-                    'all'=>$this->_translate("All (with a valid token)"),
+                    'limesurvey'=>$this->translate("Only for LimeSurvey administrator"),
+                    'admin'=>$this->translate("For group administrator and LimeSurvey administrator"),
+                    'all'=>$this->translate("All (with a valid token)"),
                 ),
                 'htmlOptions'=>array(
                     'empty'=>gT("No"),
                 ),
-                'help'=>$this->_translate('Need view rights, for administrator, allow to choose token for creation.'),
+                'help'=>$this->translate('Need view rights, for administrator, allow to choose token for creation.'),
                 'current'=>$this->get('allowAdd','Survey',$surveyId,'admin')
             ),
             'allowAddSelf' => array(
                 'type'=>'boolean',
-                'label'=>$this->_translate('Allow add response with existing token according to survey setting'),
-                'help'=>$this->_translate('If survey settings allow user to create new response, add a button to create a new response.'),
+                'label'=>$this->translate('Allow add response with existing token according to survey setting'),
+                'help'=>$this->translate('If survey settings allow user to create new response, add a button to create a new response.'),
                 'current'=>$this->get('allowAddSelf','Survey',$surveyId,true)
             ),
             'allowAddUser' => array(
                 'type'=>'select',
-                'label'=>$this->_translate('Allow add token user'),
+                'label'=>$this->translate('Allow add token user'),
                 'options'=>array(
-                    'limesurvey'=>$this->_translate("Only for LimeSurvey administrator"),
-                    'admin'=>$this->_translate("For group administrator and LimeSurvey administrator"),
-                    'all'=>$this->_translate("All (with a valid token)"),
+                    'limesurvey'=>$this->translate("Only for LimeSurvey administrator"),
+                    'admin'=>$this->translate("For group administrator and LimeSurvey administrator"),
+                    'all'=>$this->translate("All (with a valid token)"),
                 ),
                 'htmlOptions'=>array(
                     'empty'=>gT("No"),
                 ),
-                'help'=>$this->_translate('Need add response right.'),
+                'help'=>$this->translate('Need add response right.'),
                 'current'=>$this->get('allowAddUser','Survey',$surveyId,'admin')
             ),
         );
 
         $exportList = $this->_getExportList();
-        $aSettings[$this->_translate('User tools')] = array(
+        $aSettings[$this->translate('User tools')] = array(
             'showLogOut' => array(
                 'type'=>'select',
-                'label'=>$this->_translate('Show log out button'),
+                'label'=>$this->translate('Show log out button'),
                 'options'=>array(
-                    'limesurvey'=>$this->_translate("Only for LimeSurvey administrator"),
+                    'limesurvey'=>$this->translate("Only for LimeSurvey administrator"),
                     'all'=>gT("Yes"),
                 ),
                 'htmlOptions'=>array(
@@ -701,29 +789,29 @@ class responseListAndManage extends PluginBase {
             ),
             'showSurveyAdminpageLink' => array(
                 'type'=>'select',
-                'label'=>$this->_translate('Show survey admin page link'),
+                'label'=>$this->translate('Show survey admin page link'),
                 'options'=>array(
-                    'limesurvey'=>$this->_translate("All LimeSurvey administrator"),
-                    'admin'=>$this->_translate("LimeSurvey administrator with survey settings right"),
+                    'limesurvey'=>$this->translate("All LimeSurvey administrator"),
+                    'admin'=>$this->translate("LimeSurvey administrator with survey settings right"),
                 ),
                 'htmlOptions'=>array(
                     'empty'=>gT("No"),
                 ),
-                'help'=>$this->_translate('Need add response right.'),
+                'help'=>$this->translate('Need add response right.'),
                 'current'=>$this->get('showSurveyAdminpageLink','Survey',$surveyId,$this->get('showAdminLink',null,null,$this->settings['showAdminLink']['default']) ? 'admin': null)
             ),
             'showExportLink' => array(
                 'type'=>'select',
-                'label'=>$this->_translate('Show export for checked response'),
+                'label'=>$this->translate('Show export for checked response'),
                 'options'=>array(
-                    'limesurvey'=>$this->_translate("Only for LimeSurvey administrator"),
+                    'limesurvey'=>$this->translate("Only for LimeSurvey administrator"),
                     'all'=>gT("Yes"),
                 ),
                 'current'=>$this->get('showExportLink','Survey',$surveyId,$this->get('showExportLink',null,null,'limesurvey')),
             ),
             'exportType' => array(
                 'type' => 'select',
-                'label'=>$this->_translate('Export type'),
+                'label'=>$this->translate('Export type'),
                 'options'=>$exportList,
                 'htmlOptions'=>array(
                     'empty'=>gT("None"),
@@ -732,7 +820,7 @@ class responseListAndManage extends PluginBase {
             ),
             'exportHeadexports' => array(
                 'type' => 'select',
-                'label'=>$this->_translate('Export questions as'),
+                'label'=>$this->translate('Export questions as'),
                 'options'=> array(
                     'code' => gT("Question code"),
                     'abbreviated' => gT("Abbreviated question text"),
@@ -743,7 +831,7 @@ class responseListAndManage extends PluginBase {
             ),
             'exportAnswers' => array(
                 'type' => 'select',
-                'label'=>$this->_translate('Export responses as'),
+                'label'=>$this->translate('Export responses as'),
                 'options'=> array(
                     'short' => gT("Answer codes"),
                     'long' => gT("Full answers"),
@@ -752,23 +840,23 @@ class responseListAndManage extends PluginBase {
             ),
         );
 
-        $aSettings[$this->_translate('Survey behaviour')] = array(
+        $aSettings[$this->translate('Survey behaviour')] = array(
             'afterSaveAll' => array(
                 'type'=>'select',
-                'label'=>$this->_translate('Action to do after save'),
+                'label'=>$this->translate('Action to do after save'),
                 'options'=>array(
-                    'replace' => $this->_translate('Replace totally the content and close dialog box, this can disable other plugin system.'),
-                    'js' => $this->_translate('Only close dialog box'),
-                    'none' => $this->_translate('Return to survey'),
+                    'replace' => $this->translate('Replace totally the content and close dialog box, this can disable other plugin system.'),
+                    'js' => $this->translate('Only close dialog box'),
+                    'none' => $this->translate('Return to survey'),
                 ),
                 'htmlOptions'=>array(
-                    'empty'=> sprintf($this->_translate("Leave default (%s)"),$this->get('afterSaveAll',null,null,'replace')),
+                    'empty'=> sprintf($this->translate("Leave default (%s)"),$this->get('afterSaveAll',null,null,'replace')),
                 ),
                 'current'=>$this->get('afterSaveAll','Survey',$surveyId,''),
             ),
             'saveAllAsDraft' => array(
                 'type'=>'select',
-                'label'=>$this->_translate('Save all reset submitdate (set as draft)'),
+                'label'=>$this->translate('Save all reset submitdate (set as draft)'),
                 'options'=>array(
                     1 => gT("Yes"),
                 ),
@@ -776,7 +864,7 @@ class responseListAndManage extends PluginBase {
                     'empty'=>gT("No"),
                 ),
                 'current'=>$this->get('saveAllAsDraft','Survey',$surveyId,1),
-                'help' => ($oSurvey->alloweditaftercompletion != "Y") ? "<div class='text-danger'>".$this->_translate("Survey participant settings, allow multiple responses is off : survey is set as draft when opened")."</div>": "",
+                'help' => ($oSurvey->alloweditaftercompletion != "Y") ? "<div class='text-danger'>".$this->translate("Survey participant settings, allow multiple responses is off : survey is set as draft when opened")."</div>": "",
             ),
         );
         $aData['pluginClass']=get_class($this);
@@ -801,25 +889,25 @@ class responseListAndManage extends PluginBase {
         $userHaveRight = false;
         $settingAllowAccess = $this->get('showExportLink','Survey',$surveyId,'limesurvey');
         if(empty($settingAllowAccess)) {
-            throw new CHttpException(403,$this->_translate("This action was not allowed"));
+            throw new CHttpException(403,$this->translate("This action was not allowed"));
         }
         $exportType = $this->get('exportType','Survey',$surveyId);
 
         if(empty($exportType)) {
-            throw new CHttpException(403,$this->_translate("This action was not allowed"));
+            throw new CHttpException(403,$this->translate("This action was not allowed"));
         }
         if (Permission::model()->hasSurveyPermission($surveyId, 'responses', 'export')) {
             $userHaveRight = true;
         }
         if (!$userHaveRight && $settingAllowAccess == 'limesurvey') {
-            throw new CHttpException(401,$this->_translate("This action was not allowed with your current rights."));
+            throw new CHttpException(401,$this->translate("This action was not allowed with your current rights."));
         }
         $oSurvey = \Survey::model()->findByPk($surveyId);
         if (!$userHaveRight && !$this->_allowTokenLink($oSurvey)) {
-            throw new CHttpException(403,$this->_translate("This action was not allowed"));
+            throw new CHttpException(403,$this->translate("This action was not allowed"));
         }
         if(!$userHaveRight && !$currenttoken) {
-            throw new CHttpException(401,$this->_translate("This action was not allowed without a valid token."));
+            throw new CHttpException(401,$this->translate("This action was not allowed without a valid token."));
         }
         $aFilters = array();
         $checkeds = Yii::app()->getRequest()->getParam("checkeds","");
@@ -886,9 +974,6 @@ class responseListAndManage extends PluginBase {
     */
     public function newSurveySettings()
     {
-        if(!$this->_isUsable()) {
-            return;
-        }
         $event = $this->event;
         foreach ($event->get('settings') as $name => $value) {
             $this->set($name, $value, 'Survey', $event->get('survey'));
@@ -899,10 +984,6 @@ class responseListAndManage extends PluginBase {
     public function newDirectRequest()
     {
         if($this->getEvent()->get('target') != get_class($this)) {
-            return;
-        }
-        if(!$this->_isUsable()) {
-            // throw error ?
             return;
         }
         $this->_setConfig();
@@ -1013,7 +1094,7 @@ class responseListAndManage extends PluginBase {
         }
         if($oSurvey->active != 'Y') {
             if (Permission::model()->hasSurveyPermission($surveyId, 'responses', 'read')) {
-                throw new CHttpException(400, $this->_translate("Survey is not activated"));
+                throw new CHttpException(400, $this->translate("Survey is not activated"));
             }
             throw new CHttpException(403);
         }
@@ -1038,7 +1119,7 @@ class responseListAndManage extends PluginBase {
                 /* redirect to avoid CRSF when reload */
                 Yii::app()->getController()->redirect(array("plugins/direct", 'plugin' => get_class(),'sid'=>$surveyId));
             } else {
-                $this->aRenderData['error'] = $this->_translate("This code is invalid.");
+                $this->aRenderData['error'] = $this->translate("This code is invalid.");
             }
         }
         $currentToken = $this->_getCurrentToken($surveyId);
@@ -1053,7 +1134,7 @@ class responseListAndManage extends PluginBase {
                 $this->_showTokenForm($surveyId);
             } else {
                 $this->_doLogin();
-                //throw new CHttpException(401,$this->_translate("Sorry, no access on this survey."));
+                //throw new CHttpException(401,$this->translate("Sorry, no access on this survey."));
             }
         }
         $oSurvey = Survey::model()->findByPk($surveyId);
@@ -1104,7 +1185,7 @@ class responseListAndManage extends PluginBase {
         $settingAllowDelete = $this->get('allowDelete','Survey',$surveyId,'admin');
         $settingAllowAdd = $this->get('allowAdd','Survey',$surveyId,'admin');
         $settingAllowAddUser = $this->get('allowAddUser','Survey',$surveyId,'admin');
-
+        /* Set forced allow accedd */
         $tokenAttributeGroup = $this->get('tokenAttributeGroup','Survey',$surveyId,null);
         $tokenAttributeGroupManager = $this->get('tokenAttributeGroupManager','Survey',$surveyId,null);
         $tokenGroup = null;
@@ -1121,6 +1202,9 @@ class responseListAndManage extends PluginBase {
             $allowDelete = $allowSee && $settingAllowDelete && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'delete');
             $allowAdd = $settingAllowAdd && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'create');
             $allowAddUser = $this->_allowTokenLink($oSurvey) && $settingAllowAddUser && Permission::model()->hasSurveyPermission($surveyId, 'token', 'create');
+            if($allowEdit) {
+                \reloadAnyResponse\Utilities::setForcedAllowedSettings($surveyId,'allowAdminUser');
+            }
         }
         if($currentToken) {
             $aTokens = (array) $currentToken;
@@ -1142,9 +1226,15 @@ class responseListAndManage extends PluginBase {
                 }
             }
             $mResponse->setAttribute('token', $aTokens);
-
             if(!$allowAccess && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'read')) {
-                throw new CHttpException(403, $this->_translate('You are not allowed to use reponse management with this token.'));
+                throw new CHttpException(403, $this->translate('You are not allowed to use reponse management with this token.'));
+            }
+            if($allowEdit) {
+                \reloadAnyResponse\Utilities::setForcedAllowedSettings($surveyId,'allowAdminUser');
+                \reloadAnyResponse\Utilities::setForcedAllowedSettings($surveyId,'allowTokenUser');
+                if($isManager || ($settingAllowSee  == 'all' && $settingAllowEdit == 'all')) {
+                    \reloadAnyResponse\Utilities::setForcedAllowedSettings($surveyId,'allowTokenGroupUser');
+                }
             }
         }
         Yii::app()->user->setState('responseListAndManagePageSize',intval(Yii::app()->request->getParam('pageSize',Yii::app()->user->getState('responseListAndManagePageSize',50))));
@@ -1212,14 +1302,14 @@ class responseListAndManage extends PluginBase {
 
         $addNew ='';
         if(Permission::model()->hasSurveyPermission($surveyId, 'responses', 'create') && !$this->_surveyHasTokens($oSurvey)) {
-            $addNew = CHtml::link("<i class='fa fa-plus-circle' aria-hidden='true'></i> ".$this->_translate("Create an new response"),
-                array("survey/index",'sid'=>$surveyId,'newtest'=>"Y",'plugin'=>get_class($this)),
+            $addNew = CHtml::link("<i class='fa fa-plus-circle' aria-hidden='true'></i> ".$this->translate("Create an new response"),
+                array("survey/index",'sid'=>$surveyId,'newtest'=>"Y",'srid'=>'new','plugin'=>get_class($this)),
                 array('class'=>'btn btn-default btn-sm  addnew')
             );
         }
         if($allowAdd && $singleToken) {
             if($this->_allowMultipleResponse($oSurvey)) {
-                $addNew = CHtml::link("<i class='fa fa-plus-circle' aria-hidden='true'></i> ".$this->_translate("Create an new response"),
+                $addNew = CHtml::link("<i class='fa fa-plus-circle' aria-hidden='true'></i> ".$this->translate("Create an new response"),
                     array("survey/index",'sid'=>$surveyId,'newtest'=>"Y",'srid'=>'new','token'=>$singleToken,'plugin'=>get_class($this)),
                     array('class'=>'btn btn-default btn-sm addnew')
                 );
@@ -1227,7 +1317,7 @@ class responseListAndManage extends PluginBase {
         }
         if(!$allowAdd && $currentToken) {
             if($this->get('allowAddSelf','Survey',$surveyId,true) && $this->_allowMultipleResponse($oSurvey)) {
-                $addNew = CHtml::link("<i class='fa fa-plus-circle' aria-hidden='true'></i> ".$this->_translate("Create an new response"),
+                $addNew = CHtml::link("<i class='fa fa-plus-circle' aria-hidden='true'></i> ".$this->translate("Create an new response"),
                     array("survey/index",'sid'=>$surveyId,'newtest'=>"Y",'srid'=>'new','token'=>$currentToken,'plugin'=>get_class($this)),
                     array('class'=>'btn btn-default btn-sm addnew')
                 );
@@ -1236,12 +1326,13 @@ class responseListAndManage extends PluginBase {
         if($allowAdd && !empty($tokenList) && !$singleToken) {
             $addNew  = CHtml::beginForm(array("survey/index"),'get',array('class'=>"form-inline"));
             $addNew .= CHtml::hiddenField('sid',$surveyId);
+            $addNew .= CHtml::hiddenField('srid','new');
             $addNew .= CHtml::hiddenField('newtest',"Y");
             $addNew .= CHtml::hiddenField('plugin',get_class($this));
             //~ $addNew .= '<div class="form-group"><div class="input-group">';
             $addNew .= CHtml::dropDownList('token',$currentToken,$tokenList,array('class'=>'form-control input-sm','empty'=>gT("Please choose...")));
-            $addNew .= CHtml::htmlButton("<i class='fa fa-plus-circle' aria-hidden='true'></i> ".$this->_translate("Create an new response"),
-                array("type"=>'button','name'=>'srid','value'=>'new','class'=>'btn btn-default btn-sm addnew')
+            $addNew .= CHtml::htmlButton("<i class='fa fa-plus-circle' aria-hidden='true'></i> ".$this->translate("Create an new response"),
+                array("type"=>'submit','name'=>'addnew','value'=>'new','class'=>'btn btn-default btn-sm addnew')
             );
             //~ $addNew .= '</div></div>';
 
@@ -1374,7 +1465,7 @@ class responseListAndManage extends PluginBase {
             'template'=>'{update}{delete}',
             'updateButtonUrl'=>$updateButtonUrl,
             'deleteButtonUrl'=>$deleteButtonUrl,
-            'footer' => ($this->get('showFooter','Survey',$surveyId,false) ? $this->_translate("Answered count and sum") : null),
+            'footer' => ($this->get('showFooter','Survey',$surveyId,false) ? $this->translate("Answered count and sum") : null),
         );
         foreach($aRestrictedColumns as $key) {
             if(isset($aColumns[$key])) {
@@ -1385,26 +1476,46 @@ class responseListAndManage extends PluginBase {
         $this->aRenderData['addUser'] = array();
         $this->aRenderData['addUserButton'] = '';
         if($allowAddUser) {
-            $this->aRenderData['addUserButton'] = CHtml::htmlButton("<i class='fa fa-user-plus ' aria-hidden='true'></i>".$this->_translate("Create an new user"),
+            $this->aRenderData['addUserButton'] = CHtml::htmlButton("<i class='fa fa-user-plus ' aria-hidden='true'></i>".$this->translate("Create an new user"),
                 array("type"=>'button','name'=>'adduser','value'=>'new','class'=>'btn btn-default btn-sm addnewuser')
             );
             $this->aRenderData['addUser'] = $this->_addUserDataForm($surveyId,$currentToken);
         }
-        if(empty($this->aRenderData['lang'])) {
-            $this->aRenderData['lang'] = array();
+        /* whole translations */
+        $this->aRenderData['lang'] = $this->getTranslations();
+
+        /* The modal valid buttons */
+        $allowsaveall = false;
+        if(Yii::getPathOfAlias('autoSaveAndQuit')) {
+            $autoSaveAndQuitActive = \autoSaveAndQuit\Utilities::getSetting($surveyId,'autoSaveAndQuitActive');
+            $autoSaveAndQuitRestrict = \autoSaveAndQuit\Utilities::getSetting($surveyId,'autoSaveAndQuitRestrict');
+            if($autoSaveAndQuitActive != 'always' || $autoSaveAndQuitRestrict == 'ondemand') {
+                $allowsaveall = true;
+            }
         }
-        $this->aRenderData['lang']['Close'] = gT("Close");
-        $this->aRenderData['lang']['Delete'] = $this->_translate("Delete");
-        if($oSurvey->allowprev == "Y") {
-            $this->aRenderData['lang']['Previous'] = gT("Previous");
+        
+        $modalButtons = array(
+            'close' => 'close',
+        );
+        $clearAllAction = \reloadAnyResponse\Utilities::getSetting($surveyId, 'clearAllAction');
+        if ($clearAllAction == 'all') {
+            $modalButtons['delete'] = "delete";
         }
-        if($oSurvey->allowsave == "Y") { // We don't need to test token, we don't shown default save part …
-            $this->aRenderData['lang']['Save'] = gT("Save");
+        if($oSurvey->format!="A" && $oSurvey->allowprev == "Y") {
+            $modalButtons['moveprev'] = "moveprev";
         }
-        if($oSurvey->format!="A") {
-            $this->aRenderData['lang']['Next'] = gT("Next");
+        if($oSurvey->allowsave == "Y") {
+            if($allowsaveall) {
+                $modalButtons['saveall'] = "saveall";
+            }
+           $modalButtons['saveallquit'] = "saveallquit";
         }
-        $this->aRenderData['lang']['Submit'] = gT("Submit");
+        if($oSurvey->format != "A") {
+            $modalButtons['movenext'] = "movenext";
+        }
+        $modalButtons['movesubmit'] = "movesubmit";
+        $this->aRenderData['modalButtons'] = $modalButtons;
+        /* model */
         $this->aRenderData['model'] = $mResponse;
         // Add comment block
         $aDescriptionCurrent = $this->get('description','Survey',$surveyId);
@@ -1429,11 +1540,11 @@ class responseListAndManage extends PluginBase {
     {
         $oSurvey = Survey::model()->findByPk($surveyId);
         if(!$oSurvey) {
-            throw new CHttpException(404, $this->_translate("Invalid survey id."));
+            throw new CHttpException(404, $this->translate("Invalid survey id."));
         }
         $oResponse = Response::model($surveyId)->findByPk($srid);
         if(!$oResponse) {
-            throw new CHttpException(404, $this->_translate("Invalid response id."));
+            throw new CHttpException(404, $this->translate("Invalid response id."));
         }
         $allowed = false;
         /* Is an admin */
@@ -1470,7 +1581,7 @@ class responseListAndManage extends PluginBase {
             }
         }
         if(!$allowed) {
-            throw new CHttpException(401, $this->_translate('No right to delete this reponse.'));
+            throw new CHttpException(401, $this->translate('No right to delete this reponse.'));
         }
         if(!Response::model($surveyId)->deleteByPk($srid)) {
             throw new CHttpException(500, CHtml::errorSummary(Response::model($surveyId)));
@@ -1487,10 +1598,10 @@ class responseListAndManage extends PluginBase {
             'status' => null,
         );
         if(!$oSurvey) {
-            throw new CHttpException(404, $this->_translate('Invalid survey id.'));
+            throw new CHttpException(404, $this->translate('Invalid survey id.'));
         }
         if(!$this->_allowTokenLink($oSurvey)) {
-            throw new CHttpException(403, $this->_translate('Token creation is disable for this survey.'));
+            throw new CHttpException(403, $this->translate('Token creation is disable for this survey.'));
         }
         $allowAddSetting = $this->get('allowAdd','Survey',$surveyId,'admin');
         $allowAddUserSetting =  $this->get('allowAddUser','Survey',$surveyId,'admin');
@@ -1510,7 +1621,7 @@ class responseListAndManage extends PluginBase {
         
         if(!Permission::model()->hasSurveyPermission($surveyId, 'token', 'create')) {
             if(!$allowAddUser) {
-                throw new CHttpException(403, $this->_translate('No right to create new token in this survey.'));
+                throw new CHttpException(403, $this->translate('No right to create new token in this survey.'));
             }
         }
         $oToken = Token::create($surveyId);
@@ -1532,9 +1643,9 @@ class responseListAndManage extends PluginBase {
         $oToken->save();
 
         if(!$this->_sendMail($surveyId,$oToken,App()->getRequest()->getParam('emailsubject'),App()->getRequest()->getParam('emailbody'))) {
-            $html = sprintf($this->_translate("Token created but unable to send the email, token code is %s"),CHtml::tag('code',array(),$oToken->token));
+            $html = sprintf($this->translate("Token created but unable to send the email, token code is %s"),CHtml::tag('code',array(),$oToken->token));
             $html.= CHtml::tag("hr");
-            $html.= CHtml::tag("strong",array('class'=>'block'),$this->_translate('Error return by mailer:'));
+            $html.= CHtml::tag("strong",array('class'=>'block'),$this->translate('Error return by mailer:'));
             $html.= CHtml::tag("div",array(),$this->mailError);
             $this->_returnJson(array(
                 'status'=>'warning',
@@ -1557,30 +1668,19 @@ class responseListAndManage extends PluginBase {
     }
 
     /** @inheritdoc **/
-    public function getPluginSettings($getValues=true)
+    public function getPluginSettings($getValues = true)
     {
         if(Yii::app() instanceof CConsoleApplication) {
             return;
         }
-        //~ if(!$getValues) {
-            //~ return;
-        //~ }
-        if(!$this->_isUsable()){
-            $warningMessage = "";
-            $haveGetQuestionInformation = Yii::getPathOfAlias('getQuestionInformation');
-            if(!$haveGetQuestionInformation) {
-                $warningMessage .= CHtml::tag("p",array(),sprintf($this->_translate("Unable to use this plugin, you need %s plugin."),CHtml::link("getQuestionInformation","https://gitlab.com/SondagesPro/coreAndTools/getQuestionInformation")));
-            }
-            $haveReloadAnyResponse = Yii::getPathOfAlias('reloadAnyResponse');
-            if(!$haveReloadAnyResponse) {
-                $warningMessage .= CHtml::tag("p",array(),sprintf($this->_translate("Unable to use this plugin, you need %s plugin."),CHtml::link("getQuestionInformation","https://gitlab.com/SondagesPro/coreAndTools/getQuestionInformation")));
-            }
+        if(!$this->getIsUsable()){
+            $warningMessages = $this->getErrorsUnUsable();
             $this->settings = array(
                 'unable'=> array(
                     'type' => 'info',
-                    'content' => CHtml::tag("div",
+                    'content' => CHtml::tag("ul",
                         array('class'=>'alert alert-warning'),
-                        $warningMessage
+                        "<li>".implode("</li><li>",$warningMessages)."</li>"
                     ),
                 ),
             );
@@ -1591,43 +1691,35 @@ class responseListAndManage extends PluginBase {
         /* @todo : return if not needed */
         $accesUrl = Yii::app()->createUrl("plugins/direct", array('plugin' => get_class()));
         $accesHtmlUrl = CHtml::link($accesUrl,$accesUrl);
-        $pluginSettings['information']['content'] = sprintf($this->_translate("Access link for survey listing : %s."),$accesHtmlUrl);
-        if(version_compare(Yii::app()->getConfig('versionnumber'),"3",">=")) {
-            $oTemplates = TemplateConfiguration::model()->findAll(array(
-                'condition'=>'sid IS NULL',
-            ));
-            $aTemplates = CHtml::listData($oTemplates,'template_name','template_name');
-        }
-        if(version_compare(Yii::app()->getConfig('versionnumber'),"3","<")) {
-          $aTemplates = array_keys(Template::getTemplateList());
-        }
+        $pluginSettings['information']['content'] = sprintf($this->translate("Access link for survey listing : %s."),$accesHtmlUrl);
+        $oTemplates = TemplateConfiguration::model()->findAll(array(
+            'condition'=>'sid IS NULL',
+        ));
+        $aTemplates = CHtml::listData($oTemplates,'template_name','template_name');
         $pluginSettings['template'] = array_merge($pluginSettings['template'],array(
             'type' => 'select',
             'options'=>$aTemplates,
-            'label'=> $this->_translate('Template to be used.'),
+            'label'=> $this->translate('Template to be used.'),
         ));
         $pluginSettings['showLogOut'] = array_merge($pluginSettings['showLogOut'],array(
-            'label'=> $this->_translate('Show log out.'),
-            'help' => $this->_translate('On survey list and by default for admin'),
+            'label'=> $this->translate('Show log out.'),
+            'help' => $this->translate('On survey list and by default for admin'),
         ));
         $pluginSettings['showAdminLink'] =  array_merge($pluginSettings['showAdminLink'],array(
-            'label'=> $this->_translate('Show LimeSurvey admininstration link.'),
-            'help' => $this->_translate('On survey list and by default for admin'),
+            'label'=> $this->translate('Show LimeSurvey admininstration link.'),
+            'help' => $this->translate('On survey list and by default for admin'),
         ));
-        /* Validate version_number more than 3.0 ?*/
-        if(version_compare(App()->getConfig("versionnumber"),"3",">=") ) {
-            /* Find if menu already exist */
-            $oSurveymenuEntries = SurveymenuEntries::model()->find("name = :name",array(":name"=>'reponseListAndManage'));
-            $state = !empty($oSurveymenuEntries);
-            $help = $state ? $this->_translate('Menu exist, to delete : uncheck box and validate.') : $this->_translate("Menu didn‘t exist, to create check box and validate." );
-            $pluginSettings['createSurveyMenu'] = array(
-                'type' => 'checkbox',
-                'label'=> $this->_translate('Add a menu to responses management in surveys.'),
-                'default' => false,
-                'help' => $help,
-                'current' => $state,
-            );
-        }
+        /* Find if menu already exist */
+        $oSurveymenuEntries = SurveymenuEntries::model()->find("name = :name",array(":name"=>'reponseListAndManage'));
+        $state = !empty($oSurveymenuEntries);
+        $help = $state ? $this->translate('Menu exist, to delete : uncheck box and validate.') : $this->translate("Menu didn‘t exist, to create check box and validate." );
+        $pluginSettings['createSurveyMenu'] = array(
+            'type' => 'checkbox',
+            'label'=> $this->translate('Add a menu to responses management in surveys.'),
+            'default' => false,
+            'help' => $help,
+            'current' => $state,
+        );
         return $pluginSettings;
     }
 
@@ -1868,19 +1960,19 @@ class responseListAndManage extends PluginBase {
             if($tokenAttributeGroup) {
                 $addUser["attributeGroup"] = $aAllAttributes[$tokenAttributeGroup];
                 $addUser["attributeGroup"]['attribute'] = $tokenAttributeGroup;
-                $addUser["attributeGroup"]['caption'] = ($aSurveyInfo['attributecaptions'][$tokenAttributeGroup] ? $aSurveyInfo['attributecaptions'][$tokenAttributeGroup] : ($aAllAttributes[$tokenAttributeGroup]['description'] ? $aAllAttributes[$tokenAttributeGroup]['description'] : $this->_translate("Is a group manager")));
+                $addUser["attributeGroup"]['caption'] = ($aSurveyInfo['attributecaptions'][$tokenAttributeGroup] ? $aSurveyInfo['attributecaptions'][$tokenAttributeGroup] : ($aAllAttributes[$tokenAttributeGroup]['description'] ? $aAllAttributes[$tokenAttributeGroup]['description'] : $this->translate("Is a group manager")));
             }
             if($tokenAttributeGroupManager) {
                 $addUser["tokenAttributeGroupManager"] = $aAllAttributes[$tokenAttributeGroup];
                 $addUser["tokenAttributeGroupManager"]['attribute'] = $tokenAttributeGroup;
-                $addUser["tokenAttributeGroupManager"]['caption'] = ($aSurveyInfo['attributecaptions'][$tokenAttributeGroupManager] ? $aSurveyInfo['attributecaptions'][$tokenAttributeGroupManager] : ($aAllAttributes[$tokenAttributeGroupManager]['description'] ? $aAllAttributes[$tokenAttributeGroupManager]['description'] : $this->_translate("Is a group manager")));
+                $addUser["tokenAttributeGroupManager"]['caption'] = ($aSurveyInfo['attributecaptions'][$tokenAttributeGroupManager] ? $aSurveyInfo['attributecaptions'][$tokenAttributeGroupManager] : ($aAllAttributes[$tokenAttributeGroupManager]['description'] ? $aAllAttributes[$tokenAttributeGroupManager]['description'] : $this->translate("Is a group manager")));
             }
         }
         $emailType = 'register';
         $addUser['email'] = array(
             'subject' => $aSurveyInfo['email_'.$emailType.'_subj'],
             'body' => str_replace("<br />","<br>",$aSurveyInfo['email_'.$emailType]),
-            'help' => sprintf($this->_translate("You can use token information like %s or %s, %s was replaced by the url for managing response."),"&#123;FIRSTNAME&#125;","&#123;ATTRIBUTE_1&#125;","&#123;SURVEYURL&#125;"),
+            'help' => sprintf($this->translate("You can use token information like %s or %s, %s was replaced by the url for managing response."),"&#123;FIRSTNAME&#125;","&#123;ATTRIBUTE_1&#125;","&#123;SURVEYURL&#125;"),
             'html' => $oSurvey->htmlemail == "Y",
         );
         
@@ -2009,122 +2101,67 @@ class responseListAndManage extends PluginBase {
      */
     private function _render($fileRender)
     {
-        $versionNumber = Yii::app()->getConfig('versionnumber');
-        $aVersion = array(0,0,0)+explode(".",$versionNumber);
         $surveyId = empty($this->aRenderData['surveyId']) ? null : $this->aRenderData['surveyId'];
+        if(empty($this->aRenderData['aSurveyInfo'])) {
+            $this->aRenderData['aSurveyInfo'] = array(
+                'surveyls_title' => App()->getConfig('sitename'),
+                'name' => App()->getConfig('sitename'),
+            );
+        } 
         $event = new PluginEvent('beforeRenderResponseListAndManage');
         $event->set('surveyId', $surveyId);
         $event->set('token',$this->_getCurrentToken($surveyId));
         App()->getPluginManager()->dispatchEvent($event);
         $this->aRenderData['pluginHtml'] = (string) $event->get('html');
-
-        if(version_compare(Yii::app()->getConfig('versionnumber'),"3.10",">=")) {
-            /* Fix it to use renderMessage ! */
-            $this->aRenderData['pluginName'] = $pluginName = get_class($this);
-            $this->aRenderData['plugin'] = $this;
-            $this->aRenderData['username'] = $this->_isLsAdmin() ? Yii::app()->user->getName() : null;
-            /* @todo move it to twig if able */
-            /* $this->subscribe('getPluginTwigPath'); */
-            $responselist = Yii::app()->getController()->renderPartial(get_class($this).".views.content.".$fileRender,$this->aRenderData,true);
-            $templateName = Template::templateNameFilter($this->get('template',null,null,Yii::app()->getConfig('defaulttheme')));
-            if($surveyId) {
-                if($this->get('template','Survey',$surveyId)) {
-                    $templateName = Template::templateNameFilter($this->get('template','Survey',$surveyId));
-                    if($templateName == Yii::app()->getConfig('defaulttheme')) {
-                        $templateName = Template::templateNameFilter($this->get('template',null,null,Yii::app()->getConfig('defaulttheme')));
-                    }
-                }
-            }
-            App()->getClientScript()->registerPackage("bootstrap-datetimepicker");
-            Yii::setPathOfAlias(get_class($this),dirname(__FILE__));
-            Yii::app()->clientScript->addPackage('responselistandmanage', array(
-                'basePath'    => get_class($this).'.assets.responselistandmanage',
-                'js'          => array('responselistandmanage.js'),
-                'css'          => array('responselistandmanage.css'),
-                'depends'      =>array('jquery'),
-            ));
-            $this->subscribe('getPluginTwigPath');
-            Yii::app()->getClientScript()->registerPackage('responselistandmanage');
-            Template::model()->getInstance($templateName, null);
-            Template::model()->getInstance($templateName, null)->oOptions->ajaxmode = 'off';
-            //~ tracevar(Template::model()->getInstance($templateName, null));
-            if(empty($this->aRenderData['aSurveyInfo'])) {
-                $this->aRenderData['aSurveyInfo'] = array(
-                    'surveyls_title' => App()->getConfig('sitename'),
-                    'name' => App()->getConfig('sitename'),
-                );
-            }
-            $renderTwig['aSurveyInfo'] = $this->aRenderData['aSurveyInfo'];
-            $renderTwig['aSurveyInfo']['name'] = sprintf($this->_translate("Reponses of %s survey"),$renderTwig['aSurveyInfo']['name']);
-            $renderTwig['aSurveyInfo']['active'] = 'Y'; // Didn't show the default warning
-            $renderTwig['aSurveyInfo']['showprogress'] = 'N'; // Didn't show progress bar
-            $renderTwig['aSurveyInfo']['include_content'] = 'responselistandmanage';
-            $renderTwig['responseListAndManage']['responselist'] = $responselist;
-            Yii::app()->twigRenderer->renderTemplateFromFile('layout_global.twig', $renderTwig, false);
-            Yii::app()->end();
-        }
-
-        //Yii::app()->bootstrap->init();
-        if(version_compare(Yii::app()->getConfig('versionnumber'),"3",">=")) {
-            /* Fix it to use renderMessage ! */
-            $templateName = Template::templateNameFilter($this->get('template',null,null,Yii::app()->getConfig('defaulttheme')));
-            if($surveyId) {
-                if($this->get('template','Survey',$surveyId)) {
-                    $templateName = Template::templateNameFilter($this->get('template','Survey',$surveyId));
-                    if($templateName == Yii::app()->getConfig('defaulttheme')) {
-                        $templateName = Template::templateNameFilter($this->get('template',null,null,Yii::app()->getConfig('defaulttheme')));
-                    }
-                }
-            }
-            $this->aRenderData['oTemplate'] = $oTemplate  = Template::model()->getInstance($templateName);
-            Yii::app()->clientScript->registerPackage($oTemplate->sPackageName, LSYii_ClientScript::POS_BEGIN);
-            App()->getClientScript()->registerPackage("bootstrap-datetimepicker");
-            $this->aRenderData['title'] = isset($this->aRenderData['title']) ? $this->aRenderData['title'] : App()->getConfig('sitename');
-            $pluginName = get_class($this);
-            Yii::setPathOfAlias($pluginName, dirname(__FILE__));
-            //$oEvent=$this->event;
-            Yii::app()->controller->layout='bare'; // bare don't have any HTML
-            $this->aRenderData['assetUrl'] = Yii::app()->assetManager->publish(dirname(__FILE__) . '/assets/responselistandmanage');
-            $this->aRenderData['subview']="content.{$fileRender}";
-            $this->aRenderData['showAdminSurvey'] = false; // @todo Permission::model()->hasSurveyPermission($this->iSurveyId,'surveysettings','update');
-            $this->aRenderData['showAdmin'] = false; // What can be the best solution ?
-            $this->aRenderData['pluginName'] = $pluginName;
-            $this->aRenderData['username'] = false;
-            
-            Yii::app()->controller->render($pluginName.".views.layout",$this->aRenderData);
-            Yii::app()->end();
-        }
-        /* Finally 2.5X version */
-        if($surveyId) {
-            Yii::app()->setConfig('surveyID',$surveyId);
-        }
-        $this->aRenderData['title'] = isset($this->aRenderData['title']) ? $this->aRenderData['title'] : App()->getConfig('sitename');
-        $pluginName = get_class($this);
-        $this->aRenderData['assetUrl'] = $assetUrl = Yii::app()->assetManager->publish(dirname(__FILE__) . '/assets/responselistandmanage');
-        $this->aRenderData['subview']="content.{$fileRender}";
-        $this->aRenderData['showAdminSurvey'] = false; // @todo Permission::model()->hasSurveyPermission($this->iSurveyId,'surveysettings','update');
-        $this->aRenderData['showAdmin'] = false; // What can be the best solution ?
-        $this->aRenderData['pluginName'] = $pluginName;
-        $this->aRenderData['username'] = false;
-        App()->getClientScript()->registerPackage("bootstrap");
-        App()->getClientScript()->registerPackage("fontawesome");
-        App()->getClientScript()->registerPackage("bootstrap-datetimepicker");
-        Yii::app()->getClientScript()->registerMetaTag('width=device-width, initial-scale=1.0', 'viewport');
-        App()->bootstrap->registerAllScripts();
-        App()->getClientScript()->registerCssFile($assetUrl."/responselistandmanage.css");
-        App()->getClientScript()->registerScriptFile($assetUrl."/responselistandmanage.js");
-        $message = Yii::app()->controller->renderPartial($pluginName.".views.content.".$fileRender,$this->aRenderData,true);
-        $templateName = Template::templateNameFilter($this->get('template',null,null,Yii::app()->getConfig('defaulttemplate')));
+        $this->aRenderData['pluginName'] = $pluginName = get_class($this);
+        $this->aRenderData['plugin'] = $this;
+        $this->aRenderData['username'] = $this->_isLsAdmin() ? Yii::app()->user->getName() : null;
+        $this->subscribe('getPluginTwigPath');
+        $this->aRenderData['responseListAndManage'] = $this->aRenderData;
+        $responselist = Yii::app()->getController()->renderPartial(
+            get_class($this).".views.content.".$fileRender,
+            $this->aRenderData,
+            true
+        );
+        $templateName = Template::templateNameFilter($this->get('template',null,null,Yii::app()->getConfig('defaulttheme')));
         if($surveyId) {
             if($this->get('template','Survey',$surveyId)) {
                 $templateName = Template::templateNameFilter($this->get('template','Survey',$surveyId));
                 if($templateName == Yii::app()->getConfig('defaulttheme')) {
-                    $templateName = Template::templateNameFilter($this->get('template',null,null,Yii::app()->getConfig('defaulttemplate')));
+                    $templateName = Template::templateNameFilter($this->get('template',null,null,Yii::app()->getConfig('defaulttheme')));
                 }
             }
         }
-        $messageHelper = new \renderMessage\messageHelper($surveyId,$templateName);
-        $messageHelper->render($message);
+        App()->getClientScript()->registerPackage("bootstrap-datetimepicker");
+        Yii::setPathOfAlias(get_class($this),dirname(__FILE__));
+        Yii::app()->clientScript->addPackage('responselistandmanage', array(
+            'basePath'    => get_class($this).'.assets.responselistandmanage',
+            'js'          => array('responselistandmanage.js'),
+            'css'          => array('responselistandmanage.css'),
+            'depends'      =>array('jquery'),
+        ));
+        Yii::app()->getClientScript()->registerPackage('responselistandmanage');
+        Template::model()->getInstance($templateName, null);
+        Template::model()->getInstance($templateName, null)->oOptions->ajaxmode = 'off';
+        if(empty($this->aRenderData['aSurveyInfo'])) {
+            $this->aRenderData['aSurveyInfo'] = array(
+                'surveyls_title' => App()->getConfig('sitename'),
+                'name' => App()->getConfig('sitename'),
+            );
+        } else {
+            Template::model()->getInstance($templateName, null)->oOptions->container = 'off';
+        }
+        $renderTwig = array(
+            'responseListAndManage' => $this->aRenderData,
+            'aSurveyInfo' => $this->aRenderData['aSurveyInfo'],
+        );
+        $renderTwig['aSurveyInfo']['name'] = sprintf($this->translate("Reponses of %s survey"),$renderTwig['aSurveyInfo']['name']);
+        $renderTwig['aSurveyInfo']['active'] = 'Y'; // Didn't show the default warning
+        $renderTwig['aSurveyInfo']['showprogress'] = 'N'; // Didn't show progress bar
+        $renderTwig['aSurveyInfo']['include_content'] = 'responselistandmanage';
+        $renderTwig['responseListAndManage']['responselist'] = $responselist;
+        Yii::app()->twigRenderer->renderTemplateFromFile('layout_global.twig', $renderTwig, false);
+        Yii::app()->end();
     }
 
     /**
@@ -2166,24 +2203,9 @@ class responseListAndManage extends PluginBase {
         return $this->_allowTokenLink($oSurvey) && $oSurvey->alloweditaftercompletion == "Y" && $oSurvey->tokenanswerspersistence != "Y";
     }
 
-    /**
-     * Check if getQuestionInformation plugin is here and activated
-     * Log as error if not
-     * @return boolean
-     */
-    private function _isUsable()
-    {
-        $haveGetQuestionInformation = Yii::getPathOfAlias('getQuestionInformation');
-        if(!$haveGetQuestionInformation) {
-            $this->log("You need getQuestionInformation plugin",'error');
-        }
-        $haveReloadAnyResponse = Yii::getPathOfAlias('reloadAnyResponse');
-        if(!$haveReloadAnyResponse) {
-            $this->log("You need reloadAnyResponse plugin",'error');
-        }
-        return $haveGetQuestionInformation && $haveReloadAnyResponse;
-    }
 
+
+    
     /**
      * Get the administration menu
      * @param $surveyId
@@ -2213,31 +2235,31 @@ class responseListAndManage extends PluginBase {
             $currentToken = $this->_getCurrentToken($surveyId);
             if($surveyId && $showLogOut == 'all') {
                 $actionLinks[] = array(
-                    'text'=>"<i class='fa fa-sign-out' aria-hidden='true'></i> ".$this->_translate("Log out"),
+                    'text'=>"<i class='fa fa-sign-out' aria-hidden='true'></i> ".$this->translate("Log out"),
                     'link'=> array("plugins/direct",'plugin' => get_class(),'sid'=>$surveyId,'logout'=>"logout"),
                 );
             }
         }
         if($userId && $showLogOut) {
             $actionLinks[] = array(
-                'text'=>"<i class='fa fa-sign-out' aria-hidden='true'></i> ".$this->_translate("Log out"),
+                'text'=>"<i class='fa fa-sign-out' aria-hidden='true'></i> ".$this->translate("Log out"),
                 'link'=> array("plugins/direct",'plugin' => get_class(),'sid'=>$surveyId,'logout'=>"logout"),
             );
         }
         if($userId && $showAdminLink) {
             $actionLinks[] = array(
-                'text'=>"<i class='fa fa-cogs' aria-hidden='true'></i> ".$this->_translate("LimeSurvey administration"),
+                'text'=>"<i class='fa fa-cogs' aria-hidden='true'></i> ".$this->translate("LimeSurvey administration"),
                 'link'=> array("admin/index"),
             );
         }
         if($userId && $surveyId && (Permission::model()->hasSurveyPermission($surveyId, 'survey', 'read') || $showAdminSurveyLink == 'limesurvey') && $showAdminSurveyLink) {
             $actionLinks[] = array(
-                'text'=>"<i class='fa fa-cog' aria-hidden='true'></i> ".$this->_translate("Survey administration"),
+                'text'=>"<i class='fa fa-cog' aria-hidden='true'></i> ".$this->translate("Survey administration"),
                 'link'=>array("admin/survey/sa/view",'surveyid'=>$surveyId),
             );
             if(Permission::model()->hasSurveyPermission($surveyId, 'surveysettings', 'update')) {
                 $actionLinks[] = array(
-                    'text'=>"<i class='fa fa-cog' aria-hidden='true'></i> ".$this->_translate("Manage responses listing"),
+                    'text'=>"<i class='fa fa-cog' aria-hidden='true'></i> ".$this->translate("Manage responses listing"),
                     'link'=>array('admin/pluginhelper',
                         'sa' => 'sidebody',
                         'plugin' => get_class($this),
@@ -2250,7 +2272,7 @@ class responseListAndManage extends PluginBase {
 
         if($showExportLink && $this->get('exportType','Survey',$surveyId)) {
             $actionExportLink = array(
-                'text'=>"<i class='fa fa-download' aria-hidden='true'></i> ".$this->_translate("Export (checked) response"),
+                'text'=>"<i class='fa fa-download' aria-hidden='true'></i> ".$this->translate("Export (checked) response"),
                 'link'=>array('plugins/direct',
                     'plugin' => get_class($this),
                     'action' => 'export',
@@ -2276,7 +2298,7 @@ class responseListAndManage extends PluginBase {
             );
         }
         if(count($actionLinks) > 1) {
-            $btnLabel = $this->_translate("Tools");
+            $btnLabel = $this->translate("Tools");
             if($userId) {
                 $oUser = User::model()->findByPk($userId);
                 $btnLabel = \CHtml::encode($oUser->full_name);
@@ -2354,27 +2376,38 @@ class responseListAndManage extends PluginBase {
      * @param string
      * @return string
      */
-    private function _translate($string){
-        return Yii::t('',$string,array(),get_class($this));
+    private function translate($string){
+        return Yii::t('',$string,array(),get_class($this).'Messages');
     }
 
     /**
-     * Add this translation just after loaded all plugins
+     * register to needed event according to usability
      * @see event afterPluginLoad
      */
     public function afterPluginLoad(){
+        if(!$this->getIsUsable()) {
+            $this->subscribe('beforeActivate');
+            $this->subscribe('beforeControllerAction');
+            $this->unsubscribe('newDirectRequest');
+            $this->unsubscribe('beforeSurveySettings');
+            $this->unsubscribe('beforeToolsMenuRender');
+            $this->unsubscribe('beforeSurveyPage');
+            $this->unsubscribe('afterSurveyComplete');
+            return;
+        }
+
         // messageSource for this plugin:
-        $messageSource=array(
+        $messageSource = array(
             'class' => 'CGettextMessageSource',
-            'cacheID' => get_class($this).'Lang',
+            'cacheID' => 'ResponseListAndManageLang',
             'cachingDuration'=>3600,
             'forceTranslation' => true,
             'useMoFile' => true,
             'basePath' => __DIR__ . DIRECTORY_SEPARATOR.'locale',
             'catalog'=>'messages',// default from Yii
         );
-        Yii::app()->setComponent(get_class($this),$messageSource);
-        Yii::setPathOfAlias(get_class($this), dirname(__FILE__));
+        Yii::app()->setComponent(get_class($this).'Messages',$messageSource);
+        
     }
 
     /**
@@ -2397,74 +2430,6 @@ class responseListAndManage extends PluginBase {
         return tableExists("{{tokens_".$oSurvey->sid."}}");
     }
 
-    /**
-     * Action to do before all other :
-     * purpose if user can have access to a response by group  : update related token
-     */
-    public function beforeControllerAction() {
-      if($this->getEvent()->get("controller") != "survey") {
-        return;
-      }
-      $token = Yii::app()->getRequest()->getQuery("token");
-      if(!$token) {
-        return;
-      }
-      $surveyId = Yii::app()->getRequest()->getParam("sid");
-      $responseid = Yii::app()->getRequest()->getQuery("srid");
-      if(!$responseid || $responseid=="new") {
-        return;
-      }
-      $oSurvey = Survey::model()->findByPk($surveyId);
-      if(empty($oSurvey)) {
-        return;
-      }
-      if(!$this->_surveyHasTokens($oSurvey)) {
-        return;
-      }
-      if($oSurvey->active != "Y") {
-        return;
-      }
-      if($oSurvey->anonymized == "Y") {
-        return;
-      }
-      $oToken =  Token::model($surveyId)->find("token = :token",array(":token"=>$token));
-      if(!$oToken) {
-        return;
-      }
-
-      $oResponseToken = Response::model($surveyId)->findByPk($responseid);
-      if(!$oResponseToken || empty($oResponseToken->token)) {
-        return;
-      }
-      $tokenAttributeGroup = $this->get('tokenAttributeGroup','Survey',$surveyId);
-      $tokenAttributeGroupManager = $this->get('tokenAttributeGroupManager','Survey',$surveyId);
-      $tokenGroup = (!empty($oToken->$tokenAttributeGroup) && trim($oToken->$tokenAttributeGroup) != "") ? $oToken->$tokenAttributeGroup : null;
-      $tokenGroupManager = (!empty($oToken->$tokenAttributeGroupManager) && trim($oToken->$tokenAttributeGroupManager) != "") ? $oToken->$tokenAttributeGroupManager : null;
-      $isManager = ((bool) $tokenGroupManager) && trim($tokenGroupManager) !== '0';
-      $settingAllowAccess = $this->get('allowAccess','Survey',$surveyId,'all');
-      $allowAccess = ($settingAllowAccess == 'all') || ($settingAllowAccess == 'admin' && $isManager);
-      if(!$allowAccess) {
-        return; // Leave limesurvey do
-      }
-      $settingAllowSee = $this->get('allowSee','Survey',$surveyId,'all');
-      $allowSee = $allowAccess && (($settingAllowSee == 'all') || ($settingAllowSee == 'admin' && $isManager));
-      $settingAllowEdit = $this->get('allowEdit','Survey',$surveyId,'admin');
-      $allowEdit = $allowSee && (($settingAllowEdit == 'all') || ($settingAllowEdit == 'admin' && $isManager));
-      if(!$allowEdit) {
-        return;
-      }
-      /* OK get it */
-      $aTokens = $this->_getTokensList($surveyId,$token);
-      if($oResponseToken->token == $token) {
-        return;
-      }
-      if(in_array($token,$aTokens)) {
-        $oResponseToken->token = $token;
-        $oResponseToken->save();
-        \reloadAnyResponse\models\surveySession::saveSessionTime($surveyId,$responseid,$token);
-      }
-
-    }
     private function _getTokensList($surveyId,$token)
     {
       $tokenAttributeGroup = $this->get('tokenAttributeGroup','Survey',$surveyId);
@@ -2496,14 +2461,20 @@ class responseListAndManage extends PluginBase {
         }
         return array_filter($exportData);
     }
-    /**
-     * @todo : get the array of current rights
-     * @param $surveyid
-     * @param $token
-     * @return boolean[]
-     */
-    private function _getCurrentRights($surveyid,$token=null)
-    {
 
+    private function getTranslations()
+    {
+        return array(
+            'Close' => gT('Close'),
+            'Delete' => $this->translate("Delete"),
+            'Previous' => gT('Previous'),
+            'Save' => gT('Save'),
+            'Save as draft' => $this->translate('Save as draft'),
+            'Save and quit' => $this->translate('Save and quit'),
+            'Save as draft and quit' => $this->translate('Save as draft and quit'),
+            'Next' => gT('Next'),
+            'Submit' => gT('Submit'),
+            'Save as complete' => gT('Save as complete'),
+        );
     }
 }

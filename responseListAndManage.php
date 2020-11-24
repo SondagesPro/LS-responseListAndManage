@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2020 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 2.0.0-alpha2
+ * @version 2.0.1
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -204,7 +204,8 @@ class responseListAndManage extends PluginBase {
             if(Yii::getPathOfAlias('autoSaveAndQuit')) {
                 $isSaveandQuit = \autoSaveAndQuit\Utilities::isSaveAndQuit($surveyId) && !\autoSaveAndQuit\Utilities::isDisableSaveAndQuit($surveyId);
             }
-            if ($isSaveandQuit) {
+            /* Quit if is save and quit except for automatic one */
+            if ($isSaveandQuit && !App()->getRequest()->getPost("saveandquit-autosave")) {
                 $script = "responseListAndManage.autoclose();";
                 Yii::app()->getClientScript()->registerScript("responseListAndManageSaveAll", $script, CClientScript::POS_END);
             }

@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2020 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 2.0.1
+ * @version 2.0.2
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -179,13 +179,7 @@ class responseListAndManage extends PluginBase {
         if(empty($oSurvey)) {
             return;
         }
-        $aSessionManageSurvey = (array) Yii::app()->session["responseListAndManage"];
-        if (Yii::app()->getRequest()->getQuery('srid') && Yii::app()->getRequest()->getParam('plugin') == 'responseListAndManage') {
-            /* @todo : check if allowed */
-            $aSessionManageSurvey[$surveyId] = $surveyId;
-        }
-        Yii::app()->session["responseListAndManage"] = $aSessionManageSurvey;
-        if (empty(Yii::app()->session["responseListAndManage"][$surveyId])) {
+        if (empty(Yii::app()->session['responseListAndManage'][$surveyId])) {
             return;
         }
         $this->surveyId = $surveyId;
@@ -222,14 +216,6 @@ class responseListAndManage extends PluginBase {
         $afterSurveyCompleteEvent = $this->getEvent(); // because eupdate in twig renderPartial
         $iSurveyId = $afterSurveyCompleteEvent->get('surveyId');
         $currentSrid = $afterSurveyCompleteEvent->get('responseId');
-        $aSessionManageSurvey = (array) Yii::app()->session["responseListAndManage"];
-        if (!isset($aSessionManageSurvey[$iSurveyId])) {
-            /* Quit if we are not in survey inside surey system */
-            return;
-        }
-        unset($aSessionManageSurvey[$iSurveyId]);
-        Yii::app()->session["responseListAndManage"] = $aSessionManageSurvey;
-
         $script = "responseListAndManage.autoclose();";
         Yii::app()->getClientScript()->registerScript("responseListAndManageComplete", $script, CClientScript::POS_END);
         $renderData=array(
@@ -1145,15 +1131,12 @@ class responseListAndManage extends PluginBase {
             App()->setLanguage($language);
         }
         $this->aRenderData['aSurveyInfo'] = getSurveyInfo($surveyId, $language);
-        /* See https://github.com/LimeSurvey/LimeSurvey/commit/0ffc127bfceac4aa7658595b624ac18a2dcce2aa */
-        if(version_compare(Yii::app()->getConfig('versionnumber'),"3.14.8","<=") && version_compare(Yii::app()->getConfig('versionnumber'),"3.0.0",">=")) {
-            $sessionSurvey = array(
-                "s_lang" => $language
-            );
-            Yii::app()->session['survey_'.$surveyId] = $sessionSurvey;
-        }
-        Yii::app()->session['responseListAndManage'] = $surveyId;
+
+        $aResponseListAndManage = (array) Yii::app()->session['responseListAndManage'];
+        $aResponseListAndManage[$surveyId] = $surveyId;
+        Yii::app()->session['responseListAndManage'] = $aResponseListAndManage;
         Yii::import(get_class($this).'.models.ResponseExtended');
+
         $mResponse = ResponseExtended::model($surveyId);
         $mResponse->setScenario('search');
         $mResponse->showFooter = $this->get('showFooter','Survey',$surveyId,false);

@@ -1,4 +1,4 @@
-$(document).on('ready pjax:scriptcomplete',function(){
+$(function() {
     if(window.location != window.parent.location) {
         window.parent.$(window.parent.document).trigger("surveyiniframe:on");
     }

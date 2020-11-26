@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2020 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 2.0.3
+ * @version 2.0.4
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -213,19 +213,22 @@ class responseListAndManage extends PluginBase {
 
     public function afterSurveyComplete()
     {
+        $afterSurveyCompleteEvent = $this->getEvent(); // because update in twig renderPartial
+        $surveyId = $afterSurveyCompleteEvent->get('surveyId');
         if (empty(Yii::app()->session['responseListAndManage'][$surveyId])) {
             return;
         }
-        $afterSurveyCompleteEvent = $this->getEvent(); // because update in twig renderPartial
-        $iSurveyId = $afterSurveyCompleteEvent->get('surveyId');
-        $currentSrid = $afterSurveyCompleteEvent->get('responseId');
+        if (empty($afterSurveyCompleteEvent->get('responseId'))) {
+            return;
+        }
+
         $script = "responseListAndManage.autoclose();";
         Yii::app()->getClientScript()->registerScript("responseListAndManageComplete", $script, CClientScript::POS_END);
         $renderData=array(
             'language' => array(
                 "Your responses was saved as complete, you can close this windows." => $this->translate("Your responses was saved as complete, you can close this windows."),
             ),
-            'aSurveyInfo' => getSurveyInfo($iSurveyId, App()->getLanguage()),
+            'aSurveyInfo' => getSurveyInfo($surveyId, App()->getLanguage()),
         );
         $this->subscribe('getPluginTwigPath');
         $extraContent = Yii::app()->twigRenderer->renderPartial('/subviews/messages/responseListAndManage_submitted.twig', $renderData);

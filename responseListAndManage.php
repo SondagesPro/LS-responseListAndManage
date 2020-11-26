@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2020 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 2.0.2
+ * @version 2.0.3
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -88,7 +88,7 @@ class responseListAndManage extends PluginBase {
         /* Need some event in iframe survey */
         $this->subscribe('beforeSurveyPage');
 
-        /* Regsiter when need close */
+        /* Register when need close */
         $this->subscribe('afterSurveyComplete');
     }
 
@@ -213,7 +213,10 @@ class responseListAndManage extends PluginBase {
 
     public function afterSurveyComplete()
     {
-        $afterSurveyCompleteEvent = $this->getEvent(); // because eupdate in twig renderPartial
+        if (empty(Yii::app()->session['responseListAndManage'][$surveyId])) {
+            return;
+        }
+        $afterSurveyCompleteEvent = $this->getEvent(); // because update in twig renderPartial
         $iSurveyId = $afterSurveyCompleteEvent->get('surveyId');
         $currentSrid = $afterSurveyCompleteEvent->get('responseId');
         $script = "responseListAndManage.autoclose();";

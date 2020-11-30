@@ -1078,7 +1078,7 @@ class responseListAndManage extends PluginBase {
     {
         $this->aRenderData['surveyId'] = $surveyId;
         Yii::import('application.helpers.viewHelper');
-        $oSurvey=Survey::model()->findByPk($surveyId);
+        $oSurvey = Survey::model()->findByPk($surveyId);
         /* Must fix rights */
         $userHaveRight = false;
         $settingAllowAccess = $this->get('allowAccess','Survey',$surveyId,'all');
@@ -1115,6 +1115,7 @@ class responseListAndManage extends PluginBase {
                 $this->aRenderData['error'] = $this->translate("This code is invalid.");
             }
         }
+        /* Get the token by URI or session */
         $currentToken = $this->_getCurrentToken($surveyId);
         if(!$userHaveRight && $currentToken) {
             $userHaveRight = true;
@@ -2310,18 +2311,19 @@ class responseListAndManage extends PluginBase {
         return $adminAction;
     }
     /**
-     * get the current token
-     * Order is : session, getQuery
+     * Get the current token by URI or session
      * @param integer $surveyId
      * @return string|null
      */
     private function _getCurrentToken($surveyId) {
-        if(Yii::app()->getRequest()->getQuery('token') && is_string(Yii::app()->getRequest()->getQuery('token')) ) {
+        $tokenQuery = Yii::app()->getRequest()->getQuery('token');
+        if($tokenQuery && is_string($tokenQuery) ) {
+            $this->_setCurrentToken($surveyId,$tokenQuery);
             return Yii::app()->getRequest()->getQuery('token');
         }
-        $sessionToken = Yii::app()->session['responseListAndManageTokens'];
-        if(!empty($sessionToken[$surveyId])) {
-            return $sessionToken[$surveyId];
+        $sessionTokens = Yii::app()->session['responseListAndManageTokens'];
+        if(!empty($sessionTokens[$surveyId])) {
+            return $sessionTokens[$surveyId];
         }
     }
 

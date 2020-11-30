@@ -89,7 +89,13 @@ $(document).on("click","button.addnew",function(event){
         return;
     }
     var urlParams =  $(this).closest('form').serialize();
-    var href = $(this).closest('form').attr('action')+"?"+urlParams;
+    var action =  $(this).closest('form').attr('action');
+    if(action.indexOf("?")) {
+        var href = $(this).closest('form').attr('action')+"&"+urlParams;
+    } else{
+        var href = $(this).closest('form').attr('action')+"?"+urlParams;
+    }
+
     $("iframe#frame-responseListAndManage").attr("src",href);
     $("#modal-responseListAndManage").modal('show');
     updateHeightModalbody("#modal-responseListAndManage");

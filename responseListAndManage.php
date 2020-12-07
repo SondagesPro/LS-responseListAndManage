@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2020 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 2.0.4
+ * @version 2.0.5
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -1098,10 +1098,10 @@ class responseListAndManage extends PluginBase {
             }
             $userHaveRight = true;
         }
-        if (!$userHaveRight && $settingAllowAccess == 'limesurvey') {
-            $this->_doLogin();
-        }
-        if (!$userHaveRight && !$this->_allowTokenLink($oSurvey)) {
+        if (!$userHaveRight && ($settingAllowAccess == 'limesurvey' || !$this->_allowTokenLink($oSurvey))) {
+            if (Permission::getUserId()) {
+                throw new CHttpException(403);
+            }
             $this->_doLogin();
         }
         if(!$userHaveRight && App()->getRequest()->getPost('token')) {
@@ -1784,10 +1784,7 @@ class responseListAndManage extends PluginBase {
             $lang = App()->getConfig('defaultlang');
         }
         App()->setLanguage($lang);
-        if(version_compare(Yii::app()->getConfig('versionnumber'),"3","<")) {
-            App()->user->setReturnUrl(App()->request->requestUri);
-            App()->getController()->redirect(array('/admin/authentication/sa/login'));
-        }
+
         Yii::import('application.controllers.admin.authentication',1);
         $aResult = Authentication::prepareLogin();
         $succeeded = isset($aResult[0]) && $aResult[0] == 'success';

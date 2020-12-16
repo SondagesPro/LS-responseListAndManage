@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2020 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 2.0.5
+ * @version 2.0.6-beta1
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -105,9 +105,13 @@ class responseListAndManage extends PluginBase {
 
     /**
      * Add an error for admin user if activated but can not used
+     * Subscribed in afterPluginLoad
      */
     public function beforeControllerAction()
     {
+        if (!$this->getEvent()) {
+            throw new CHttpException(403);
+        }
         $aFlashMessage = App()->session['aFlashMessage'];
         if(!empty($aFlashMessage['responseListAndManage'])) {
             return;
@@ -126,12 +130,16 @@ class responseListAndManage extends PluginBase {
         }
         return;
     }
+
     /**
      * Checkj if can be activated , show a message if not
      * @return boolean
      */
     public function beforeActivate()
     {
+        if (!$this->getEvent()) {
+            throw new CHttpException(403);
+        }
         if (!$this->getIsUsable()) {
             $this->getEvent()->set(
                 'success',
@@ -143,6 +151,7 @@ class responseListAndManage extends PluginBase {
             );
         }
     }
+
     /**
      * Get the error string for availability
      * @todo : replace by installed in 4.X ?
@@ -174,6 +183,9 @@ class responseListAndManage extends PluginBase {
      */
     public function beforeSurveyPage()
     {
+        if (!$this->getEvent()) {
+            throw new CHttpException(403);
+        }
         $surveyId = $this->event->get('surveyId');
         $oSurvey = Survey::model()->findByPk($surveyId);
         if(empty($oSurvey)) {
@@ -211,8 +223,15 @@ class responseListAndManage extends PluginBase {
         }
     }
 
+    /**
+     * Add the script after survey is completed
+     * Add the content information
+     */
     public function afterSurveyComplete()
     {
+        if (!$this->getEvent()) {
+            throw new CHttpException(403);
+        }
         $afterSurveyCompleteEvent = $this->getEvent(); // because update in twig renderPartial
         $surveyId = $afterSurveyCompleteEvent->get('surveyId');
         if (empty(Yii::app()->session['responseListAndManage'][$surveyId])) {
@@ -243,6 +262,9 @@ class responseListAndManage extends PluginBase {
      */
     public function getPluginTwigPath()
     {
+        if (!$this->getEvent()) {
+            throw new CHttpException(403);
+        }
         $viewPath = dirname(__FILE__)."/twig";
         $this->getEvent()->append('add', array($viewPath));
     }
@@ -250,6 +272,9 @@ class responseListAndManage extends PluginBase {
     /** @inheritdoc **/
     public function beforeSurveySettings()
     {
+        if (!$this->getEvent()) {
+            throw new CHttpException(403);
+        }
         /* @Todo move this to own page */
         $oEvent = $this->getEvent();
         $iSurveyId = $this->getEvent()->get('survey');
@@ -285,6 +310,9 @@ class responseListAndManage extends PluginBase {
      */
     public function beforeToolsMenuRender()
     {
+        if (!$this->getEvent()) {
+            throw new CHttpException(403);
+        }
         $event = $this->getEvent();
         $surveyId = $event->get('surveyId');
         $oSurvey = Survey::model()->findByPk($surveyId);
@@ -876,7 +904,7 @@ class responseListAndManage extends PluginBase {
      * @param string|null $currenttoken token to be used for export : seems not sent currently (see LS issue)
      * @return mixed
      */
-    public function _doExport($surveyId)
+    private function _doExport($surveyId)
     {
         $currenttoken = Yii::app()->getRequest()->getParam('currenttoken');
         $userHaveRight = false;
@@ -962,11 +990,15 @@ class responseListAndManage extends PluginBase {
         }
         Yii::app()->end();
     }
+
     /**
     * @see newSurveySettings
     */
     public function newSurveySettings()
     {
+        if (!$this->getEvent()) {
+            throw new CHttpException(403);
+        }
         $event = $this->event;
         foreach ($event->get('settings') as $name => $value) {
             $this->set($name, $value, 'Survey', $event->get('survey'));
@@ -976,6 +1008,9 @@ class responseListAndManage extends PluginBase {
     /** @inheritdoc **/
     public function newDirectRequest()
     {
+        if (!$this->getEvent()) {
+            throw new CHttpException(403);
+        }
         if($this->getEvent()->get('target') != get_class($this)) {
             return;
         }
@@ -1071,6 +1106,7 @@ class responseListAndManage extends PluginBase {
         readfile($sFileRealName);
         Yii::app()->end();
     }
+
     /**
      * Managing access to survey
      */
@@ -1661,6 +1697,9 @@ class responseListAndManage extends PluginBase {
     /** @inheritdoc **/
     public function getPluginSettings($getValues = true)
     {
+        if(!Permission::model()->hasGlobalPermission('settings','read')) {
+            throw new CHttpException(403);
+        }
         if(Yii::app() instanceof CConsoleApplication) {
             return;
         }
@@ -1719,9 +1758,11 @@ class responseListAndManage extends PluginBase {
      * @inheritdoc
      * and set menu if needed
     **/
-
     public function saveSettings($settings)
     {
+        if(!Permission::model()->hasGlobalPermission('settings','update')) {
+            throw new CHttpException(403);
+        }
         parent::saveSettings($settings);
         if(version_compare(App()->getConfig("versionnumber"),"3","<") ) {
             return;
@@ -1874,6 +1915,7 @@ class responseListAndManage extends PluginBase {
             )
         );
     }
+
     /**
      * Show a token form
      */
@@ -1893,6 +1935,7 @@ class responseListAndManage extends PluginBase {
         $this->aRenderData['adminLoginUrl'] = Yii::app()->createUrl("plugins/direct", array('plugin' => get_class(),'sid'=>$surveyid,'admin'=>1));
         $this->_render('token');
     }
+
     /**
      * Show the survey listing
      */
@@ -1966,6 +2009,7 @@ class responseListAndManage extends PluginBase {
         
         return $addUser;
     }
+
     /**
     * Add needed alias and put it in autoloader
     * @return void
@@ -2181,6 +2225,7 @@ class responseListAndManage extends PluginBase {
     {
         return $this->_surveyHasTokens($oSurvey) && $oSurvey->anonymized != "Y";
     }
+
     /**
      * Find if survey allow multiple response for token
      * @param \Survey
@@ -2191,9 +2236,6 @@ class responseListAndManage extends PluginBase {
         return $this->_allowTokenLink($oSurvey) && $oSurvey->alloweditaftercompletion == "Y" && $oSurvey->tokenanswerspersistence != "Y";
     }
 
-
-
-    
     /**
      * Get the administration menu
      * @param $surveyId
@@ -2307,6 +2349,7 @@ class responseListAndManage extends PluginBase {
         }
         return $adminAction;
     }
+
     /**
      * Get the current token by URI or session
      * @param integer $surveyId
@@ -2348,6 +2391,7 @@ class responseListAndManage extends PluginBase {
         echo json_encode($data);
         Yii::app()->end();
     }
+
     /**
      * Log message
      * @return void
@@ -2374,6 +2418,9 @@ class responseListAndManage extends PluginBase {
      * @see event afterPluginLoad
      */
     public function afterPluginLoad(){
+        if(!Permission::model()->hasGlobalPermission('settings','update')) {
+            throw new CHttpException(403);
+        }
         if(!$this->getIsUsable()) {
             $this->subscribe('beforeActivate');
             $this->subscribe('beforeControllerAction');

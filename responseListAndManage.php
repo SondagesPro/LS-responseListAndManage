@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2020 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 2.0.6-beta2
+ * @version 2.1.0
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -240,7 +240,7 @@ class responseListAndManage extends PluginBase {
         if (empty($afterSurveyCompleteEvent->get('responseId'))) {
             return;
         }
-
+        /* Todo : xheck if surey are open by this plugin */
         $script = "responseListAndManage.autoclose();";
         Yii::app()->getClientScript()->registerScript("responseListAndManageComplete", $script, CClientScript::POS_END);
         $renderData=array(
@@ -413,7 +413,7 @@ class responseListAndManage extends PluginBase {
             if($this->_allowMultipleResponse($oSurvey)) {
                 $stateInfo .= CHtml::tag("li",array("class"=>'text-success'),$this->translate("You can create new response for all token."));
             } else {
-                $stateInfo .= CHtml::tag("li",array("class"=>'text-warning'),$this->translate("You can not create new response for all token. Only one response is available for each token (see participation setting panel)."));
+                $stateInfo .= CHtml::tag("li",array("class"=>'text-warning'),$this->translate("You can not create new response for all token, this part was unsure due to specific survey settings."));
             }
         } else {
             $stateInfo .= CHtml::tag("li",array("class"=>'text-warning'),$this->translate("No Token link and creation can be done in managing. Survey is anonymous or token table didn‘t exist."));
@@ -2173,15 +2173,15 @@ class responseListAndManage extends PluginBase {
             'depends'      =>array('jquery'),
         ));
         Yii::app()->getClientScript()->registerPackage('responselistandmanage');
-        Template::model()->getInstance($templateName, null);
-        Template::model()->getInstance($templateName, null)->oOptions->ajaxmode = 'off';
+        Template::model()->getInstance($templateName, $surveyId);
+        Template::model()->getInstance($templateName, $surveyId)->oOptions->ajaxmode = 'off';
         if(empty($this->aRenderData['aSurveyInfo'])) {
             $this->aRenderData['aSurveyInfo'] = array(
                 'surveyls_title' => App()->getConfig('sitename'),
                 'name' => App()->getConfig('sitename'),
             );
         } else {
-            Template::model()->getInstance($templateName, null)->oOptions->container = 'off';
+            Template::model()->getInstance($templateName, $surveyId)->oOptions->container = 'off';
         }
         $renderTwig = array(
             'responseListAndManage' => $this->aRenderData,
@@ -2233,7 +2233,7 @@ class responseListAndManage extends PluginBase {
      */
     private function _allowMultipleResponse($oSurvey)
     {
-        return $this->_allowTokenLink($oSurvey) && $oSurvey->alloweditaftercompletion == "Y" && $oSurvey->tokenanswerspersistence != "Y";
+        return $this->_allowTokenLink($oSurvey) && ($oSurvey->tokenanswerspersistence != "Y" || $oSurvey->showwelcome != 'Y' || $oSurvey->format == 'A');
     }
 
     /**

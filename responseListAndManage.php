@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2020 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 2.1.0
+ * @version 2.1.0-alpha1
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -25,6 +25,7 @@ class responseListAndManage extends PluginBase {
 
     /* @var integer|null surveyId get track of current sureyId between action */
     private $surveyId;
+
     /**
      * @var array[] the settings
      */
@@ -35,7 +36,7 @@ class responseListAndManage extends PluginBase {
         ),
         'template' => array(
             'type' => 'info',
-            'default' => 'default',
+            'default' => '',
             'label' => 'Template to be used',
         ),
         'showLogOut' => array(
@@ -56,7 +57,7 @@ class responseListAndManage extends PluginBase {
                 'js' => 'Only close dialog box',
                 'none' => 'Return to survey',
             ),
-            'default' => 'replace',
+            'default' => 'js',
         ),
         'forceDownloadImage' => array(
             'type' => 'boolean',
@@ -406,6 +407,7 @@ class responseListAndManage extends PluginBase {
             if(App()->getRequest()->getPost('save'.get_class($this)=='redirect')) {
                 Yii::app()->getController()->redirect(Yii::app()->getController()->createUrl('admin/survey',array('sa'=>'view','surveyid'=>$surveyId)));
             }
+            
         }
         $stateInfo = "<ul class='list'>";
         if($this->_allowTokenLink($oSurvey)) {
@@ -462,7 +464,7 @@ class responseListAndManage extends PluginBase {
             'tokenAttributes' => array(
                 'type'=>'select',
                 'label'=>$this->translate('Token attributes to show in management'),
-                'options'=>$this->_getTokensAttributeList($surveyId,'tokens.'),
+                'options'=>$this->getTokensAttributeList($surveyId,'tokens.'),
                 'htmlOptions'=>array(
                     'multiple'=>true,
                     'placeholder'=>gT("All"),
@@ -531,7 +533,7 @@ class responseListAndManage extends PluginBase {
                 'type'=>'select',
                 'label'=> $this->translate('Token columns to be hidden to user (include group administrator)'),
                 'help' => $this->translate('This column are shown only to LimeSurvey administrator.'),
-                'options'=>$this->_getTokensAttributeList($surveyId,'tokens.'),
+                'options'=>$this->getTokensAttributeList($surveyId,'tokens.'),
                 'htmlOptions'=>array(
                     'multiple'=>true,
                     'placeholder'=>gT("None"),
@@ -668,16 +670,17 @@ class responseListAndManage extends PluginBase {
             'tokenAttributeGroup' => array(
                 'type'=>'select',
                 'label'=>$this->translate('Token attributes for group'),
-                'options'=>$this->_getTokensAttributeList($surveyId,''),
+                'options'=>$this->getTokensAttributeList($surveyId),
                 'htmlOptions'=>array(
                     'empty'=>$this->translate("None"),
                 ),
                 'current'=>$this->get('tokenAttributeGroup','Survey',$surveyId)
             ),
             'tokenAttributeGroupManager' => array(
-                'type'=>'select',
-                'label'=>$this->translate('Token attributes for group manager'),
-                'options'=>$this->_getTokensAttributeList($surveyId,''),
+                'type' => 'select',
+                'label' => $this->translate('Token attributes for group manager'),
+                'help' => $this->translate('Any value except 0 and empty string set this to true.'),
+                'options' => $this->getTokensAttributeList($surveyId),
                 'htmlOptions'=>array(
                     'empty'=>$this->translate("None"),
                 ),
@@ -1415,7 +1418,7 @@ class responseListAndManage extends PluginBase {
             if($this->get('tokenAttributesNone','Survey',$surveyId,0)) {
                 $tokenAttributes = array();
             } else {
-                $tokenAttributes = array_keys($this->_getTokensAttributeList($surveyId,'tokens.'));
+                $tokenAttributes = array_keys($this->getTokensAttributeList($surveyId,'tokens.'));
             }
         }
         /* remove tokens.token if user didn't have right to edit */
@@ -2202,16 +2205,22 @@ class responseListAndManage extends PluginBase {
      * @param string $prefix
      * @return array
      */
-    private function _getTokensAttributeList($surveyId,$prefix="",$register=false) {
+    private function getTokensAttributeList($surveyId, $prefix="" ) {
+        if(Yii::getPathOfAlias('TokenUsersListAndManage')) {
+            return \TokenUsersListAndManage\Utilities::getTokensAttributeList($surveyId, $prefix);
+        }
         $oSurvey = Survey::model()->findByPk($surveyId);
         $aTokens = array(
-            $prefix.'firstname'=>gT("First name"),
-            $prefix.'lastname'=>gT("Last name"),
-            $prefix.'token'=>gT("Token"),
-            $prefix.'email'=>gT("Email"),
+            $prefix.'firstname' => gT("First name"),
+            $prefix.'lastname' => gT("Last name"),
+            $prefix.'token' => gT("Token"),
+            $prefix.'email' => gT("Email"),
         );
         foreach($oSurvey->getTokenAttributes() as $attribute=>$information) {
-            $aTokens[$prefix.$attribute] = empty($information['description']) ? $attribute : $information['description'];
+            $aTokens[$prefix.$attribute] = $attribute;
+            if (!empty($information['description'])) {
+                $aTokens[$prefix.$attribute] = $information['description'];
+            }
         }
         return $aTokens;
     }
@@ -2431,7 +2440,6 @@ class responseListAndManage extends PluginBase {
             $this->unsubscribe('afterSurveyComplete');
             return;
         }
-
         // messageSource for this plugin:
         $messageSource = array(
             'class' => 'CGettextMessageSource',

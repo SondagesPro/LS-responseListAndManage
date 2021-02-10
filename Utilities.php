@@ -25,8 +25,13 @@ use Token;
 
 class Utilities
 {
-    CONST DefaultSettings = array(
-
+    /* var string[] settings with global part and default value */
+    const DefaultSettings = array(
+        'template' => '',
+        'showLogOut'=> false,
+        'showAdminLink' => 1,
+        'afterSaveAll' => 'js',
+        'forceDownloadImage' => 1,
     );
 
     /**
@@ -44,10 +49,9 @@ class Utilities
      * Return the list of token related
      * @param integer $surveyId
      * @param string $token
-     * @param booelan $allowReload
      * @return integer[]
      */
-    public static function getTokensList($surveyId, $token, $allowReload = false)
+    public static function getTokensList($surveyId, $token)
     {
         if(!Yii::getPathOfAlias('reloadAnyResponse')) {
             return null;
@@ -106,7 +110,9 @@ class Utilities
                 return $value;
             }
         }
-
+        if(!array_key_exists($sSetting, self::DefaultSettings)) {
+            return null;
+        }
         $oSetting = \PluginSetting::model()->find(
             'plugin_id = :pluginid AND '.App()->getDb()->quoteColumnName('key').' = :key AND model = :model AND model_id = :surveyid',
             array(
@@ -122,10 +128,7 @@ class Utilities
                 return $value;
             }
         }
-        if (isset(self::DefaultSettings[$sSetting])) {
-            return self::DefaultSettings[$sSetting];
-        }
-        return null;
+        return self::DefaulSettings[$sSetting];
     }
 
 }

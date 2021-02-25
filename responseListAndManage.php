@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2020 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 2.1.0-alpha1
+ * @version 2.1.0-alpha2
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -2210,12 +2210,6 @@ class responseListAndManage extends PluginBase {
             return \TokenUsersListAndManage\Utilities::getTokensAttributeList($surveyId, $prefix);
         }
         $oSurvey = Survey::model()->findByPk($surveyId);
-        $aTokens = array(
-            $prefix.'firstname' => gT("First name"),
-            $prefix.'lastname' => gT("Last name"),
-            $prefix.'token' => gT("Token"),
-            $prefix.'email' => gT("Email"),
-        );
         foreach($oSurvey->getTokenAttributes() as $attribute=>$information) {
             $aTokens[$prefix.$attribute] = $attribute;
             if (!empty($information['description'])) {

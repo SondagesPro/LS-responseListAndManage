@@ -3,9 +3,9 @@
  * Some Utilities
  * 
  * @author Denis Chenu <denis@sondages.pro>
- * @copyright 2020 Denis Chenu <http://www.sondages.pro>
+ * @copyright 2020-2021 Denis Chenu <http://www.sondages.pro>
  * @license AGPL v3
- * @version 0.0.0
+ * @version 0.1.0
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -49,9 +49,10 @@ class Utilities
      * Return the list of token related
      * @param integer $surveyId
      * @param string $token
+     * @param boolean $checkRight on this settings for this survey
      * @return integer[]
      */
-    public static function getTokensList($surveyId, $token)
+    public static function getTokensList($surveyId, $token, $checkRight = true)
     {
         if(!Yii::getPathOfAlias('reloadAnyResponse')) {
             return null;
@@ -59,13 +60,13 @@ class Utilities
         if (!class_exists('\reloadAnyResponse\Utilities')) {
             return null;
         }
-        if (!\reloadAnyResponse\Utilities::getReloadAnyResponseSetting($surveyId, 'allowTokenUser')) {
+        if ($checkRight && !\reloadAnyResponse\Utilities::getReloadAnyResponseSetting($surveyId, 'allowTokenUser')) {
             return null;
         }
         $tokensList = array(
             $token => $token
         );
-        if (!\reloadAnyResponse\Utilities::getReloadAnyResponseSetting($surveyId, 'allowTokenGroupUser')) {
+        if ($checkRight && !\reloadAnyResponse\Utilities::getReloadAnyResponseSetting($surveyId, 'allowTokenGroupUser')) {
             return $tokensList;
         }
         $tokenAttributeGroup = self::getSetting($surveyId, 'tokenAttributeGroup');

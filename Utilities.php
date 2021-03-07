@@ -115,7 +115,7 @@ class Utilities
             return null;
         }
         $oSetting = \PluginSetting::model()->find(
-            'plugin_id = :pluginid AND '.App()->getDb()->quoteColumnName('key').' = :key AND model = :model AND model_id = :surveyid',
+            'plugin_id = :pluginid AND '.App()->getDb()->quoteColumnName('key').' = :key AND model IS NULL',
             array(
                 ':pluginid' => $oPlugin->id,
                 ':key' => $sSetting,

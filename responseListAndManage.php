@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2020 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 2.2.0
+ * @version 2.3.0
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -1237,6 +1237,7 @@ class responseListAndManage extends PluginBase {
             }
         }
         if($currentToken) {
+            $mResponse->currentToken = $currentToken;
             $aTokens = (array) $currentToken;
             $oToken = Token::model($surveyId)->findByToken($currentToken);
             $tokenGroup = (!empty($tokenAttributeGroup) && !empty($oToken->$tokenAttributeGroup)) ? $oToken->$tokenAttributeGroup : null;
@@ -1267,6 +1268,8 @@ class responseListAndManage extends PluginBase {
                 }
             }
         }
+        $mResponse->showEdit = $allowEdit;
+        $mResponse->showDelete = $allowDelete;
         Yii::app()->user->setState('responseListAndManagePageSize',intval(Yii::app()->request->getParam('pageSize',Yii::app()->user->getState('responseListAndManagePageSize',50))));
         // Check if allow check
         $selectableRows = 0;
@@ -1370,42 +1373,6 @@ class responseListAndManage extends PluginBase {
         }
 
         $this->aRenderData['addNew'] = empty($addNew) ? "" : $addNew." ";;
-        /* Contruct column */
-        /* Put the button here, more easy */
-        $updateButtonUrl = "";
-        if(Permission::model()->hasSurveyPermission($surveyId, 'responses', 'update')) {
-            $updateButtonUrl = 'App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"srid"=>$data["id"],"newtest"=>"Y","plugin"=>"'.get_class($this).'"))';
-        }
-        if($this->_allowTokenLink($oSurvey)) {
-            $updateButtonUrl = 'App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"srid"=>$data["id"],"newtest"=>"Y","plugin"=>"'.get_class($this).'"))';
-            if($currentToken) {
-                if( $allowEdit ) {
-                    $updateButtonUrl = 'App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"token"=>"'.$currentToken.'","srid"=>$data["id"],"newtest"=>"Y","plugin"=>"'.get_class($this).'"))';
-                } elseif($settingAllowEdit) {
-                    $updateButtonUrl = '("'.$currentToken.'" == $data["token"]) ? App()->createUrl("survey/index",array("sid"=>'.$surveyId.',"token"=>"'.$currentToken.'","srid"=>$data["id"],"newtest"=>"Y","plugin"=>"'.get_class($this).'")) : null';
-                } else {
-                    $updateButtonUrl = '';
-                }
-            }
-        }
-        $deleteButtonUrl = "";
-        if($allowDelete) {
-            if(Permission::model()->hasSurveyPermission($surveyId, 'responses', 'delete')) {
-                $deleteButtonUrl = 'App()->createUrl("plugins/direct",array("plugin"=>"'.get_class().'","sid"=>'.$surveyId.',"delete"=>$data["id"]))';
-            }
-            if($this->_allowTokenLink($oSurvey) && $oSurvey->anonymized != 'Y') {
-                $deleteButtonUrl = 'App()->createUrl("plugins/direct",array("plugin"=>"'.get_class().'","sid"=>'.$surveyId.',"token"=>$data["token"],"delete"=>$data["id"]))';
-                if($currentToken) {
-                    if( $allowDelete ) {
-                        $deleteButtonUrl = 'App()->createUrl("plugins/direct",array("plugin"=>"'.get_class().'","sid"=>'.$surveyId.',"token"=>"'.$currentToken.'","delete"=>$data["id"]))';
-                    } elseif($settingAllowDelete) {
-                        $deleteButtonUrl = '("'.$currentToken.'" == $data["token"]) ? App()->createUrl("plugins/direct",array("plugin"=>"'.get_class().'","sid"=>'.$surveyId.',"token"=>"'.$currentToken.'","delete"=>$data["id"])) : null';
-                    } else {
-                        $deleteButtonUrl = "";
-                    }
-                }
-            }
-        }
         $aColumns = array();
         $disableTokenPermission = (bool) $currentToken;
         /* Get the selected columns only */
@@ -1445,6 +1412,9 @@ class responseListAndManage extends PluginBase {
         $baseColumns = array();
         if($this->get('showId','Survey',$surveyId,1)) {
             $baseColumns[] = 'id';
+        }
+        if($allowEdit || $allowDelete) {
+            $baseColumns[] = 'button';
         }
         if($this->get('showCompleted','Survey',$surveyId,1)) {
             $baseColumns[] = 'completed';
@@ -1489,14 +1459,6 @@ class responseListAndManage extends PluginBase {
                 'class'=>'CCheckBoxColumn',
             );
         }
-        $aOrderedColumn['button'] = array(
-            'htmlOptions' => array('nowrap'=>'nowrap'),
-            'class'=>'bootstrap.widgets.TbButtonColumn',
-            'template'=>'{update}{delete}',
-            'updateButtonUrl'=>$updateButtonUrl,
-            'deleteButtonUrl'=>$deleteButtonUrl,
-            'footer' => ($this->get('showFooter','Survey',$surveyId,false) ? $this->translate("Answered count and sum") : null),
-        );
         foreach($aRestrictedColumns as $key) {
             if(isset($aColumns[$key])) {
                 $aOrderedColumn[$key] = $aColumns[$key];

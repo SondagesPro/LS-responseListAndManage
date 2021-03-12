@@ -45,6 +45,14 @@ class ResponseExtended extends LSActiveRecord
     /* @var */
     protected $sum;
 
+    /* Construction link */
+    /* @var string|null */
+    public $currentToken;
+    /* @var boolean */
+    public $showEdit = false;
+    /* @var boolean */
+    public $showDelete = false;
+
     /**
      * @inheritdoc
      * @return SurveyDynamic
@@ -287,6 +295,24 @@ class ResponseExtended extends LSActiveRecord
             'filterInputOptions' => array('class'=>'form-control input-sm filter-id'),
             'footer' => ($this->showFooter && isset($aFooter['id'])) ? $aFooter['id'] : null,
         );
+        if($this->showEdit || $this->showDelete) {
+            $template = '';
+            if($this->showEdit) {
+                $template .= '{update}';
+            }
+            if($this->showDelete) {
+                $template .= '{delete}';
+            }
+            $aColumns['button']=array(
+                'htmlOptions' => array('nowrap'=>'nowrap'),
+                'class' => 'bootstrap.widgets.TbButtonColumn',
+                'template' => $template,
+                //'buttons'=> $this->getGridButtons(),
+                'updateButtonUrl' => '$data->getUdateButton($data->id,$data->token)',
+                'deleteButtonUrl' => 'App()->createUrl("plugins/direct",array("plugin"=>"responseListAndManage","sid"=>'.self::$sid.',"token"=>"'.$this->currentToken.'","delete"=>$data->id))',
+                'footer' => $this->showFooter ? $this->translate("Answered count and sum") : null,
+            );
+        }
         $aColumns['completed']=array(
             'header' => '<strong>[completed]</strong><small>'.gT('Completed'),
             'name' => 'completed',
@@ -343,6 +369,43 @@ class ResponseExtended extends LSActiveRecord
         
         $aColumns = array_merge($aColumns,$allQuestionsColumns);
         return $aColumns;
+    }
+
+    /**
+     * get the update url for the current response
+     */
+    public function getUdateButton()
+    {
+        $startUrl = new \reloadAnyResponse\StartUrl(
+            self::$sid,
+            $this->currentToken,
+            array("newtest" => "Y")
+        );
+        return strval($startUrl->getUrl($this->id));
+    }
+
+    /**
+     * get the delete url for the current response
+     */
+    public function getDeleteButton()
+    {
+        if($this->currentToken) {
+            return App()->createUrl("plugins/direct",
+                array(
+                    "plugin" => "responseListAndManage",
+                    "sid" => self::$sid,
+                    "token" => $this->currentToken,
+                    "delete" => $this->id
+                )
+            );
+        }
+        return App()->createUrl("plugins/direct",
+            array(
+                "plugin" => "responseListAndManage",
+                "sid" => self::$sid,
+                "delete" => $this->id
+            )
+        );
     }
 
     public static function getDateValue($data,$name,$dateFormat="Y-m-d") {

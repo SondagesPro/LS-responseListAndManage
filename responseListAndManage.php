@@ -3,9 +3,9 @@
  * Responses List And Manage
  *
  * @author Denis Chenu <denis@sondages.pro>
- * @copyright 2018-2020 Denis Chenu <http://www.sondages.pro>
+ * @copyright 2018-2021 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 2.3.0
+ * @version 2.3.1
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -491,23 +491,23 @@ class responseListAndManage extends PluginBase {
                 'current'=>$this->get('tokenColumnOrder','Survey',$surveyId,'default')
             ),
             'surveyAttributes' => array(
-                'type'=>'select',
-                'label'=>$this->translate('Survey columns to be show in management'),
-                'options'=>$aQuestionList['data'],
-                'htmlOptions'=>array(
-                    'multiple'=>true,
-                    'placeholder'=>gT("All"),
-                    'unselectValue'=>"",
-                    'options'=>$aQuestionList['options'], // In dropdown, but not in select2
+                'type' => 'select',
+                'label' => $this->translate('Survey columns to be show in management'),
+                'options' => $aQuestionList['data'],
+                'htmlOptions' => array(
+                    'multiple' => true,
+                    'placeholder' => gT("All"),
+                    'unselectValue' => "",
+                    'options' => $aQuestionList['options'], // In dropdown, but not in select2
                 ),
                 'selectOptions'=>array(
                     'placeholder'=>gT("All"),
                     //~ 'templateResult'=>"formatQuestion",
                 ),
                 'controlOptions' => array(
-                    'class'=>'select2-withover ',
+                    'class' => 'select2-withover ',
                 ),
-                'current'=>$this->get('surveyAttributes','Survey',$surveyId)
+                'current' => $this->get('surveyAttributes','Survey',$surveyId)
             ),
             'surveyAttributesPrimary' => array(
                 'type'=>'select',
@@ -1377,8 +1377,8 @@ class responseListAndManage extends PluginBase {
         $disableTokenPermission = (bool) $currentToken;
         /* Get the selected columns only */
         $tokenAttributes = $this->get('tokenAttributes','Survey',$surveyId);
-        $surveyAttributes = $this->get('surveyAttributes','Survey',$surveyId);
-        $surveyAttributesPrimary = $this->get('surveyAttributesPrimary','Survey',$surveyId);
+        $surveyAttributes = $this->getAttributesColumn($surveyId);
+        $surveyAttributesPrimary = $this->getAttributesColumn($surveyId, 'Primary');
         $filteredArr = array();
         $aRestrictedColumns = array();
         if(empty($tokenAttributes)) {
@@ -1445,7 +1445,7 @@ class responseListAndManage extends PluginBase {
             if(!empty($tokenAttributesHideToUser)) {
                 $aRestrictedColumns = array_diff($aRestrictedColumns,$tokenAttributesHideToUser);
             }
-            $surveyAttributesHideToUser = $this->get('surveyAttributesHideToUser','Survey',$surveyId);
+            $surveyAttributesHideToUser = $this->getAttributesColumn($surveyId, 'HideToUser');
             if(!empty($surveyAttributesHideToUser)) {
                 $aRestrictedColumns = array_diff($aRestrictedColumns,$surveyAttributesHideToUser);
             }
@@ -2168,9 +2168,10 @@ class responseListAndManage extends PluginBase {
      * @return array
      */
     private function getTokensAttributeList($surveyId, $prefix="" ) {
-        if(Yii::getPathOfAlias('TokenUsersListAndManage')) {
-            return \TokenUsersListAndManage\Utilities::getTokensAttributeList($surveyId, $prefix);
+        if(Yii::getPathOfAlias('TokenUsersListAndManagePlugin')) {
+            return \TokenUsersListAndManagePlugin\Utilities::getTokensAttributeList($surveyId, $prefix);
         }
+        $aTokens = array();
         $oSurvey = Survey::model()->findByPk($surveyId);
         foreach($oSurvey->getTokenAttributes() as $attribute=>$information) {
             $aTokens[$prefix.$attribute] = $attribute;
@@ -2440,6 +2441,27 @@ class responseListAndManage extends PluginBase {
       }
       $oTokenGroup = Token::model($surveyId)->findAll($tokenAttributeGroup."= :group",array(":group"=>$tokenGroup));
       return CHtml::listData($oTokenGroup,'token','token');
+    }
+
+    /**
+     * Get the attributes selected by column name
+     * @param specific attribute type
+     * @return array
+     */
+    private function getAttributesColumn($surveyId, $type = "")
+    {
+        switch ($type) {
+            case 'Primary':
+                $attributes = $this->get('surveyAttributesPrimary','Survey',$surveyId);
+                break;
+            case 'HideToUser':
+                $attributes = $this->get('surveyAttributesHideToUser','Survey',$surveyId);
+                break;
+            case '':
+            default :
+                $attributes = $this->get('surveyAttributes','Survey',$surveyId);
+        }
+        return $attributes;
     }
 
     /**

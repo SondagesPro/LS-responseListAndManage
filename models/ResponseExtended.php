@@ -2,7 +2,7 @@
 /**
  * This file is part of reloadAnyResponse plugin
  * @see SurveyDynamic
- * @version 1.1.4
+ * @version 1.1.5
  */
 //~ namespace responseListAndManage\models;
 //~ use Yii;
@@ -310,7 +310,7 @@ class ResponseExtended extends LSActiveRecord
                 //'buttons'=> $this->getGridButtons(),
                 'updateButtonUrl' => '$data->getUdateButton($data->id,$data->token)',
                 'deleteButtonUrl' => 'App()->createUrl("plugins/direct",array("plugin"=>"responseListAndManage","sid"=>'.self::$sid.',"token"=>"'.$this->currentToken.'","delete"=>$data->id))',
-                'footer' => $this->showFooter ? $this->translate("Answered count and sum") : null,
+                'footer' => $this->showFooter ? \responseListAndManage\\Utilities::translate("Answered count and sum") : null,
             );
         }
         $aColumns['completed']=array(

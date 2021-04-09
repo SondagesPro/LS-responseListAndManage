@@ -25,6 +25,10 @@ use Token;
 
 class Utilities
 {
+
+    /* @var float $API version */
+    const API = 2.4;
+
     /* var string[] settings with global part and default value */
     const DefaultSettings = array(
         'template' => '',
@@ -54,6 +58,9 @@ class Utilities
      */
     public static function getTokensList($surveyId, $token, $checkRight = true)
     {
+        if (defined('\TokenUsersListAndManagePlugin\Utilities::API') && \TokenUsersListAndManagePlugin\Utilities::API > 0.4) {
+            return \TokenUsersListAndManagePlugin\Utilities::getTokensList($surveyId, $token, $checkRight);
+        }
         if(!Yii::getPathOfAlias('reloadAnyResponse')) {
             return null;
         }

@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2021 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 2.3.3
+ * @version 2.4.0
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -369,6 +369,13 @@ class responseListAndManage extends PluginBase {
     public function actionSettings($surveyId)
     {
         $oSurvey=Survey::model()->findByPk($surveyId);
+        /* @var float API of TokenUsersListAndManagePlugin */
+        $TokenUsersListAndManagePluginApi = 0;
+        if (defined('\TokenUsersListAndManagePlugin\Utilities::API') ) {
+            $TokenUsersListAndManagePluginApi = \TokenUsersListAndManagePlugin\Utilities::API;
+        }
+        /* @var boolean : mange here TokenAttributeGroup */
+        $manageTokenAttributeGroup = $TokenUsersListAndManagePluginApi < 0.5;
         if(!$oSurvey) {
             throw new CHttpException(404,gT("This survey does not seem to exist."));
         }
@@ -382,7 +389,6 @@ class responseListAndManage extends PluginBase {
                 'tokenAttributes','surveyAttributes','surveyAttributesPrimary',
                 'tokenColumnOrder','tokenAttributesNone',
                 'tokenAttributesHideToUser','surveyAttributesHideToUser',
-                'tokenAttributeGroup', 'tokenAttributeGroupManager', 'tokenAttributeGroupWhole',
                 'allowAccess','allowSee','allowEdit','allowDelete', 'allowAdd','allowAddSelf','allowAddUser',
                 'template',
                 'showFooter',
@@ -394,7 +400,10 @@ class responseListAndManage extends PluginBase {
             foreach($settings as $setting) {
                 $this->set($setting, App()->getRequest()->getPost($setting), 'Survey', $surveyId);
             }
-
+            if ($manageTokenAttributeGroup) {
+                $this->set('tokenAttributeGroup', App()->getRequest()->getPost('tokenAttributeGroup'), 'Survey', $surveyId);
+                $this->set('tokenAttributeGroupManager', App()->getRequest()->getPost('tokenAttributeGroupManager'), 'Survey', $surveyId);
+            }
             $languageSettings = array('description');
             foreach($languageSettings as $setting) {
                 $finalSettings = array();
@@ -404,10 +413,9 @@ class responseListAndManage extends PluginBase {
                 $this->set($setting, $finalSettings, 'Survey', $surveyId);
             }
 
-            if(App()->getRequest()->getPost('save'.get_class($this)=='redirect')) {
+            if(App()->getRequest()->getPost('save'.get_class($this))=='redirect') {
                 Yii::app()->getController()->redirect(Yii::app()->getController()->createUrl('admin/survey',array('sa'=>'view','surveyid'=>$surveyId)));
             }
-            
         }
         $stateInfo = "<ul class='list'>";
         if($this->_allowTokenLink($oSurvey)) {
@@ -464,7 +472,7 @@ class responseListAndManage extends PluginBase {
             'tokenAttributes' => array(
                 'type'=>'select',
                 'label'=>$this->translate('Token attributes to show in management'),
-                'options'=>$this->getTokensAttributeList($surveyId,'tokens.'),
+                'options'=>$this->getTokensAttributeList($surveyId,'tokens.', true),
                 'htmlOptions'=>array(
                     'multiple'=>true,
                     'placeholder'=>gT("All"),
@@ -533,7 +541,7 @@ class responseListAndManage extends PluginBase {
                 'type'=>'select',
                 'label'=> $this->translate('Token columns to be hidden to user (include group administrator)'),
                 'help' => $this->translate('This column are shown only to LimeSurvey administrator.'),
-                'options'=>$this->getTokensAttributeList($surveyId,'tokens.'),
+                'options'=>$this->getTokensAttributeList($surveyId,'tokens.', true),
                 'htmlOptions'=>array(
                     'multiple'=>true,
                     'placeholder'=>gT("None"),
@@ -649,9 +657,8 @@ class responseListAndManage extends PluginBase {
                 'condition'=>'sid IS NULL',
             ));
             $aTemplates = CHtml::listData($oTemplates,'template_name','template_name');
-        }
-        if(version_compare(Yii::app()->getConfig('versionnumber'),"3","<")) {
-          $aTemplates = array_keys(Template::getTemplateList());
+        } else {
+            $aTemplates = array_keys(Template::getTemplateList());
         }
         $default = $this->get('template',null,null,App()->getConfig('defaulttheme',App()->getConfig('defaulttemplate')));
         $aSettings[$this->translate('Template to be used')] = array(
@@ -666,15 +673,38 @@ class responseListAndManage extends PluginBase {
             )
         );
         /* Token attribute usage */
+        if ($manageTokenAttributeGroup) {
+            $tokenAttributeGroup = $this->get('tokenAttributeGroup', 'Survey', $surveyId);
+            $tokenAttributeGroupManager = $this->get('tokenAttributeGroupManager', 'Survey', $surveyId);
+        } else {
+            $tokenAttributeGroup = \TokenUsersListAndManagePlugin\Utilities::getTokenAttributeGroup($surveyId);
+            $tokenAttributeGroupManager = \TokenUsersListAndManagePlugin\Utilities::getTokenAttributeGroupManager($surveyId);
+        }
         $aSettings[$this->translate('Response Management token attribute usage')] = array(
+            'managedInTokenAndmanage' => array(
+                'type' => 'info',
+                'content' => CHtml::link(
+                    sprintf($this->translate("Managed in Token Users List And Manage (%s) plugin"),'TokenUsersListAndManage'),
+                    array(
+                        'admin/pluginhelper',
+                        'sa' => 'sidebody',
+                        'plugin' => 'TokenUsersListAndManage',
+                        'method' => 'actionSettings',
+                        'surveyId' => $surveyId
+                    ),
+                    array('class' => 'btn btn-block btn-link')
+                ),
+                'class' => 'h4'
+            ),
             'tokenAttributeGroup' => array(
                 'type'=>'select',
                 'label'=>$this->translate('Token attributes for group'),
                 'options'=>$this->getTokensAttributeList($surveyId),
                 'htmlOptions'=>array(
-                    'empty'=>$this->translate("None"),
+                    'empty' => $this->translate("None"),
+                    'disabled' => !$manageTokenAttributeGroup,
                 ),
-                'current'=>$this->get('tokenAttributeGroup','Survey',$surveyId)
+                'current' => $tokenAttributeGroup
             ),
             'tokenAttributeGroupManager' => array(
                 'type' => 'select',
@@ -682,17 +712,15 @@ class responseListAndManage extends PluginBase {
                 'help' => $this->translate('Any value except 0 and empty string set this to true.'),
                 'options' => $this->getTokensAttributeList($surveyId),
                 'htmlOptions'=>array(
-                    'empty'=>$this->translate("None"),
+                    'empty' => $this->translate("None"),
+                    'disabled' => !$manageTokenAttributeGroup,
                 ),
-                'current'=>$this->get('tokenAttributeGroupManager','Survey',$surveyId)
+                'current' => $tokenAttributeGroupManager
             ),
-            //~ 'tokenAttributeGroupWhole' => array(
-                //~ 'type'=>'boolean',
-                //~ 'label'=>$this->translate('User of group can see and manage all group response'),
-                //~ 'help'=>$this->translate('Else only group manager can manage other group response.'),
-                //~ 'current'=>$this->get('tokenAttributeGroupWhole','Survey',$surveyId,1)
-            //~ ),
         );
+        if(!$manageTokenAttributeGroup) {
+            unset($aSettings[$this->translate('Response Management token attribute usage')]['managedInTokenAndmanage']);
+        }
         /* @todo : get settings of reloadAnyResponse and set warning + readonly on some settings */
         
         $aSettings[$this->translate('Response Management access and right')] = array(
@@ -1385,7 +1413,7 @@ class responseListAndManage extends PluginBase {
             if($this->get('tokenAttributesNone','Survey',$surveyId,0)) {
                 $tokenAttributes = array();
             } else {
-                $tokenAttributes = array_keys($this->getTokensAttributeList($surveyId,'tokens.'));
+                $tokenAttributes = array_keys($this->getTokensAttributeList($surveyId,'tokens.', true));
             }
         }
         /* remove tokens.token if user didn't have right to edit */
@@ -2167,11 +2195,19 @@ class responseListAndManage extends PluginBase {
      * @param string $prefix
      * @return array
      */
-    private function getTokensAttributeList($surveyId, $prefix="" ) {
+    private function getTokensAttributeList($surveyId, $prefix="", $default = false ) {
         if(Yii::getPathOfAlias('TokenUsersListAndManagePlugin')) {
-            return \TokenUsersListAndManagePlugin\Utilities::getTokensAttributeList($surveyId, $prefix);
+            return \TokenUsersListAndManagePlugin\Utilities::getTokensAttributeList($surveyId, $prefix, $default);
         }
         $aTokens = array();
+        if($default) {
+            $aTokens = array(
+                $prefix.'firstname' => gT("First name"),
+                $prefix.'lastname' => gT("Last name"),
+                $prefix.'token' => gT("Token"),
+                $prefix.'email' => gT("Email"),
+            );
+        }
         $oSurvey = Survey::model()->findByPk($surveyId);
         foreach($oSurvey->getTokenAttributes() as $attribute=>$information) {
             $aTokens[$prefix.$attribute] = $attribute;

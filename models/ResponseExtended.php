@@ -47,7 +47,7 @@ class ResponseExtended extends LSActiveRecord
 
     /* Construction link */
     /* @var string|null */
-    public $currentToken;
+    public $currentToken = "";
     /* @var boolean */
     public $showEdit = false;
     /* @var boolean */
@@ -308,8 +308,8 @@ class ResponseExtended extends LSActiveRecord
                 'class' => 'bootstrap.widgets.TbButtonColumn',
                 'template' => $template,
                 //'buttons'=> $this->getGridButtons(),
-                'updateButtonUrl' => '$data->getUdateButton()',
-                'deleteButtonUrl' => '$data->getDeleteButton()',
+                'updateButtonUrl' => '$data->getUdateButton("'.$this->currentToken.'")',
+                'deleteButtonUrl' => '$data->getDeleteButton("'.$this->currentToken.'")',
                 'footer' => $this->showFooter ? \responseListAndManage\Utilities::translate("Answered count and sum") : null,
             );
         }
@@ -373,28 +373,35 @@ class ResponseExtended extends LSActiveRecord
 
     /**
      * get the update url for the current response
+     * @param string|null token to be used
      */
-    public function getUdateButton()
+    public function getUdateButton($token = null)
     {
+        if(empty($token)) {
+            $token = $this->currentToken;
+        }
         $startUrl = new \reloadAnyResponse\StartUrl(
             self::$sid,
-            $this->currentToken,
-            array("newtest" => "Y")
+            $token
         );
-        return strval($startUrl->getUrl($this->id));
+        return strval($startUrl->getUrl($this->id, array("newtest" => "Y")));
     }
 
     /**
      * get the delete url for the current response
+     * @param string|null token to be used
      */
-    public function getDeleteButton()
+    public function getDeleteButton($token = null)
     {
-        if($this->currentToken) {
+        if(empty($token)) {
+            $token = $this->currentToken;
+        }
+        if($token) {
             return App()->createUrl("plugins/direct",
                 array(
                     "plugin" => "responseListAndManage",
                     "sid" => self::$sid,
-                    "token" => $this->currentToken,
+                    "token" => $token,
                     "delete" => $this->id
                 )
             );

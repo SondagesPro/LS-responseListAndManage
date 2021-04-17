@@ -2,7 +2,7 @@
 /**
  * This file is part of reloadAnyResponse plugin
  * @see SurveyDynamic
- * @version 1.1.6
+ * @version 1.1.8
  */
 //~ namespace responseListAndManage\models;
 //~ use Yii;
@@ -221,11 +221,6 @@ class ResponseExtended extends LSActiveRecord
                 $columnHasValue = !empty($this->$c1);
                 if ($columnHasValue) {
                     $dbType = $column->dbType;
-                   if ($dbType == 'decimal') {
-                        $this->$c1 = (float) $this->$c1;
-                        $criteria->compare(Yii::app()->db->quoteColumnName($c1), $this->$c1, false);
-                        continue;
-                    }
                     $isDatetime = strpos($dbType, 'timestamp') !== false || strpos($dbType, 'datetime') !== false;
                     if ($isDatetime) {
                         if(is_array($this->$c1)) {

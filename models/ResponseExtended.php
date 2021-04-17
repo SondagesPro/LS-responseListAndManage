@@ -82,6 +82,8 @@ class ResponseExtended extends LSActiveRecord
     public function afterFind()
     {
         $this->completed = $this->getCompleted();
+        //tracevar($this->metaData->columns);
+
     }
 
     /**
@@ -218,27 +220,29 @@ class ResponseExtended extends LSActiveRecord
                 $c1 = (string) $column->name;
                 $columnHasValue = !empty($this->$c1);
                 if ($columnHasValue) {
-                    $isDatetime = strpos($column->dbType, 'timestamp') !== false || strpos($column->dbType, 'datetime') !== false;
-                    if ($column->dbType == 'decimal') {
+                    $dbType = $column->dbType;
+                   if ($dbType == 'decimal') {
                         $this->$c1 = (float) $this->$c1;
                         $criteria->compare(Yii::app()->db->quoteColumnName($c1), $this->$c1, false);
-                    } elseif ($isDatetime) {
+                        continue;
+                    }
+                    $isDatetime = strpos($dbType, 'timestamp') !== false || strpos($dbType, 'datetime') !== false;
+                    if ($isDatetime) {
                         if(is_array($this->$c1)) {
                             $date = $this->$c1;
                             $dateFormat = empty($date['format']) ? 'Y-m-d' : $date['format'];
                             if(!empty($date['min'])) {
                                 $minDate = DateTime::createFromFormat('!' . $dateFormat, trim($date['min']));
                                 if ($minDate === false) {
-                                    throw new CHttpException(500, "Invalid format for $c1 : $dateFormat");
+                                    continue;
                                 }
                                 $minDate = $minDate->format("Y-m-d H:i");
-                                //~ $criteria->compare(Yii::app()->db->quoteColumnName($c1), ">=".$minDate);
                                 $criteria->addCondition(Yii::app()->db->quoteColumnName($c1).' >= '.Yii::app()->db->quoteValue($minDate));
                             }
                             if(!empty($date['max'])) {
                                 $maxDate = DateTime::createFromFormat('!' . $dateFormat, trim($date['max']));
                                 if ($maxDate === false) {
-                                    throw new CHttpException(500, "Invalid format for $c1 : $dateFormat");
+                                    continue;
                                 }
                                 $maxDate = $maxDate->format("Y-m-d H:i");
                                 $criteria->addCondition(Yii::app()->db->quoteColumnName($c1).' < '.Yii::app()->db->quoteValue($maxDate));
@@ -252,9 +256,16 @@ class ResponseExtended extends LSActiveRecord
                         }
                         $s2 = $s->format('Y-m-d');
                         $criteria->addCondition('cast('.Yii::app()->db->quoteColumnName($c1).' as date) = '.Yii::app()->db->quoteValue($s2));
-                    } else {
-                        $criteria->compare(Yii::app()->db->quoteColumnName($c1), $this->$c1, true);
+                        continue;
                     }
+                    /* Is dropdown (to be confirmed if we have all)
+                     * $dbType == 'varchar(5)' || $dbType == 'character varying (5)' || $dbType == 'nvarchar(5)'
+                     **/
+                    if(strpos($dbType, '(5)') || strpos($dbType, '(20)')) {
+                        $criteria->compare(Yii::app()->db->quoteColumnName($c1), $this->$c1, false);
+                    }
+                    /* Default compare */
+                    $criteria->compare(Yii::app()->db->quoteColumnName($c1), $this->$c1, true);
                 }
             }
         }

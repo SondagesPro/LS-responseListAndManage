@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2021 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 2.4.2
+ * @version 2.5.0
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -388,6 +388,7 @@ class responseListAndManage extends PluginBase {
                 'showId','showCompleted','showSubmitdate','showStartdate','showDatestamp',
                 'tokenAttributes','surveyAttributes','surveyAttributesPrimary',
                 'tokenColumnOrder','tokenAttributesNone',
+                'surveyNeededValues',
                 'tokenAttributesHideToUser','surveyAttributesHideToUser',
                 'allowAccess','allowSee','allowEdit','allowDelete', 'allowAdd','allowAddSelf','allowAddUser',
                 'template',
@@ -575,6 +576,26 @@ class responseListAndManage extends PluginBase {
                     'class'=>'select2-withover ',
                 ),
                 'current'=>$this->get('surveyAttributesHideToUser','Survey',$surveyId)
+            ),
+            'surveyNeededValues' => array(
+                'type'=>'select',
+                'label'=> $this->translate('Hide answer without value on : '),
+                'help' => '',
+                'options'=>$aQuestionList['data'],
+                'htmlOptions'=>array(
+                    'multiple'=>true,
+                    'placeholder'=>gT("None"),
+                    'unselectValue'=>"",
+                    'options'=>$aQuestionList['options'], // In dropdown, but not in select2
+                ),
+                'selectOptions'=>array(
+                    'placeholder'=>gT("None"),
+                    //~ 'templateResult'=>"formatQuestion",
+                ),
+                'controlOptions' => array(
+                    'class'=>'select2-withover ',
+                ),
+                'current'=>$this->get('surveyNeededValues','Survey',$surveyId)
             ),
             'showFooter' => array(
                 'type'=>'boolean',
@@ -1218,6 +1239,22 @@ class responseListAndManage extends PluginBase {
         $mResponse->filterSubmitDate = (int) $this->get('filterSubmitDate','Survey',$surveyId,0);
         $mResponse->filterStartdate = (int) $this->get('filterStartdate','Survey',$surveyId,0);
         $mResponse->filterDatestamp = (int) $this->get('filterDatestamp','Survey',$surveyId,0);
+
+        $surveyNeededValues = $this->get('surveyNeededValues','Survey',$surveyId,array());
+        if(empty($surveyNeededValues)) {
+            $surveyNeededValues = array();
+        }
+        if(is_string($surveyNeededValues)) {
+            $surveyNeededValues = array($surveyNeededValues);
+        }
+        if(!empty($surveyNeededValues)) {
+            $criteria = new CDbCriteria;
+            foreach($surveyNeededValues as $surveyNeededValue) {
+                $surveyNeededValue = Yii::app()->getDb()->quoteColumnName($surveyNeededValue);
+                $criteria->addCondition("$surveyNeededValue <>'' AND $surveyNeededValue IS NOT NULL");
+            }
+            $mResponse->searchCriteria = $criteria;
+        }
 
         $filters = Yii::app()->request->getParam('ResponseExtended');
         if (!empty($filters)) {

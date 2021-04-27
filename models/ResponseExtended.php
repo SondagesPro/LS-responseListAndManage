@@ -2,7 +2,7 @@
 /**
  * This file is part of reloadAnyResponse plugin
  * @see SurveyDynamic
- * @version 1.1.8
+ * @version 1.2.0
  */
 //~ namespace responseListAndManage\models;
 //~ use Yii;
@@ -41,6 +41,9 @@ class ResponseExtended extends LSActiveRecord
     public $filterStartdate = 0;
         /** @var integer */
     public $filterDatestamp = 0;
+
+    /** @var \CDbCriteria|null filter to be applied before other criteria**/
+    public $searchCriteria = array();
 
     /* @var */
     protected $sum;
@@ -164,7 +167,11 @@ class ResponseExtended extends LSActiveRecord
     {
         $pageSize = Yii::app()->user->getState('responseListAndManagePageSize', Yii::app()->params['defaultPageSize']);
         $this->setScenario('search');
-        $criteria = new CDbCriteria;
+        if($this->searchCriteria) {
+            $criteria = $this->searchCriteria;
+        } else {
+            $criteria = new CDbCriteria;
+        }
 
         // Join the survey participants table and filter tokens if needed
         if ($this->haveToken && $this->survey->anonymized != 'Y') {

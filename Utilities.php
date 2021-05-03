@@ -27,7 +27,7 @@ class Utilities
 {
 
     /* @var float $API version */
-    const API = 2.4;
+    const API = 2.5;
 
     /* var string[] settings with global part and default value */
     const DefaultSettings = array(

@@ -78,6 +78,7 @@ class responseListAndManage extends PluginBase {
 
     public function init() {
         Yii::setPathOfAlias(get_class($this), dirname(__FILE__));
+        App()->setConfig('responseListAndManageAPI', \responseListAndManage\Utilities::API);
         $this->subscribe('afterPluginLoad');
 
         /* Primary system: show the list of surey or response */
@@ -375,7 +376,7 @@ class responseListAndManage extends PluginBase {
             $TokenUsersListAndManagePluginApi = \TokenUsersListAndManagePlugin\Utilities::API;
         }
         /* @var boolean : mange here TokenAttributeGroup */
-        $manageTokenAttributeGroup = $TokenUsersListAndManagePluginApi < 0.5;
+        $manageTokenAttributeGroup = version_compare($TokenUsersListAndManagePluginApi,"0.5", "<");
         if(!$oSurvey) {
             throw new CHttpException(404,gT("This survey does not seem to exist."));
         }
@@ -694,6 +695,7 @@ class responseListAndManage extends PluginBase {
             )
         );
         /* Token attribute usage */
+        tracevar($manageTokenAttributeGroup);
         if ($manageTokenAttributeGroup) {
             $tokenAttributeGroup = $this->get('tokenAttributeGroup', 'Survey', $surveyId);
             $tokenAttributeGroupManager = $this->get('tokenAttributeGroupManager', 'Survey', $surveyId);
@@ -739,7 +741,7 @@ class responseListAndManage extends PluginBase {
                 'current' => $tokenAttributeGroupManager
             ),
         );
-        if(!$manageTokenAttributeGroup) {
+        if($manageTokenAttributeGroup) {
             unset($aSettings[$this->translate('Response Management token attribute usage')]['managedInTokenAndmanage']);
         }
         /* @todo : get settings of reloadAnyResponse and set warning + readonly on some settings */

@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of reloadAnyResponse plugin
- * @version 0.2.0
+ * @version 0.3.0
  */
 namespace responseListAndManage\helpers;
 use Yii;
@@ -29,14 +29,18 @@ class tokensList
         if(empty($oPluginResponseListAndManage) || !$oPluginResponseListAndManage->active) {
             return $tokensList;
         }
-        $oTokenAttributeGroup = PluginSetting::model()->find(
-            "plugin_id = :plugin_id AND model = :model AND model_id = :model_id AND ".Yii::app()->db->quoteColumnName('key')." = :setting",
-            array(":plugin_id"=>$oPluginResponseListAndManage->id,':model'=>"Survey",':model_id'=>$surveyId,':setting'=>"tokenAttributeGroup")
-        );
-        if(empty($oTokenAttributeGroup)) {
-            return $tokensList;
+        if(App()->getConfig('TokenUsersListAndManageAPI')) {
+            $tokenAttributeGroup = \TokenUsersListAndManagePlugin\Utilities::getTokenAttributeGroup($surveyId);
+        } else {
+            $oTokenAttributeGroup = PluginSetting::model()->find(
+                "plugin_id = :plugin_id AND model = :model AND model_id = :model_id AND ".Yii::app()->db->quoteColumnName('key')." = :setting",
+                array(":plugin_id"=>$oPluginResponseListAndManage->id,':model'=>"Survey",':model_id'=>$surveyId,':setting'=>"tokenAttributeGroup")
+            );
+            if(empty($oTokenAttributeGroup)) {
+                return $tokensList;
+            }
+            $tokenAttributeGroup = trim(json_decode($oTokenAttributeGroup->value));
         }
-        $tokenAttributeGroup = trim(json_decode($oTokenAttributeGroup->value));
         if (empty($tokenAttributeGroup)) {
             return $tokensList;
         }

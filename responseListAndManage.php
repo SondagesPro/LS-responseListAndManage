@@ -695,7 +695,6 @@ class responseListAndManage extends PluginBase {
             )
         );
         /* Token attribute usage */
-        tracevar($manageTokenAttributeGroup);
         if ($manageTokenAttributeGroup) {
             $tokenAttributeGroup = $this->get('tokenAttributeGroup', 'Survey', $surveyId);
             $tokenAttributeGroupManager = $this->get('tokenAttributeGroupManager', 'Survey', $surveyId);

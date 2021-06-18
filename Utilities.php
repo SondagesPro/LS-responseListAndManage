@@ -58,7 +58,7 @@ class Utilities
      */
     public static function getTokensList($surveyId, $token, $checkRight = true)
     {
-        if (defined('\TokenUsersListAndManagePlugin\Utilities::API') && \TokenUsersListAndManagePlugin\Utilities::API > 0.4) {
+        if (version_compare(App()->getConfig('TokenUsersListAndManageAPI'), "0.14", ">=")) {
             return \TokenUsersListAndManagePlugin\Utilities::getTokensList($surveyId, $token, $checkRight);
         }
         if(!Yii::getPathOfAlias('reloadAnyResponse')) {

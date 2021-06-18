@@ -24,11 +24,25 @@
 .grid-view .pager,.grid-view .pagination{margin:0.5em 0}
 .grid-view .summary{padding:0.5em 0}
 .grid-view .table > thead > tr > th{vertical-align: top;}
-.grid-view .table tbody td .answer-value,.grid-view .table tbody td .tokenattribute-value{height:1.4em;overflow:hidden;text-overflow: ellipsis;cursor: zoom-in;}
+.grid-view .table tbody td .answer-value,.grid-view .table tbody td .tokenattribute-value{
+    height:1.4em;
+    white-space: nowrap;
+    overflow:hidden;
+    text-overflow: ellipsis;
+    cursor: zoom-in;
+}
 
-.grid-view th small{white-space: nowrap;overflow:hidden;max-width:12rem;
-text-overflow: ellipsis;}
-.grid-view .popover{width:auto;min-width:12rem;max-width:36em;}
+.grid-view th small{
+    max-width:12rem;
+    white-space: nowrap;
+    overflow:hidden;
+    text-overflow: ellipsis;
+}
+.grid-view .popover{
+    width:auto;
+    min-width:12rem;
+    max-width:36em;
+}
 .grid-view .popover-content{white-space: pre-line;}
 
 .grid-view .column-upload-files .popover{min-width:25rem}
@@ -49,6 +63,7 @@ text-overflow: ellipsis;}
 {
     width: 10rem;
     text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .grid-view .file-list dd

@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2021 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 2.5.1
+ * @version 2.5.2
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -2196,6 +2196,8 @@ class responseListAndManage extends PluginBase {
             }
         }
         App()->getClientScript()->registerPackage("bootstrap-datetimepicker");
+        App()->clientScript->registerScriptFile(App()->getConfig("generalscripts") . 'nojs.js', CClientScript::POS_HEAD);
+
         Yii::setPathOfAlias(get_class($this),dirname(__FILE__));
         Yii::app()->clientScript->addPackage('responselistandmanage', array(
             'basePath'    => get_class($this).'.assets.responselistandmanage',

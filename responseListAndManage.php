@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2021 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 2.5.2
+ * @version 2.5.3
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -118,13 +118,20 @@ class responseListAndManage extends PluginBase {
         if(!empty($aFlashMessage['responseListAndManage'])) {
             return;
         }
+
         if (Permission::getUserId()) {
             $controller = $this->getEvent()->get('controller');
             $action = $this->getEvent()->get('action');
             $subaction = $this->getEvent()->get('subaction');
             if($controller == 'admin' && $action != "pluginmanager")  {
                 $aFlashMessage['responseListAndManage'] = array(
-                    'message' => sprintf($this->translate("%s can not be used due to a lack of functionnality on your instance"),'responseListAndManage'),
+                    'message' => sprintf($this->translate("%s can not be used due to a lack of functionnality on your instance"),
+                        CHtml::link('responseListAndManage', 
+                            array( "admin/pluginmanager/sa/configure",
+                            'id' => $this->id
+                            )
+                        )
+                    ),
                     'type' => 'danger'
                 );
                 App()->session['aFlashMessage'] = $aFlashMessage;
@@ -167,11 +174,9 @@ class responseListAndManage extends PluginBase {
         }
         if(!Yii::getPathOfAlias('reloadAnyResponse')) {
             $errors[] = sprintf($this->translate("%s plugin need %s version 3.2 and up"),'responseListAndManage','reloadAnyResponse');
-        }
-        if(!defined('\reloadAnyResponse\Utilities::API')) {
+        } elseif(!defined('\reloadAnyResponse\Utilities::API')) {
             $errors[] = sprintf($this->translate("%s plugin need %s version 3.2 and up"),'responseListAndManage','reloadAnyResponse');
-        }
-        if(\reloadAnyResponse\Utilities::API < 3.2) {
+        } elseif(\reloadAnyResponse\Utilities::API < 3.2) {
             $errors[] = sprintf($this->translate("%s plugin need %s version 3.2 and up"),'responseListAndManage','reloadAnyResponse');
         }
         if(!Yii::getPathOfAlias('getQuestionInformation')) {

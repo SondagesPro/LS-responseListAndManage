@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2021 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 2.5.3
+ * @version 2.6.0
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -25,6 +25,9 @@ class responseListAndManage extends PluginBase {
 
     /* @var integer|null surveyId get track of current sureyId between action */
     private $surveyId;
+
+    /* @var integer : the version of settings whan saved */
+    const SettingsVersion = 2;
 
     /**
      * @var array[] the settings
@@ -247,7 +250,7 @@ class responseListAndManage extends PluginBase {
         if (empty($afterSurveyCompleteEvent->get('responseId'))) {
             return;
         }
-        /* Todo : xheck if surey are open by this plugin */
+        /* Todo : check if surey are open by this plugin */
         $script = "responseListAndManage.autoclose();";
         Yii::app()->getClientScript()->registerScript("responseListAndManageComplete", $script, CClientScript::POS_END);
         $renderData=array(
@@ -388,6 +391,7 @@ class responseListAndManage extends PluginBase {
         if(!Permission::model()->hasSurveyPermission($surveyId,'surveysettings','update')){
             throw new CHttpException(403);
         }
+        $this->checkAndFixVersion($surveyId);
         if(App()->getRequest()->getPost('save'.get_class($this))) {
             // Adding save part
             $settings = array(
@@ -419,7 +423,8 @@ class responseListAndManage extends PluginBase {
                 }
                 $this->set($setting, $finalSettings, 'Survey', $surveyId);
             }
-
+            /* Set the version of current settings */
+            $this->set('SettingsVersion', self::SettingsVersion, 'Survey', $surveyId);
             if(App()->getRequest()->getPost('save'.get_class($this))=='redirect') {
                 Yii::app()->getController()->redirect(Yii::app()->getController()->createUrl('admin/survey',array('sa'=>'view','surveyid'=>$surveyId)));
             }
@@ -443,6 +448,7 @@ class responseListAndManage extends PluginBase {
 
         $stateInfo .= "</ul>";
         $surveyColumnsInformation = new \getQuestionInformation\helpers\surveyColumnsInformation($surveyId,App()->getLanguage());
+        $surveyColumnsInformation->ByEmCode = true;
         $aQuestionList = $surveyColumnsInformation->allQuestionListData();
         $accesUrl = Yii::app()->createUrl("plugins/direct", array('plugin' => get_class(),'sid'=>$surveyId));
         $linkManagement = CHtml::link(
@@ -1246,7 +1252,7 @@ class responseListAndManage extends PluginBase {
         $mResponse->filterStartdate = (int) $this->get('filterStartdate','Survey',$surveyId,0);
         $mResponse->filterDatestamp = (int) $this->get('filterDatestamp','Survey',$surveyId,0);
 
-        $surveyNeededValues = $this->get('surveyNeededValues','Survey',$surveyId,array());
+        $surveyNeededValues = $this->getAttributesColumn($surveyId, 'NeededValues');
         if(empty($surveyNeededValues)) {
             $surveyNeededValues = array();
         }
@@ -2538,11 +2544,26 @@ class responseListAndManage extends PluginBase {
             case 'HideToUser':
                 $attributes = $this->get('surveyAttributesHideToUser','Survey',$surveyId);
                 break;
+            case 'NeededValues':
+                $attributes = $this->get('surveyNeededValues','Survey',$surveyId);
+                break;
             case '':
             default :
                 $attributes = $this->get('surveyAttributes','Survey',$surveyId);
         }
-        return $attributes;
+        if(empty($attributes)) {
+            return array();
+        }
+        if(is_string($attributes)) {
+            $attributes = array($attributes);
+        }
+        // $availableColumns = SurveyDynamic::model($surveyId)->getAttributes();
+        if($this->get('SettingsVersion', 'Survey', $surveyId, 0) < 2 ) {
+            return $attributes;
+        }
+        /* We get the columln with intersect with surveyCodeHelper */
+        $intersect = array_intersect(getQuestionInformation\helpers\surveyCodeHelper::getAllQuestions($surveyId),$attributes);
+        return array_flip($intersect);
     }
 
     /**
@@ -2579,5 +2600,37 @@ class responseListAndManage extends PluginBase {
             'Submit' => gT('Submit'),
             'Save as complete' => gT('Save as complete'),
         );
+    }
+    
+    /**
+     * Check the current version of survey settings, fix it oif needed
+     * @param integer $surveyId
+     * @return void
+     */
+    private function checkAndFixVersion($surveyId)
+    {
+        if($this->get('SettingsVersion', 'Survey', $surveyId, 0) >= self::SettingsVersion) {
+            return;
+        }
+        $SGQtoColumn = getQuestionInformation\helpers\surveyCodeHelper::getAllQuestions($surveyId);
+        $surveyAttributeSettings = array(
+            'surveyAttributes',
+            'surveyAttributesPrimary',
+            'surveyNeededValues',
+            'surveyAttributesHideToUser'
+        );
+        foreach($surveyAttributeSettings as $surveyAttributeSetting) {
+            $currentSetting = $this->get($surveyAttributeSetting, 'Survey', $surveyId);
+            if(empty($currentSetting)) {
+                continue;
+            }
+            if (!settype($currentSetting, 'array')) {
+                // WTF ? can not fix it
+                continue;
+            }
+            $newSetting = array_intersect_key($SGQtoColumn,array_flip($currentSetting));
+            $this->set($surveyAttributeSetting, $newSetting, 'Survey', $surveyId);
+        }
+        $this->set('SettingsVersion', self::SettingsVersion, 'Survey', $surveyId);
     }
 }

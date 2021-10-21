@@ -1,13 +1,13 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
 <config>
     <metadata>
-        <name>reponseListAndManage</name>
+        <name>responseListAndManage</name>
         <type>plugin</type>
         <creationDate>2018-06-20</creationDate>
-        <lastUpdate>2021-10-18</lastUpdate>
+        <lastUpdate>2021-10-21</lastUpdate>
         <author>Denis Chenu</author>
         <authorUrl>https://www.sondages.pro</authorUrl>
-        <version>2.7.0</version>
+        <version>2.7.2</version>
         <lastSecurityUpdate>1.18.8</lastSecurityUpdate>
         <license>GNU General Public License version 3 or later</license>
         <description><![CDATA[A different way to manage response of a survey.]]></description>

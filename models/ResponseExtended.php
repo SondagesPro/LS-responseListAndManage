@@ -2,7 +2,7 @@
 /**
  * This file is part of reloadAnyResponse plugin
  * @see SurveyDynamic
- * @version 1.2.0
+ * @version 1.2.1
  */
 //~ namespace responseListAndManage\models;
 //~ use Yii;
@@ -179,7 +179,12 @@ class ResponseExtended extends LSActiveRecord
         }
         $sort = $this->getSort();
         if(!empty($this->restrictedColumns)) {
-            $criteria->select = $this->restrictedColumns;
+            $criteria->select = array_map(
+                function ($column) { 
+                    return App()->getDb()->quoteColumnName($column); 
+                },
+                $this->restrictedColumns
+            );
         }
         // Completed filters
         if ($this->completed == "Y") {

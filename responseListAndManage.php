@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2021 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 2.6.0
+ * @version 2.7.2
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -122,7 +122,7 @@ class responseListAndManage extends PluginBase {
             return;
         }
 
-        if (Permission::getUserId()) {
+        if (\responseListAndManage\Utilities::getCurrentUserId()) {
             $controller = $this->getEvent()->get('controller');
             $action = $this->getEvent()->get('action');
             $subaction = $this->getEvent()->get('subaction');
@@ -1199,7 +1199,7 @@ class responseListAndManage extends PluginBase {
             $userHaveRight = true;
         }
         if (!$userHaveRight && ($settingAllowAccess == 'limesurvey' || !$this->_allowTokenLink($oSurvey))) {
-            if (Permission::getUserId()) {
+            if (\responseListAndManage\Utilities::getCurrentUserId()) {
                 throw new CHttpException(403);
             }
             $this->_doLogin();
@@ -1434,8 +1434,7 @@ class responseListAndManage extends PluginBase {
             }
         }
         if($allowAdd && !empty($tokenList) && !$singleToken) {
-            $addNew  = CHtml::beginForm(array("survey/index"),'get',array('class'=>"form-inline"));
-            $addNew .= CHtml::hiddenField('sid',$surveyId);
+            $addNew  = CHtml::beginForm(array("survey/index",'sid' => $surveyId),'get',array('class'=>"form-inline"));
             $addNew .= CHtml::hiddenField('srid','new');
             $addNew .= CHtml::hiddenField('newtest',"Y");
             $addNew .= CHtml::hiddenField('plugin',get_class($this));
@@ -1929,11 +1928,7 @@ class responseListAndManage extends PluginBase {
             /* admin can come from survey with token */
             $this->_setCurrentToken($surveyId,null);
         }
-        if(version_compare(App()->getConfig('versionnumber'),"3",">=")) {
-            $userId = Permission::getUserId();
-        } else {
-            $userId = Yii::app()->session['loginID'];
-        }
+        $userId = \responseListAndManage\Utilities::getCurrentUserId();
         if($userId) {
             $beforeLogout = new PluginEvent('beforeLogout');
             App()->getPluginManager()->dispatchEvent($beforeLogout);
@@ -2307,11 +2302,7 @@ class responseListAndManage extends PluginBase {
             $showAdminLink = $showAdminSurveyLink && $this->get('showAdminLink',null,null,$this->settings['showAdminLink']['default']);
             $showExportLink = $this->get('showExportLink','Survey',$surveyId,$this->get('showExportLink',null,null,'limesurvey'));
         }
-        if(version_compare(App()->getConfig('versionnumber'),"3",">=")) {
-            $userId = Permission::getUserId();
-        } else {
-            $userId = Yii::app()->session['loginID'];
-        }
+        $userId = \responseListAndManage\Utilities::getCurrentUserId();
         $actionLinks = array();
         $currentToken = null;
         if(!$userId) {

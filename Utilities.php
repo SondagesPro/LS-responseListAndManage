@@ -139,4 +139,14 @@ class Utilities
         return self::DefaulSettings[$sSetting];
     }
 
+    /**
+     * Return the current userid
+     * Done if system update the way, usage only on web.
+     * @see Permission->getUserId
+     * @return null|integer
+     */ 
+    public static function getCurrentUserId()
+    {
+        return Yii::app()->session['loginID'];
+    }
 }

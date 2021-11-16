@@ -2,7 +2,7 @@
 /**
  * This file is part of reloadAnyResponse plugin
  * @see SurveyDynamic
- * @version 1.2.1
+ * @version 1.2.2
  */
 //~ namespace responseListAndManage\models;
 //~ use Yii;
@@ -270,6 +270,7 @@ class ResponseExtended extends LSActiveRecord
                      **/
                     if(strpos($dbType, '(5)') || strpos($dbType, '(20)')) {
                         $criteria->compare(Yii::app()->db->quoteColumnName($c1), $this->$c1, false);
+                        continue;
                     }
                     /* Default compare */
                     $criteria->compare(Yii::app()->db->quoteColumnName($c1), $this->$c1, true);

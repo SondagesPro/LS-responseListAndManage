@@ -3,9 +3,9 @@
  * Responses List And Manage
  *
  * @author Denis Chenu <denis@sondages.pro>
- * @copyright 2018-2021 Denis Chenu <http://www.sondages.pro>
+ * @copyright 2018-2022 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 2.7.3
+ * @version 2.7.4
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -2212,15 +2212,16 @@ class responseListAndManage extends PluginBase {
             'depends'      =>array('jquery'),
         ));
         Yii::app()->getClientScript()->registerPackage('responselistandmanage');
-        Template::model()->getInstance($templateName, $surveyId);
-        Template::model()->getInstance($templateName, $surveyId)->oOptions->ajaxmode = 'off';
+        Template::resetInstance();
+        Template::getInstance($templateName, $surveyId);
+        Template::getInstance($templateName, $surveyId)->oOptions->ajaxmode = 'off';
         if(empty($this->aRenderData['aSurveyInfo'])) {
             $this->aRenderData['aSurveyInfo'] = array(
                 'surveyls_title' => App()->getConfig('sitename'),
                 'name' => App()->getConfig('sitename'),
             );
         } else {
-            Template::model()->getInstance($templateName, $surveyId)->oOptions->container = 'off';
+            Template::getInstance($templateName, $surveyId)->oOptions->container = 'off';
         }
         $renderTwig = array(
             'responseListAndManage' => $this->aRenderData,

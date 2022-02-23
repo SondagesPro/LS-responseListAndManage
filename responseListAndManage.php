@@ -5,7 +5,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2022 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 2.7.4
+ * @version 2.7.5
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -2176,7 +2176,31 @@ class responseListAndManage extends PluginBase {
                 'surveyls_title' => App()->getConfig('sitename'),
                 'name' => App()->getConfig('sitename'),
             );
-        } 
+        }
+        /* Get the template name */
+        $templateName = Template::templateNameFilter($this->get('template',null,null,Yii::app()->getConfig('defaulttheme')));
+        if($surveyId) {
+            if($this->get('template','Survey',$surveyId)) {
+                $templateName = Template::templateNameFilter($this->get('template','Survey',$surveyId));
+                if($templateName == Yii::app()->getConfig('defaulttheme')) {
+                    $templateName = Template::templateNameFilter($this->get('template',null,null,Yii::app()->getConfig('defaulttheme')));
+                }
+            }
+        }
+        /* reset to get last option : plugin can update theme option*/
+        Template::resetInstance();
+        /* Let construct the page now */
+        Template::getInstance($templateName, $surveyId);
+        Template::getInstance($templateName, $surveyId)->oOptions->ajaxmode = 'off';
+        if(empty($this->aRenderData['aSurveyInfo'])) {
+            $this->aRenderData['aSurveyInfo'] = array(
+                'surveyls_title' => App()->getConfig('sitename'),
+                'name' => App()->getConfig('sitename'),
+            );
+        } else {
+            Template::getInstance($templateName, $surveyId)->oOptions->container = 'off';
+        }
+        /* Specific event */
         $event = new PluginEvent('beforeRenderResponseListAndManage');
         $event->set('surveyId', $surveyId);
         $event->set('token',$this->_getCurrentToken($surveyId));
@@ -2192,18 +2216,9 @@ class responseListAndManage extends PluginBase {
             $this->aRenderData,
             true
         );
-        $templateName = Template::templateNameFilter($this->get('template',null,null,Yii::app()->getConfig('defaulttheme')));
-        if($surveyId) {
-            if($this->get('template','Survey',$surveyId)) {
-                $templateName = Template::templateNameFilter($this->get('template','Survey',$surveyId));
-                if($templateName == Yii::app()->getConfig('defaulttheme')) {
-                    $templateName = Template::templateNameFilter($this->get('template',null,null,Yii::app()->getConfig('defaulttheme')));
-                }
-            }
-        }
+
         App()->getClientScript()->registerPackage("bootstrap-datetimepicker");
         App()->clientScript->registerScriptFile(App()->getConfig("generalscripts") . 'nojs.js', CClientScript::POS_HEAD);
-
         Yii::setPathOfAlias(get_class($this),dirname(__FILE__));
         Yii::app()->clientScript->addPackage('responselistandmanage', array(
             'basePath'    => get_class($this).'.assets.responselistandmanage',
@@ -2212,17 +2227,6 @@ class responseListAndManage extends PluginBase {
             'depends'      =>array('jquery'),
         ));
         Yii::app()->getClientScript()->registerPackage('responselistandmanage');
-        Template::resetInstance();
-        Template::getInstance($templateName, $surveyId);
-        Template::getInstance($templateName, $surveyId)->oOptions->ajaxmode = 'off';
-        if(empty($this->aRenderData['aSurveyInfo'])) {
-            $this->aRenderData['aSurveyInfo'] = array(
-                'surveyls_title' => App()->getConfig('sitename'),
-                'name' => App()->getConfig('sitename'),
-            );
-        } else {
-            Template::getInstance($templateName, $surveyId)->oOptions->container = 'off';
-        }
         $renderTwig = array(
             'responseListAndManage' => $this->aRenderData,
             'aSurveyInfo' => $this->aRenderData['aSurveyInfo'],

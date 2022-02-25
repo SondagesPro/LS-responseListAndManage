@@ -375,8 +375,9 @@ class responseListAndManage extends PluginBase {
      *
      * @return string
      */
-    public function actionSettings($surveyId)
+    public function actionSettings($surveyid)
     {
+        $surveyId = $surveyid;
         $oSurvey=Survey::model()->findByPk($surveyId);
         /* @var float API of TokenUsersListAndManagePlugin */
         $TokenUsersListAndManagePluginApi = 0;
@@ -388,11 +389,15 @@ class responseListAndManage extends PluginBase {
         if(!$oSurvey) {
             throw new CHttpException(404,gT("This survey does not seem to exist."));
         }
-        if(!Permission::model()->hasSurveyPermission($surveyId,'surveysettings','update')){
+        if(!Permission::model()->hasSurveyPermission($surveyId,'surveysettings','read')){
             throw new CHttpException(403);
         }
+
         $this->checkAndFixVersion($surveyId);
         if(App()->getRequest()->getPost('save'.get_class($this))) {
+            if(!Permission::model()->hasSurveyPermission($surveyId,'surveysettings','update')){
+                throw new CHttpException(403);
+            }
             // Adding save part
             $settings = array(
                 'showId','showCompleted','showSubmitdate','showStartdate','showDatestamp',
@@ -426,7 +431,11 @@ class responseListAndManage extends PluginBase {
             /* Set the version of current settings */
             $this->set('SettingsVersion', self::SettingsVersion, 'Survey', $surveyId);
             if(App()->getRequest()->getPost('save'.get_class($this))=='redirect') {
-                Yii::app()->getController()->redirect(Yii::app()->getController()->createUrl('admin/survey',array('sa'=>'view','surveyid'=>$surveyId)));
+                $redirectUrl = Yii::app()->createUrl('surveyAdministration/view', array('surveyid' => $surveyId));
+                if (intval(App()->getConfig('versionnumber')) < 4) {
+                    $redirectUrl = Yii::app()->createUrl('admin/survey', array('sa' => 'view', 'surveyid' => $surveyId));
+                }
+                Yii::app()->getController()->redirect($redirectUrl);
             }
         }
         $stateInfo = "<ul class='list'>";
@@ -461,7 +470,7 @@ class responseListAndManage extends PluginBase {
                 array('class'=>'btn btn-block btn-default btn-lg','disabled'=>'disabled','title'=>$this->translate("Survey is not activated"))
             );
         }
-        $aSettings[$this->translate('Response Management')] = array(
+        $aSettings[$this->translate('Management')] = array(
             'link'=>array(
                 'type'=>'info',
                 'content'=> $linkManagement,
@@ -952,12 +961,20 @@ class responseListAndManage extends PluginBase {
                 'help' => ($oSurvey->alloweditaftercompletion != "Y") ? "<div class='text-danger'>".$this->translate("Survey participant settings, allow multiple responses is off : survey is set as draft when opened")."</div>": "",
             ),
         );
-        $aData['pluginClass']=get_class($this);
-        $aData['surveyId']=$surveyId;
-        $aData['title'] = "";
+        $aData['pluginClass'] = get_class($this);
+        $aData['surveyId'] = $surveyId;
+        $aData['form'] = array(
+            'action' => Yii::app()->createUrl('admin/pluginhelper/sa/sidebody', array('plugin' => get_class($this),'method' => 'actionSettings','surveyid' => $surveyId)),
+            'reset' => Yii::app()->createUrl('admin/pluginhelper/sa/sidebody', array('plugin' => get_class($this),'method' => 'actionSettings','surveyid' => $surveyId)),
+            'close' => Yii::app()->createUrl('surveyAdministration/view', array('surveyid' => $surveyId)),
+        );
+        if (intval(App()->getConfig('versionnumber')) < 4) {
+            $aData['form']['close'] = Yii::app()->createUrl('admin/survey', array('sa' => 'view', 'surveyid' => $surveyId));
+        }
+        $aData['title'] = $this->translate("Response management settings");
         $aData['warningString'] = null;
-        $aData['aSettings']=$aSettings;
-        $aData['assetUrl']=Yii::app()->assetManager->publish(dirname(__FILE__) . '/assets/settings');
+        $aData['aSettings'] = $aSettings;
+        $aData['assetUrl'] = Yii::app()->assetManager->publish(dirname(__FILE__) . '/assets/settings');
         $content = $this->renderPartial('settings', $aData, true);
         return $content;
     }

@@ -323,7 +323,7 @@ class ResponseExtended extends LSActiveRecord
                 $template .= '{delete}';
             }
             $aColumns['button']=array(
-                'htmlOptions' => array('nowrap'=>'nowrap'),
+                'htmlOptions' => array('class'=>'data-column action-column'),
                 'class' => 'bootstrap.widgets.TbButtonColumn',
                 'template' => $template,
                 //'buttons'=> $this->getGridButtons(),

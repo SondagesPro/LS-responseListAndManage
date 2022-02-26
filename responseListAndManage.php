@@ -1909,11 +1909,7 @@ class responseListAndManage extends PluginBase {
         $this->aRenderData['languageData'] = $languageData;
         $this->aRenderData['lang'] = $lang;
         $this->aRenderData['authPlugins'] = $aResult;
-        if(App()->getRequest()->isPostRequest && App()->getRequest()->getPost('login_submit')) {
-            //~ echo "<pre>AFTER";
-            //~ print_r($aResult);
-            //~ die("</pre>");
-        }
+
         $pluginsContent = $aResult['pluginContent'];
         $this->aRenderData['authSelectPlugin'] = $aResult['defaultAuth'];
         if(Yii::app()->getRequest()->isPostRequest) {
@@ -2188,6 +2184,7 @@ class responseListAndManage extends PluginBase {
     private function _render($fileRender)
     {
         $surveyId = empty($this->aRenderData['surveyId']) ? null : $this->aRenderData['surveyId'];
+
         if(empty($this->aRenderData['aSurveyInfo'])) {
             $this->aRenderData['aSurveyInfo'] = array(
                 'surveyls_title' => App()->getConfig('sitename'),
@@ -2209,6 +2206,7 @@ class responseListAndManage extends PluginBase {
         /* Let construct the page now */
         Template::getInstance($templateName, $surveyId);
         Template::getInstance($templateName, $surveyId)->oOptions->ajaxmode = 'off';
+
         if(empty($this->aRenderData['aSurveyInfo'])) {
             $this->aRenderData['aSurveyInfo'] = array(
                 'surveyls_title' => App()->getConfig('sitename'),
@@ -2236,6 +2234,7 @@ class responseListAndManage extends PluginBase {
 
         App()->getClientScript()->registerPackage("bootstrap-datetimepicker");
         App()->clientScript->registerScriptFile(App()->getConfig("generalscripts") . 'nojs.js', CClientScript::POS_HEAD);
+
         Yii::setPathOfAlias(get_class($this),dirname(__FILE__));
         Yii::app()->clientScript->addPackage('responselistandmanage', array(
             'basePath'    => get_class($this).'.assets.responselistandmanage',

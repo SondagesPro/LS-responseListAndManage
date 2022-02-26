@@ -17,6 +17,9 @@ $(function() {
   $('#responses-grid > .row-fluid').css({
         'left': $(window).scrollLeft()
   });
+  if($(".navbar-fixed-top").length && (".responselistandmanage-sticky-header").length) {
+      $(".responselistandmanage-sticky-header #responses-grid thead").css('top',$(".navbar-fixed-top").height() + "px");
+  }
   $("body").find('.outerframe.container').removeClass('container').addClass('container-fluid'); // Needed for 2.5X 
   $("#responses-grid").trigger('ajaxUpdated');
 });

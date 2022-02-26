@@ -107,3 +107,10 @@
 .wysihtml5-toolbar .btn{
 
 }
+/* stickey header */
+.responselistandmanage-sticky-header #responses-grid thead {
+    position:sticky;
+    top:0; /* Update if needed in JS */
+    z-index:1040;
+    background:#fff; /* can be updated in custom.css */
+}

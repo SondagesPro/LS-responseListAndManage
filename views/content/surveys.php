@@ -4,7 +4,7 @@ $this->widget('bootstrap.widgets.TbGridView', array(
     'id'            => 'surveys-grid',
     'ajaxUpdate'    => 'surveys-grid',
     //~ 'ajaxType'      => 'POST',
-    'template'      => "{items}\n<div class='row'><div class='col-sm-4 tools-form'>{$adminMenu}</div><div class='col-sm-4'>{pager}</div><div class='col-sm-4'>{summary}</div></div>",
+    'template'      => "{items}\n<div class='row'><div class='col-sm-4 tools-form text-left'>{$adminMenu}</div><div class='col-sm-4 text-center'>{pager}</div><div class='col-sm-4 text-right'>{summary}</div></div>",
     'summaryText'   => gT('Displaying {start}-{end} of {count} result(s).').' '.
         sprintf(gT('%s rows per page'),
             CHtml::dropDownList(

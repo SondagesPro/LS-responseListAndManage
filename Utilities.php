@@ -22,6 +22,7 @@ namespace responseListAndManage;
 use App;
 use Yii;
 use Token;
+use CDbCriteria;
 
 class Utilities
 {
@@ -85,8 +86,11 @@ class Utilities
         if (empty($tokenGroup)) {
             return $tokensList;
         }
-        $oTokenGroup = Token::model($surveyId)->findAll($tokenAttributeGroup."= :group", array(":group"=>$tokenGroup));
-        return \CHtml::listData($oTokenGroup, 'token', 'token');
+        $criteria = new CDbCriteria();
+        $criteria->addCondition("token <> '' AND token IS NOT NULL");
+        $criteria->compare($tokenAttributeGroup, $tokenGroup);
+        $oTokenGroup = Token::model($surveyId)->findAll($criteria);
+        return \CHtml::listData($surveyId, 'token', 'token');
     }
 
     /**

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Responses List And Manage
  *
@@ -17,11 +18,12 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+
 class responseListAndManage extends PluginBase {
 
     protected $storage = 'DbStorage';
-    static protected $description = 'A different way to manage response for a survey';
-    static protected $name = 'responseListAndManage';
+    protected static $description = 'A different way to manage response for a survey';
+    protected static $name = 'responseListAndManage';
 
     /* @var integer|null surveyId get track of current sureyId between action */
     private $surveyId;
@@ -1044,7 +1046,7 @@ class responseListAndManage extends PluginBase {
         if(intval(Yii::app()->getConfig('versionnumber')) < 3) {
             $survey = $surveyId;
         }
-        $aFields=array_keys(createFieldMap($survey,'full',true,false,$language));
+        $aFields = array_keys(createFieldMap($survey,'full',true,false,$language));
         
         Yii::app()->loadHelper('admin/exportresults');
         Yii::import('application.helpers.viewHelper');
@@ -1054,7 +1056,7 @@ class responseListAndManage extends PluginBase {
         $oFormattingOptions=new \FormattingOptions();
         $oFormattingOptions->responseMinRecord = 1;
         $oFormattingOptions->responseMaxRecord = SurveyDynamic::model($surveyId)->getMaxId();
-        $oFormattingOptions->selectedColumns=$aFields;
+        $oFormattingOptions->selectedColumns = $aFields;
         $oFormattingOptions->responseCompletionState = 'all';
         $oFormattingOptions->headingFormat = $this->get('exportHeadexports','Survey',$surveyId,'full');
         $oFormattingOptions->answerFormat = $this->get('exportAnswers','Survey',$surveyId,'long');
@@ -1999,7 +2001,7 @@ class responseListAndManage extends PluginBase {
         /* @todo : filter by settings … */
         $filter = Yii::app()->request->getParam('SurveyExtended');
         $surveyModel->title = empty($filter['title']) ? null : $filter['title'];
-        $dataProvider=$surveyModel->search();
+        $dataProvider = $surveyModel->search();
         //$accessSettings = PluginSettings::model()->findAll …
         $this->aRenderData['adminMenu'] = $this->_getAdminMenu();
         $this->aRenderData['dataProvider'] = $dataProvider;

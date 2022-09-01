@@ -1,5 +1,6 @@
 /**
  * @todo : move to js class
+ * @version 2.9.3
  */
 
 $(window).scroll(function(){
@@ -181,9 +182,15 @@ $(document).on("shown.bs.modal","#modal-responseListAndManage",function(e) {
 });
 $(document).on("hide.bs.modal","#modal-responseListAndManage",function(e) {
     $.fn.yiiGridView.update('responses-grid');
+    try {
+        document.getElementById('frame-responseListAndManage').contentWindow.closeReloadAnyResponse();
+    } catch (exception) {
+        // Nothing to do : reloadAnyReponse are not up to date
+    }
+});
+$(document).on("hidden.bs.modal",'#modal-questionExtraSurvey',function(e) {
     $("#frame-responseListAndManage").attr('src',"");
 });
-
 $(document).on("hide.bs.modal","#modal-create-token",function(e) {
     $("#modal-create-token form").find("input[type='email'],input:text,textarea").each(function(){
         $(this).val("");

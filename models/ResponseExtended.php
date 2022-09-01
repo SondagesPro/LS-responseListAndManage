@@ -2,7 +2,7 @@
 /**
  * This file is part of reloadAnyResponse plugin
  * @see SurveyDynamic
- * @version 1.2.2
+ * @version 2.9.2
  */
 //~ namespace responseListAndManage\models;
 //~ use Yii;
@@ -178,14 +178,7 @@ class ResponseExtended extends LSActiveRecord
             $criteria->with = 'tokens';
         }
         $sort = $this->getSort();
-        if(!empty($this->restrictedColumns)) {
-            $criteria->select = array_map(
-                function ($column) { 
-                    return App()->getDb()->quoteColumnName($column); 
-                },
-                $this->restrictedColumns
-            );
-        }
+        $criteria->select = $this->restrictedColumns;
         // Completed filters
         if ($this->completed == "Y") {
             $criteria->addCondition('t.submitdate IS NOT NULL');

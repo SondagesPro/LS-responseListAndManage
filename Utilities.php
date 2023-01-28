@@ -3,9 +3,9 @@
  * Some Utilities
  * 
  * @author Denis Chenu <denis@sondages.pro>
- * @copyright 2020-2021 Denis Chenu <http://www.sondages.pro>
+ * @copyright 2020-2023 Denis Chenu <http://www.sondages.pro>
  * @license AGPL v3
- * @version 0.1.0
+ * @version 2.9.4
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -81,6 +81,7 @@ class Utilities
         if (empty($tokenAttributeGroup)) {
             return $tokensList;
         }
+
         $oToken = Token::model($surveyId)->find("token = :token", array(":token"=>$token));
         $tokenGroup = (isset($oToken->$tokenAttributeGroup) && trim($oToken->$tokenAttributeGroup) != '') ? $oToken->$tokenAttributeGroup : null;
         if (empty($tokenGroup)) {
@@ -90,7 +91,7 @@ class Utilities
         $criteria->addCondition("token <> '' AND token IS NOT NULL");
         $criteria->compare($tokenAttributeGroup, $tokenGroup);
         $oTokenGroup = Token::model($surveyId)->findAll($criteria);
-        return \CHtml::listData($surveyId, 'token', 'token');
+        return \CHtml::listData($oTokenGroup, 'token', 'token');
     }
 
     /**

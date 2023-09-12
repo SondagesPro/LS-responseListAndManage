@@ -2031,7 +2031,7 @@ class responseListAndManage extends PluginBase {
             if ($aRegisterAttribute['show_register'] != 'Y') {
                 unset($aRegisterAttributes[$key]);
             } else {
-                $aRegisterAttributes[$key]['caption'] = ($aSurveyInfo['attributecaptions'][$key] ? $aSurveyInfo['attributecaptions'][$key] : ($aRegisterAttribute['description'] ? $aRegisterAttribute['description'] : $key));
+                $aRegisterAttributes[$key]['caption'] = (!empty($aSurveyInfo['attributecaptions'][$key]) ? $aSurveyInfo['attributecaptions'][$key] : ($aRegisterAttribute['description'] ? $aRegisterAttribute['description'] : $key));
             }
         }
         unset($aRegisterAttributes[$tokenAttributeGroup]);

@@ -39,7 +39,7 @@ class ResponseExtended extends LSActiveRecord
     public $filterSubmitDate = 0;
     /** @var integer */
     public $filterStartdate = 0;
-        /** @var integer */
+    /** @var integer */
     public $filterDatestamp = 0;
 
     /** @var \CDbCriteria|null filter to be applied before other criteria**/
@@ -58,9 +58,10 @@ class ResponseExtended extends LSActiveRecord
 
     /**
      * @inheritdoc
-     * @return SurveyDynamic
+     * @return self
      */
-    public static function model($sid = null) {
+    public static function model($sid = null)
+    {
         $survey = Survey::model()->findByPk($sid);
         if ($survey) {
             self::sid($survey->sid);
@@ -85,16 +86,15 @@ class ResponseExtended extends LSActiveRecord
     public function afterFind()
     {
         $this->completed = $this->getCompleted();
-        //tracevar($this->metaData->columns);
-
     }
 
     /**
      * @inheritdoc
      */
-    public function setScenario($scenario) {
+    public function setScenario($scenario)
+    {
         parent::setScenario($scenario);
-        if($scenario == 'search') {
+        if ($scenario == 'search') {
             if ($this->getHaveToken()) {
                 $oToken = TokenDynamic::model(self::$sid);
                 $this->tokenRelated = $oToken;
@@ -117,14 +117,14 @@ class ResponseExtended extends LSActiveRecord
     /** @inheritdoc */
     public function tableName()
     {
-        return '{{survey_'.self::$sid.'}}';
+        return '{{survey_' . self::$sid . '}}';
     }
 
     /** @inheritdoc */
     public function relations()
     {
         $relations = array(
-            'survey'   => array(self::HAS_ONE, 'Survey', array(), 'condition'=>('sid = '.self::$sid)),
+            'survey' => array(self::HAS_ONE, 'Survey', array(), 'condition' => ('sid = ' . self::$sid)),
         );
         if ($this->getHaveToken()) {
             TokenDynamic::sid(self::$sid);
@@ -146,7 +146,7 @@ class ResponseExtended extends LSActiveRecord
     private function getHaveToken()
     {
         if (!isset($this->haveToken)) {
-            $this->haveToken = self::$survey->anonymized != "Y" && tableExists('tokens_'.self::$sid) && (Permission::model()->hasSurveyPermission(self::$sid, 'token', 'read') || Yii::app()->user->getState('disableTokenPermission')); // Boolean : show (or not) the token;
+            $this->haveToken = self::$survey->anonymized != "Y" && tableExists('tokens_' . self::$sid) && (Permission::model()->hasSurveyPermission(self::$sid, 'token', 'read') || Yii::app()->user->getState('disableTokenPermission')); // Boolean : show (or not) the token;
         }
         return $this->haveToken;
     }
@@ -167,7 +167,7 @@ class ResponseExtended extends LSActiveRecord
     {
         $pageSize = Yii::app()->user->getState('responseListAndManagePageSize', Yii::app()->params['defaultPageSize']);
         $this->setScenario('search');
-        if($this->searchCriteria) {
+        if ($this->searchCriteria) {
             $criteria = $this->searchCriteria;
         } else {
             $criteria = new CDbCriteria;
@@ -186,28 +186,29 @@ class ResponseExtended extends LSActiveRecord
         if ($this->completed == "N") {
             $criteria->addCondition('t.submitdate IS NULL');
         }
-        if($this->id) {
-            $criteria->compare('id',$this->id,true);
+        if ($this->id) {
+            $criteria->compare('id', $this->id, true);
         }
-        if(self::$survey->anonymized != "Y" && $this->token) {
-            if(is_array($this->token)) {
-                $criteria->addInCondition('t.token',$this->token);
+        if (self::$survey->anonymized != "Y" && $this->token) {
+            if (is_array($this->token)) {
+                $criteria->addInCondition('t.token', $this->token);
             } else {
-                $criteria->compare('t.token',$this->token,false);
+                $criteria->compare('t.token', $this->token, false);
             }
         }
         // Token filters
-        if($this->getHaveToken()) {
+        if ($this->getHaveToken()) {
             $this->filterTokenColumns($criteria);
         }
         $this->filterColumns($criteria);
         $dataProvider = new CActiveDataProvider('ResponseExtended', array(
-            'sort'=>$sort,
-            'criteria'=>$criteria,
-            'pagination'=>array(
-                'pageSize'=>$pageSize,
+            'sort' => $sort,
+            'criteria' => $criteria,
+            'pagination' => array(
+                'pageSize' => $pageSize,
             ),
-        ));
+        )
+        );
         return $dataProvider;
     }
 
@@ -228,24 +229,24 @@ class ResponseExtended extends LSActiveRecord
                     $dbType = $column->dbType;
                     $isDatetime = strpos($dbType, 'timestamp') !== false || strpos($dbType, 'datetime') !== false;
                     if ($isDatetime) {
-                        if(is_array($this->$c1)) {
+                        if (is_array($this->$c1)) {
                             $date = $this->$c1;
                             $dateFormat = empty($date['format']) ? 'Y-m-d' : $date['format'];
-                            if(!empty($date['min'])) {
+                            if (!empty($date['min'])) {
                                 $minDate = DateTime::createFromFormat('!' . $dateFormat, trim($date['min']));
                                 if ($minDate === false) {
                                     continue;
                                 }
                                 $minDate = $minDate->format("Y-m-d H:i");
-                                $criteria->addCondition(Yii::app()->db->quoteColumnName($c1).' >= '.Yii::app()->db->quoteValue($minDate));
+                                $criteria->addCondition(Yii::app()->db->quoteColumnName($c1) . ' >= ' . Yii::app()->db->quoteValue($minDate));
                             }
-                            if(!empty($date['max'])) {
+                            if (!empty($date['max'])) {
                                 $maxDate = DateTime::createFromFormat('!' . $dateFormat, trim($date['max']));
                                 if ($maxDate === false) {
                                     continue;
                                 }
                                 $maxDate = $maxDate->format("Y-m-d H:i");
-                                $criteria->addCondition(Yii::app()->db->quoteColumnName($c1).' < '.Yii::app()->db->quoteValue($maxDate));
+                                $criteria->addCondition(Yii::app()->db->quoteColumnName($c1) . ' < ' . Yii::app()->db->quoteValue($maxDate));
                             }
                             continue;
                         }
@@ -255,13 +256,13 @@ class ResponseExtended extends LSActiveRecord
                             continue;
                         }
                         $s2 = $s->format('Y-m-d');
-                        $criteria->addCondition('cast('.Yii::app()->db->quoteColumnName($c1).' as date) = '.Yii::app()->db->quoteValue($s2));
+                        $criteria->addCondition('cast(' . Yii::app()->db->quoteColumnName($c1) . ' as date) = ' . Yii::app()->db->quoteValue($s2));
                         continue;
                     }
                     /* Is dropdown (to be confirmed if we have all)
                      * $dbType == 'varchar(5)' || $dbType == 'character varying (5)' || $dbType == 'nvarchar(5)'
                      **/
-                    if(strpos($dbType, '(5)') || strpos($dbType, '(20)')) {
+                    if (strpos($dbType, '(5)') || strpos($dbType, '(20)')) {
                         $criteria->compare(Yii::app()->db->quoteColumnName($c1), $this->$c1, false);
                         continue;
                     }
@@ -276,8 +277,8 @@ class ResponseExtended extends LSActiveRecord
     {
         $tokensAttributes = $this->tokenRelated->getAttributes();
         //~ unset($tokensAttributes['token']);
-        foreach($tokensAttributes as $attribute=>$value) {
-            $criteria->compare('tokens.'.$attribute, $value, true);
+        foreach ($tokensAttributes as $attribute => $value) {
+            $criteria->compare('tokens.' . $attribute, $value, true);
         }
     }
     /**
@@ -286,10 +287,10 @@ class ResponseExtended extends LSActiveRecord
      */
     public function getGridColumns()
     {
-        if($this->showFooter) {
+        if ($this->showFooter) {
             $aFooter = $this->getFooters();
         }
-        $surveyColumnsInformation = new \getQuestionInformation\helpers\surveyColumnsInformation(self::$sid,App()->getLanguage());
+        $surveyColumnsInformation = new \getQuestionInformation\helpers\surveyColumnsInformation(self::$sid, App()->getLanguage());
         $surveyColumnsInformation->model = $this;
         $surveyColumnsInformation->downloadUrl = array(
             'route' => "plugins/direct",
@@ -300,86 +301,88 @@ class ResponseExtended extends LSActiveRecord
         );
         $aColumns = array();
         /* Basic columns */
-        $aColumns['id']=array(
-            'header' => '<strong>[id]</strong><small>'.gT('Identifier').'</small>',
+        $aColumns['id'] = array(
+            'header' => '<strong>[id]</strong><small>' . gT('Identifier') . '</small>',
             'name' => 'id',
             'htmlOptions' => array('class' => 'data-column column-id'),
-            'filterInputOptions' => array('class'=>'form-control input-sm filter-id'),
+            'filterInputOptions' => array('class' => 'form-control input-sm filter-id'),
             'footer' => ($this->showFooter && isset($aFooter['id'])) ? $aFooter['id'] : null,
         );
-        if($this->showEdit || $this->showDelete) {
+        if ($this->showEdit || $this->showDelete) {
             $template = '';
-            if($this->showEdit) {
+            if ($this->showEdit) {
                 $template .= '{update}';
             }
-            if($this->showDelete) {
+            if ($this->showDelete) {
                 $template .= '{delete}';
             }
-            $aColumns['button']=array(
-                'htmlOptions' => array('class'=>'data-column action-column'),
+            $aColumns['button'] = array(
+                'htmlOptions' => array('class' => 'data-column action-column'),
                 'class' => 'bootstrap.widgets.TbButtonColumn',
                 'template' => $template,
                 //'buttons'=> $this->getGridButtons(),
-                'updateButtonUrl' => '$data->getUdateButton("'.$this->currentToken.'")',
-                'deleteButtonUrl' => '$data->getDeleteButton("'.$this->currentToken.'")',
+                'updateButtonUrl' => '$data->getUdateButton("' . $this->currentToken . '")',
+                'deleteButtonUrl' => '$data->getDeleteButton("' . $this->currentToken . '")',
                 'footer' => $this->showFooter ? \responseListAndManage\Utilities::translate("Answered count and sum") : null,
             );
         }
-        $aColumns['completed']=array(
-            'header' => '<strong>[completed]</strong><small>'.gT('Completed'),
+        $aColumns['completed'] = array(
+            'header' => '<strong>[completed]</strong><small>' . gT('Completed'),
             'name' => 'completed',
             'htmlOptions' => array('class' => 'data-column column-completed'),
-            'type'=>'raw',
+            'type' => 'raw',
             'value' => 'ResponseExtended::getCompletedGrid($data)',
-            'filter'=> array('Y'=>gT('Yes'),'N'=>gT('No')),
-            'filterInputOptions' => array('class'=>'form-control input-sm filter-completed'),
+            'filter' => array('Y' => gT('Yes'), 'N' => gT('No')),
+            'filterInputOptions' => array('class' => 'form-control input-sm filter-completed'),
             'footer' => ($this->showFooter && isset($aFooter['completed'])) ? $aFooter['completed'] : null,
         );
-        if(self::$survey->datestamp =="Y") {
-            $allowDateFilter = method_exists($surveyColumnsInformation,'getDateFilter');
-            $dateFormatData = getDateFormatData(\SurveyLanguageSetting::model()->getDateFormat(self::$sid,Yii::app()->getLanguage()));
+        if (self::$survey->datestamp == "Y") {
+            $allowDateFilter = method_exists($surveyColumnsInformation, 'getDateFilter');
+            $dateFormatData = getDateFormatData(\SurveyLanguageSetting::model()->getDateFormat(self::$sid, Yii::app()->getLanguage()));
             $dateFormat = $dateFormatData['phpdate'];
-            $aColumns['startdate']=array(
-                'header' => '<strong>[startdate]</strong><small>'.gT('Start date').'</small>',
+            $aColumns['startdate'] = array(
+                'header' => '<strong>[startdate]</strong><small>' . gT('Start date') . '</small>',
                 'name' => 'startdate',
                 'htmlOptions' => array('class' => 'data-column column-startdate'),
-                'value' => 'ResponseExtended::getDateValue($data,"startdate","'.$dateFormat.($this->filterStartdate > 1 ? " H:m:i": "").'")',
-                'filter' => $this->getDateFilter("startdate",null,$this->filterStartdate),
-                'filterInputOptions' => array('class'=>'form-control input-sm filter-startdate'),
+                'value' => 'ResponseExtended::getDateValue($data,"startdate","' . $dateFormat . ($this->filterStartdate > 1 ? " H:m:i" : "") . '")',
+                'filter' => $this->getDateFilter("startdate", null, $this->filterStartdate),
+                'filterInputOptions' => array('class' => 'form-control input-sm filter-startdate'),
                 'footer' => ($this->showFooter && isset($aFooter['startdate'])) ? $aFooter['startdate'] : null,
             );
-            $aColumns['submitdate']=array(
-                'header' => '<strong>[submitdate]</strong><small>'.gT('Submit date').'</small>',
+            $aColumns['submitdate'] = array(
+                'header' => '<strong>[submitdate]</strong><small>' . gT('Submit date') . '</small>',
                 'name' => 'submitdate',
                 'htmlOptions' => array('class' => 'data-column column-submitdate'),
-                'value' => 'ResponseExtended::getDateValue($data,"submitdate","'.$dateFormat.($this->filterSubmitDate > 1 ? " H:m:i": "").'")',
-                'filter' => $this->getDateFilter("submitdate",null,$this->filterSubmitDate),
-                'filterInputOptions' => array('class'=>'form-control input-sm filter-submitdate'),
+                'value' => 'ResponseExtended::getDateValue($data,"submitdate","' . $dateFormat . ($this->filterSubmitDate > 1 ? " H:m:i" : "") . '")',
+                'filter' => $this->getDateFilter("submitdate", null, $this->filterSubmitDate),
+                'filterInputOptions' => array('class' => 'form-control input-sm filter-submitdate'),
                 'footer' => ($this->showFooter && isset($aFooter['submitdate'])) ? $aFooter['submitdate'] : null,
             );
-            $aColumns['datestamp']=array(
-                'header' => '<strong>[datestamp]</strong><small>'.gT('Date stamp').'</small>',
+            $aColumns['datestamp'] = array(
+                'header' => '<strong>[datestamp]</strong><small>' . gT('Date stamp') . '</small>',
                 'name' => 'datestamp',
                 'htmlOptions' => array('class' => 'data-column column-datestamp'),
-                'value' => 'ResponseExtended::getDateValue($data,"datestamp","'.$dateFormat.($this->filterDatestamp > 1 ? " H:m:i": "").'")',
-                'filter' => $this->getDateFilter("datestamp",null,$this->filterDatestamp),
-                'filterInputOptions' => array('class'=>'form-control input-sm filter-datestamp'),
+                'value' => 'ResponseExtended::getDateValue($data,"datestamp","' . $dateFormat . ($this->filterDatestamp > 1 ? " H:m:i" : "") . '")',
+                'filter' => $this->getDateFilter("datestamp", null, $this->filterDatestamp),
+                'filterInputOptions' => array('class' => 'form-control input-sm filter-datestamp'),
                 'footer' => ($this->showFooter && isset($aFooter['datestamp'])) ? $aFooter['datestamp'] : null,
             );
         }
-        if($this->getHaveToken()) {
-            $aColumns = array_merge($aColumns,$this->getTokensColumns());
+        if ($this->getHaveToken()) {
+            $aColumns = array_merge($aColumns, $this->getTokensColumns());
         }
         $allQuestionsColumns = $surveyColumnsInformation->allQuestionsColumns();
-        if(!empty($aFooter)) {
-            $allQuestionsColumns = array_map(function ($questionsColumn) use ($aFooter) {
-                $questionsColumn['footer'] = (isset($aFooter[$questionsColumn['name']])) ? $aFooter[$questionsColumn['name']] : null;
-                return $questionsColumn;
+        if (!empty($aFooter)) {
+            $allQuestionsColumns = array_map(
+                function ($questionsColumn) use ($aFooter) {
+                    $questionsColumn['footer'] = (isset($aFooter[$questionsColumn['name']])) ? $aFooter[$questionsColumn['name']] : null;
+                    return $questionsColumn;
                 },
-            $allQuestionsColumns);
+                $allQuestionsColumns
+            );
         }
-        
-        $aColumns = array_merge($aColumns,$allQuestionsColumns);
+
+        $aColumns = array_merge($aColumns, $allQuestionsColumns);
         return $aColumns;
     }
 
@@ -389,7 +392,7 @@ class ResponseExtended extends LSActiveRecord
      */
     public function getUdateButton($token = null)
     {
-        if(empty($token)) {
+        if (empty($token)) {
             $token = $this->currentToken;
         }
         $startUrl = new \reloadAnyResponse\StartUrl(
@@ -405,11 +408,12 @@ class ResponseExtended extends LSActiveRecord
      */
     public function getDeleteButton($token = null)
     {
-        if(empty($token)) {
+        if (empty($token)) {
             $token = $this->currentToken;
         }
-        if($token) {
-            return App()->createUrl("plugins/direct",
+        if ($token) {
+            return App()->createUrl(
+                "plugins/direct",
                 array(
                     "plugin" => "responseListAndManage",
                     "sid" => self::$sid,
@@ -418,7 +422,8 @@ class ResponseExtended extends LSActiveRecord
                 )
             );
         }
-        return App()->createUrl("plugins/direct",
+        return App()->createUrl(
+            "plugins/direct",
             array(
                 "plugin" => "responseListAndManage",
                 "sid" => self::$sid,
@@ -427,8 +432,9 @@ class ResponseExtended extends LSActiveRecord
         );
     }
 
-    public static function getDateValue($data,$name,$dateFormat="Y-m-d") {
-        if(empty($data->$name)) {
+    public static function getDateValue($data, $name, $dateFormat = "Y-m-d")
+    {
+        if (empty($data->$name)) {
             return "";
         }
         $datetimeobj = \DateTime::createFromFormat('!Y-m-d H:i:s', $data->$name);
@@ -438,17 +444,20 @@ class ResponseExtended extends LSActiveRecord
         return $data->$name;
     }
 
-    public static function getAnswerValue($data,$name,$type,$iQid) {
+    public static function getAnswerValue($data, $name, $type, $iQid)
+    {
         return $data->$name;
     }
 
-    public function getCompleted() {
-        return (bool)$this->submitdate;
+    public function getCompleted()
+    {
+        return (bool) $this->submitdate;
     }
 
-    public static function getCompletedGrid($data) {
-        if($data->submitdate) {
-            if(self::$survey->datestamp =="Y") {
+    public static function getCompletedGrid($data)
+    {
+        if ($data->submitdate) {
+            if (self::$survey->datestamp == "Y") {
                 return "<span class='text-success fa fa-check' title='{$data->submitdate}'></span>";
             }
             return "<span class='text-success fa fa-check'></span>";
@@ -456,56 +465,57 @@ class ResponseExtended extends LSActiveRecord
         return "<span class='text-warning fa fa-times'></span>";
     }
 
-    public function setTokenAttributes($tokens=array()) {
-        if(!$this->getHaveToken()) {
+    public function setTokenAttributes($tokens = array())
+    {
+        if (!$this->getHaveToken()) {
             return;
         }
-        $this->tokenRelated->setAttributes($tokens,false);
+        $this->tokenRelated->setAttributes($tokens, false);
     }
 
     public function getTokensColumns()
     {
         $aColumns = array();
-        $aColumns['tokens.token']=array(
-            'header' => '<strong>[token]</strong><small>'.gT('Token').'</small>',
+        $aColumns['tokens.token'] = array(
+            'header' => '<strong>[token]</strong><small>' . gT('Token') . '</small>',
             'name' => 'tokens.token',
             'value' => 'empty($data->tokens) ? "" : $data->tokens->token;',
             'htmlOptions' => array('class' => 'data-column column-token-token'),
-            'filter' => CHtml::activeTextField($this->tokenRelated,"token",array('class'=>'form-control input-sm filter-token-token')),
+            'filter' => CHtml::activeTextField($this->tokenRelated, "token", array('class' => 'form-control input-sm filter-token-token')),
         );
-        $aColumns['tokens.email']=array(
-            'header' => '<strong>[email]</strong><small>'.gT('Email').'</small>',
+        $aColumns['tokens.email'] = array(
+            'header' => '<strong>[email]</strong><small>' . gT('Email') . '</small>',
             'name' => 'tokens.email',
             'value' => 'empty($data->tokens) ? "" : $data->tokens->email;',
             'htmlOptions' => array('class' => 'data-column column-token-email'),
-            'filter' => CHtml::activeTextField($this->tokenRelated,"email",array('class'=>'form-control input-sm filter-token-email')),
+            'filter' => CHtml::activeTextField($this->tokenRelated, "email", array('class' => 'form-control input-sm filter-token-email')),
         );
-        $aColumns['tokens.firstname']=array(
-            'header' => '<strong>[firstname]</strong><small>'.gT('First name').'</small>',
+        $aColumns['tokens.firstname'] = array(
+            'header' => '<strong>[firstname]</strong><small>' . gT('First name') . '</small>',
             'name' => 'tokens.firstname',
             'type' => 'raw',
             'value' => 'empty($data->tokens) ? "" : "<div class=\'tokenattribute-value\'>".$data->tokens->firstname."</div>";',
             'htmlOptions' => array('class' => 'data-column column-token-firstname'),
-            'filter' => CHtml::activeTextField($this->tokenRelated,"firstname",array('class'=>'form-control input-sm filter-token-firstname')),
+            'filter' => CHtml::activeTextField($this->tokenRelated, "firstname", array('class' => 'form-control input-sm filter-token-firstname')),
         );
-        $aColumns['tokens.lastname']=array(
-            'header' => '<strong>[lastname]</strong><small>'.gT('Last name').'</small>',
+        $aColumns['tokens.lastname'] = array(
+            'header' => '<strong>[lastname]</strong><small>' . gT('Last name') . '</small>',
             'name' => 'tokens.lastname',
             'value' => 'empty($data->tokens) ? "" : "<div class=\'tokenattribute-value\'>".CHtml::encode($data->tokens->lastname)."</div>";',
             'type' => 'raw',
             'htmlOptions' => array('class' => 'data-column column-token-lastname'),
-            'filter' => CHtml::activeTextField($this->tokenRelated,"lastname",array('class'=>'form-control input-sm filter-token-lastname')),
+            'filter' => CHtml::activeTextField($this->tokenRelated, "lastname", array('class' => 'form-control input-sm filter-token-lastname')),
         );
         $tokenAttributes = self::$survey->getTokenAttributes();
-        foreach($tokenAttributes as $attribute=>$aDescrition) {
-            $aColumns['tokens.'.$attribute]=array(
-                'header' => '<strong>['.$attribute.']</strong><small>'.$aDescrition['description'].'</small>',
-                'name' => 'tokens.'.$attribute,
-                'value' => 'empty($data->tokens->'.$attribute.') ? "" : "<div class=\'tokenattribute-value\'>".$data->tokens->'.$attribute.'."</div>";',
+        foreach ($tokenAttributes as $attribute => $aDescrition) {
+            $aColumns['tokens.' . $attribute] = array(
+                'header' => '<strong>[' . $attribute . ']</strong><small>' . $aDescrition['description'] . '</small>',
+                'name' => 'tokens.' . $attribute,
+                'value' => 'empty($data->tokens->' . $attribute . ') ? "" : "<div class=\'tokenattribute-value\'>".$data->tokens->' . $attribute . '."</div>";',
                 'type' => 'raw',
                 //~ 'value' => 'empty($data->tokens) ? "" : $data->tokens->'.$attribute.';',
                 'htmlOptions' => array('class' => 'data-column column-token-attribute'),
-                'filter' => CHtml::activeTextField($this->tokenRelated,$attribute,array('class'=>'form-control input-sm filter-token-attribute')),
+                'filter' => CHtml::activeTextField($this->tokenRelated, $attribute, array('class' => 'form-control input-sm filter-token-attribute')),
             );
         }
         return $aColumns;
@@ -519,8 +529,8 @@ class ResponseExtended extends LSActiveRecord
             'tokens.lastname',
         );
         $tokenAttributes = self::$survey->getTokenAttributes();
-        foreach($tokenAttributes as $attribute=>$aDescrition) {
-            $aSort[] = 'tokens.'.$attribute;
+        foreach ($tokenAttributes as $attribute => $aDescrition) {
+            $aSort[] = 'tokens.' . $attribute;
         }
         return $aSort;
     }
@@ -536,8 +546,8 @@ class ResponseExtended extends LSActiveRecord
             'submitdate',
         );
         $attributes = $this->getAttributes();
-        foreach($columns as $column) {
-            if(array_key_exists($column,$attributes) && !in_array($column,$restrictedColumns)) {
+        foreach ($columns as $column) {
+            if (array_key_exists($column, $attributes) && !in_array($column, $restrictedColumns)) {
                 $restrictedColumns[] = $column;
             }
         }
@@ -549,11 +559,11 @@ class ResponseExtended extends LSActiveRecord
      */
     public function getFooters()
     {
-        if(is_callable(array("\getQuestionInformation\helpers\surveyColumnsInformation","allQuestionsType")) ) {
-            $surveyColumnsInformation = new \getQuestionInformation\helpers\surveyColumnsInformation(self::$sid,App()->getLanguage());
+        if (is_callable(array("\getQuestionInformation\helpers\surveyColumnsInformation", "allQuestionsType"))) {
+            $surveyColumnsInformation = new \getQuestionInformation\helpers\surveyColumnsInformation(self::$sid, App()->getLanguage());
             $allQuestionsType = $surveyColumnsInformation->allQuestionsType();
         } else {
-            $this->log("Footer without sum, update getQuestionInformation plugin to 1.4.0 and up",'error',"ReponseExtended.getFooters");
+            $this->log("Footer without sum, update getQuestionInformation plugin to 1.4.0 and up", 'error', "ReponseExtended.getFooters");
             $surveyColumnsInformation = null;
         }
         $aFooters = array();
@@ -564,24 +574,24 @@ class ResponseExtended extends LSActiveRecord
         $aFooters['completed'] = self::model()->count($baseCriteria);
         /* All DB columns */
         $aDbColumns = self::model()->getTableSchema()->columns;
-        foreach($aDbColumns as $column=>$data) {
+        foreach ($aDbColumns as $column => $data) {
             $footer = null;
             /* Specific one */
-            if($column == 'id') {
+            if ($column == 'id') {
                 $aFooters['id'] = self::model()->count($baseCriteria);
                 continue;
             }
-            if(!empty($this->restrictedColumns) && !in_array($column,$this->restrictedColumns)) {
+            if (!empty($this->restrictedColumns) && !in_array($column, $this->restrictedColumns)) {
                 continue;
             }
             $quoteColumn = Yii::app()->db->quoteColumnName($column);
             $cloneCriteria = clone $baseCriteria;
             $cloneCriteria->addCondition("$quoteColumn != '' and $quoteColumn IS NOT null");
             $footer = self::model()->count($cloneCriteria);
-            if(isset($allQuestionsType[$column])) {
-                if(in_array($allQuestionsType[$column],array('decimal','float','integer','number')) ) {
-                    $sum = array_sum(Chtml::listData($this->search()->getData(),'id',$column));
-                    $footer .= " / ".$sum;
+            if (isset($allQuestionsType[$column])) {
+                if (in_array($allQuestionsType[$column], array('decimal', 'float', 'integer', 'number'))) {
+                    $sum = array_sum(Chtml::listData($this->search()->getData(), 'id', $column));
+                    $footer .= " / " . $sum;
                 }
             }
             $aFooters[$column] = $footer;
@@ -589,97 +599,101 @@ class ResponseExtended extends LSActiveRecord
         return $aFooters;
     }
 
-  /**
-   * @inheritdoc adding string, by default current event
-   * @param string
-   * @param string \CLogger const
-   * @param string $logDetail, default to global
-   */
-  public function log($message, $level = \CLogger::LEVEL_TRACE,$logDetail = "global")
-  {
-    Yii::log($message, $level,'plugins.responseListAndManage.ResponseExtended.'.$logDetail);
-    Yii::log('[plugins.responseListAndManage.ResponseExtended.'.$logDetail.'] '.$message, $level,'vardump');
-  }
+    /**
+     * @inheritdoc adding string, by default current event
+     * @param string
+     * @param string \CLogger const
+     * @param string $logDetail, default to global
+     */
+    public function log($message, $level = \CLogger::LEVEL_TRACE, $logDetail = "global")
+    {
+        Yii::log($message, $level, 'plugins.responseListAndManage.ResponseExtended.' . $logDetail);
+        Yii::log('[plugins.responseListAndManage.ResponseExtended.' . $logDetail . '] ' . $message, $level, 'vardump');
+    }
 
-  /**
-   * get specific filter for date
-   * @param string $column
-   * @param integer|null $iQid
-   * @param integer $filterType : only used without iQid : show time or not
-   */
-  public function getDateFilter($column,$iQid =null ,$filterType = 1) {
+    /**
+     * get specific filter for date
+     * @param string $column
+     * @param integer|null $iQid
+     * @param integer $filterType : only used without iQid : show time or not
+     */
+    public function getDateFilter($column, $iQid = null, $filterType = 1)
+    {
         /* Validate version for date time picker ? */
         $dateFormatMoment = $dateFormatPHP = null;
-        if(is_null($iQid) && $filterType === 0) {
+        if (is_null($iQid) && $filterType === 0) {
             return false;
         }
-        if($iQid) {
-            $oAttributeDateFormat = QuestionAttribute::model()->find("qid = :qid AND attribute = :attribute",array(":qid"=>$iQid,":attribute"=>'date_format'));
-            if($oAttributeDateFormat && trim($oAttributeDateFormat->value)) {
+        if ($iQid) {
+            $oAttributeDateFormat = QuestionAttribute::model()->find("qid = :qid AND attribute = :attribute", array(":qid" => $iQid, ":attribute" => 'date_format'));
+            if ($oAttributeDateFormat && trim($oAttributeDateFormat->value)) {
                 $dateFormat = trim($oAttributeDateFormat->value);
                 $dateFormatMoment = getJSDateFromDateFormat($dateFormat);
                 $dateFormatPHP = getPHPDateFromDateFormat($dateFormat);
             }
         }
-        if(empty($dateFormatMoment)) {
-            $dateFormatData = getDateFormatData(\SurveyLanguageSetting::model()->getDateFormat(self::$sid,Yii::app()->getLanguage()));
+        if (empty($dateFormatMoment)) {
+            $dateFormatData = getDateFormatData(\SurveyLanguageSetting::model()->getDateFormat(self::$sid, Yii::app()->getLanguage()));
             $dateFormatMoment = $dateFormatData['jsdate'];
             $dateFormatPHP = $dateFormatData['phpdate'];
-            if(is_null($iQid) && $filterType > 1) {
-                $dateFormatMoment.= " HH:mm:ss";
-                $dateFormatPHP.= " H:i:s";
+            if (is_null($iQid) && $filterType > 1) {
+                $dateFormatMoment .= " HH:mm:ss";
+                $dateFormatPHP .= " H:i:s";
             }
         }
         $attributes = $this->attributes;
         $minValue = !empty($attributes[$column]['min']) ? $attributes[$column]['min'] : null;
         $maxValue = !empty($attributes[$column]['max']) ? $attributes[$column]['max'] : null;
         $dateFilter = '<div class="input-group input-group-date input-group-date-min"><div class="input-group-addon input-sm">&gt;=</div>';
-        $dateFilter.= CHtml::textField(get_class($this)."[".$column."]"."[min]",$minValue,array("class"=>'form-control input-sm filter-date','data-format'=>$dateFormatMoment));
-        $dateFilter.= "</div>";
+        $dateFilter .= CHtml::textField(get_class($this) . "[" . $column . "]" . "[min]", $minValue, array("class" => 'form-control input-sm filter-date', 'data-format' => $dateFormatMoment));
+        $dateFilter .= "</div>";
         $dateFilter .= '<div class="input-group input-group-date input-group-date-max"><div class="input-group-addon input-sm">&lt;</div>';
-        $dateFilter.= CHtml::textField(get_class($this)."[".$column."]"."[max]",$maxValue,array("class"=>'form-control input-sm filter-date','data-format'=>$dateFormatMoment));
-        $dateFilter.= "</div>";
-        $dateFilter.= CHtml::hiddenField(get_class($this)."[".$column."]"."[format]",$dateFormatPHP);
+        $dateFilter .= CHtml::textField(get_class($this) . "[" . $column . "]" . "[max]", $maxValue, array("class" => 'form-control input-sm filter-date', 'data-format' => $dateFormatMoment));
+        $dateFilter .= "</div>";
+        $dateFilter .= CHtml::hiddenField(get_class($this) . "[" . $column . "]" . "[format]", $dateFormatPHP);
         return $dateFilter;
-  }
+    }
 
-    public function getSort() {
-        $sort     = new CSort;
-        $sort->defaultOrder = Yii::app()->db->quoteColumnName($this->tableAlias.'.id').' ASC';
+    public function getSort()
+    {
+        $sort = new CSort;
+        $sort->defaultOrder = Yii::app()->db->quoteColumnName($this->tableAlias . '.id') . ' ASC';
         $sort->multiSort = true;
         $sort->attributes = array();
         // Token sort
-        if($this->getHaveToken()) {
-            $sort->attributes = array_merge($sort->attributes,$this->getTokensSort());
+        if ($this->getHaveToken()) {
+            $sort->attributes = array_merge($sort->attributes, $this->getTokensSort());
         }
-        $sort->attributes = array_merge($sort->attributes,
+        $sort->attributes = array_merge(
+            $sort->attributes,
             array(
                 'completed' =>
-                    array(
-                    'asc'=>Yii::app()->db->quoteColumnName($this->tableAlias.'.submitdate').' ASC',
-                    'desc'=>Yii::app()->db->quoteColumnName($this->tableAlias.'.submitdate').' DESC',
+                array(
+                    'asc' => Yii::app()->db->quoteColumnName($this->tableAlias . '.submitdate') . ' ASC',
+                    'desc' => Yii::app()->db->quoteColumnName($this->tableAlias . '.submitdate') . ' DESC',
                 )
             )
         );
         /* Find numeric columns */
-        if(!defined("\getQuestionInformation\helpers\surveyColumnsInformation::apiversion")) {
-            $this->log("You need getQuestionInformation\helpers\surveyColumnsInformation with api version 1 at minimum for numbers_only question",'warning','getSort');
-        }else {
-            $surveyColumnsInformation = new \getQuestionInformation\helpers\surveyColumnsInformation(self::$sid,App()->getLanguage());
+        if (!defined("\getQuestionInformation\helpers\surveyColumnsInformation::apiversion")) {
+            $this->log("You need getQuestionInformation\helpers\surveyColumnsInformation with api version 1 at minimum for numbers_only question", 'warning', 'getSort');
+        } else {
+            $surveyColumnsInformation = new \getQuestionInformation\helpers\surveyColumnsInformation(self::$sid, App()->getLanguage());
             $aQuestionsTypes = $surveyColumnsInformation->allQuestionsType();
-            $aQuestionsAsNumber = array_filter($aQuestionsTypes, function($type) {
+            $aQuestionsAsNumber = array_filter($aQuestionsTypes, function ($type) {
                 return $type == 'number';
             });
-            if(!empty($aQuestionsAsNumber)) {
-                foreach($aQuestionsAsNumber as $column => $type) {
+            if (!empty($aQuestionsAsNumber)) {
+                foreach ($aQuestionsAsNumber as $column => $type) {
                     /* cast as decimal : then allow int and non int */
                     /* and casting as decimal didn't need specific db part test */
                     /* Not tested with separator as `,` since it's broken in 3.14.9 */
-                    $sort->attributes = array_merge($sort->attributes,
+                    $sort->attributes = array_merge(
+                        $sort->attributes,
                         array(
                             $column => array(
-                                'asc'=>'CAST('.Yii::app()->db->quoteColumnName($column).' AS decimal(30,10)) ASC',
-                                'desc'=>'CAST('.Yii::app()->db->quoteColumnName($column).' AS decimal(30,10)) DESC',
+                                'asc' => 'CAST(' . Yii::app()->db->quoteColumnName($column) . ' AS decimal(30,10)) ASC',
+                                'desc' => 'CAST(' . Yii::app()->db->quoteColumnName($column) . ' AS decimal(30,10)) DESC',
                             ),
                         )
                     );
@@ -687,7 +701,7 @@ class ResponseExtended extends LSActiveRecord
             }
         }
         // Finally all not set order 
-        $sort->attributes = array_merge($sort->attributes,array("*"));
+        $sort->attributes = array_merge($sort->attributes, array("*"));
         return $sort;
     }
 

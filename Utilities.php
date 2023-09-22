@@ -1,7 +1,8 @@
 <?php
+
 /**
  * Some Utilities
- * 
+ *
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2020-2023 Denis Chenu <http://www.sondages.pro>
  * @license AGPL v3
@@ -17,6 +18,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+
 namespace responseListAndManage;
 
 use App;
@@ -26,14 +28,13 @@ use CDbCriteria;
 
 class Utilities
 {
-
     /* @var float $API version */
     const API = 2.5;
 
     /* var string[] settings with global part and default value */
     const DefaultSettings = array(
         'template' => '',
-        'showLogOut'=> false,
+        'showLogOut' => false,
         'showAdminLink' => 1,
         'afterSaveAll' => 'js',
         'forceDownloadImage' => 1,
@@ -62,7 +63,7 @@ class Utilities
         if (version_compare(App()->getConfig('TokenUsersListAndManageAPI'), "0.14", ">=")) {
             return \TokenUsersListAndManagePlugin\Utilities::getTokensList($surveyId, $token, $checkRight);
         }
-        if(!Yii::getPathOfAlias('reloadAnyResponse')) {
+        if (!Yii::getPathOfAlias('reloadAnyResponse')) {
             return null;
         }
         if (!class_exists('\reloadAnyResponse\Utilities')) {
@@ -82,7 +83,7 @@ class Utilities
             return $tokensList;
         }
 
-        $oToken = Token::model($surveyId)->find("token = :token", array(":token"=>$token));
+        $oToken = Token::model($surveyId)->find("token = :token", array(":token" => $token));
         $tokenGroup = (isset($oToken->$tokenAttributeGroup) && trim($oToken->$tokenAttributeGroup) != '') ? $oToken->$tokenAttributeGroup : null;
         if (empty($tokenGroup)) {
             return $tokensList;
@@ -100,16 +101,17 @@ class Utilities
      * @param string setting name
      * @return mixed
      */
-    public static function getSetting($surveyId, $sSetting) {
+    public static function getSetting($surveyId, $sSetting)
+    {
         $oPlugin = \Plugin::model()->find(
             "name = :name",
             array(":name" => 'responseListAndManage')
         );
-        if(!$oPlugin || !$oPlugin->active) {
+        if (!$oPlugin || !$oPlugin->active) {
             return null;
         }
         $oSetting = \PluginSetting::model()->find(
-            'plugin_id = :pluginid AND '.App()->getDb()->quoteColumnName('key').' = :key AND model = :model AND model_id = :surveyid',
+            'plugin_id = :pluginid AND ' . App()->getDb()->quoteColumnName('key') . ' = :key AND model = :model AND model_id = :surveyid',
             array(
                 ':pluginid' => $oPlugin->id,
                 ':key' => $sSetting,
@@ -117,17 +119,17 @@ class Utilities
                 ':surveyid' => $surveyId,
             )
         );
-        if(!empty($oSetting)) {
+        if (!empty($oSetting)) {
             $value = json_decode($oSetting->value);
-            if($value !== '') {
+            if ($value !== '') {
                 return $value;
             }
         }
-        if(!array_key_exists($sSetting, self::DefaultSettings)) {
+        if (!array_key_exists($sSetting, self::DefaultSettings)) {
             return null;
         }
         $oSetting = \PluginSetting::model()->find(
-            'plugin_id = :pluginid AND '.App()->getDb()->quoteColumnName('key').' = :key AND model IS NULL',
+            'plugin_id = :pluginid AND ' . App()->getDb()->quoteColumnName('key') . ' = :key AND model IS NULL',
             array(
                 ':pluginid' => $oPlugin->id,
                 ':key' => $sSetting,
@@ -135,9 +137,9 @@ class Utilities
                 ':surveyid' => null,
             )
         );
-        if(!empty($oSetting)) {
+        if (!empty($oSetting)) {
             $value = json_decode($oSetting->value);
-            if($value !== '') {
+            if ($value !== '') {
                 return $value;
             }
         }
@@ -149,7 +151,7 @@ class Utilities
      * Done if system update the way, usage only on web.
      * @see Permission->getUserId
      * @return null|integer
-     */ 
+     */
     public static function getCurrentUserId()
     {
         return Yii::app()->session['loginID'];

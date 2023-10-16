@@ -4,9 +4,9 @@
  * Responses List And Manage
  *
  * @author Denis Chenu <denis@sondages.pro>
- * @copyright 2018-2022 Denis Chenu <http://www.sondages.pro>
+ * @copyright 2018-2023 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 2.9.6
+ * @version 2.10.0
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -54,6 +54,7 @@ class responseListAndManage extends PluginBase
             'default' => 1,
             'label' => 'Show administration link',
         ),
+
         'afterSaveAll' => array(
             'type' => 'select',
             'label' => 'Action to do after save',
@@ -64,10 +65,22 @@ class responseListAndManage extends PluginBase
             ),
             'default' => 'js',
         ),
+        'hideDeletedManaged' => array(
+            'type' => 'boolean',
+            'default' => 1,
+            'label' => 'Hide deleted state from RelatedSurveyManagement in listing.',
+            'help' => 'Only if plugin exist and is active.'
+        ),
+        'actionDeletedManaged' => array(
+            'type' => 'boolean',
+            'default' => 1,
+            'label' => 'Use deleted state from RelatedSurveyManagement when delete response.',
+            'help' => 'Only if plugin exist and is active.'
+        ),
         'forceDownloadImage' => array(
             'type' => 'boolean',
             'default' => 1,
-            'label' => 'Force download of image',
+            'label' => 'Force download of image when click on uploaded files',
             'help' => 'When click on an image (png,jpg,gif or pdf) : image is directly open in browser (if able). You need a javascript solution if you want to open it in new tab',
         ),
     );
@@ -409,6 +422,7 @@ class responseListAndManage extends PluginBase
                 'showId','showCompleted','showSubmitdate','showStartdate','showDatestamp',
                 'tokenAttributes','surveyAttributes','surveyAttributesPrimary',
                 'tokenColumnOrder','tokenAttributesNone',
+                'hideDeletedManaged',
                 'surveyNeededValues',
                 'tokenAttributesHideToUser','surveyAttributesHideToUser',
                 'allowAccess','allowSee','allowEdit','allowDelete', 'allowAdd','allowAddSelf','allowAddUser',
@@ -417,7 +431,7 @@ class responseListAndManage extends PluginBase
                 'filterOnDate','filterSubmitdate','filterStartdate','filterDatestamp',
                 'showLogOut','showSurveyAdminpageLink',
                 'showExportLink','exportType','exportHeadexports','exportAnswers',
-                'afterSaveAll','saveAllAsDraft',
+                'afterSaveAll', 'actionDeletedManaged'
             );
             foreach ($settings as $setting) {
                 $this->set($setting, App()->getRequest()->getPost($setting), 'Survey', $surveyId);
@@ -487,6 +501,8 @@ class responseListAndManage extends PluginBase
                 'content' => CHtml::tag("div", array('class' => 'well well-sm'), $stateInfo),
             ),
         );
+
+        $hideDeletedManagedDefault = $this->get('hideDeletedManaged', null, null, $this->settings['hideDeletedManaged']['default']) ? gT('Yes') : gT('No');
         $aSettings[$this->translate('Response Management table')] = array(
             'showId' => array(
                 'type' => 'boolean',
@@ -605,6 +621,18 @@ class responseListAndManage extends PluginBase
                 ),
                 'current' => $this->get('surveyAttributesHideToUser', 'Survey', $surveyId)
             ),
+            'hideDeletedManaged' => array(
+                'type' => 'select',
+                'label' => $this->translate("Hide state deleted response from RelatedSurveyManagement."),
+                'options' => array(
+                    1 => gT("Yes"),
+                    0 => gT("No"),
+                ),
+                'htmlOptions' => array(
+                    'empty' => sprintf($this->translate("Leave default (%s)"), $hideDeletedManagedDefault),
+                ),
+                'current' => $this->get('hideDeletedManaged', 'Survey', $surveyId, ''),
+            ),
             'surveyNeededValues' => array(
                 'type' => 'select',
                 'label' => $this->translate('Hide answer without value on : '),
@@ -631,6 +659,10 @@ class responseListAndManage extends PluginBase
                 'current' => $this->get('showFooter', 'Survey', $surveyId, 0)
             ),
         );
+        if (floatval(App()->getConfig('RelatedSurveyManagementApiVersion')) < 0.9) {
+            unset($aSettings[$this->translate('Survey behaviour')]['hideDeletedManaged']);
+        }
+
         $aSettings[$this->translate('Date/time response management')] = array(
             'filterOnDate' => array(
                 'type' => 'boolean',
@@ -943,6 +975,7 @@ class responseListAndManage extends PluginBase
             ),
         );
 
+        $actionDeletedManagedDefault = $this->get('actionDeletedManaged', null, null, $this->settings['actionDeletedManaged']['default']) ? gT('Yes') : gT('No');
         $aSettings[$this->translate('Survey behaviour')] = array(
             'afterSaveAll' => array(
                 'type' => 'select',
@@ -957,19 +990,23 @@ class responseListAndManage extends PluginBase
                 ),
                 'current' => $this->get('afterSaveAll', 'Survey', $surveyId, ''),
             ),
-            'saveAllAsDraft' => array(
+            'actionDeletedManaged' => array(
                 'type' => 'select',
-                'label' => $this->translate('Save all reset submitdate (set as draft)'),
+                'label' => $this->translate("Use deleted state from RelatedSurveyManagement."),
                 'options' => array(
                     1 => gT("Yes"),
+                    0 => gT("No"),
                 ),
                 'htmlOptions' => array(
-                    'empty' => gT("No"),
+                    'empty' => sprintf($this->translate("Leave default (%s)"), $actionDeletedManagedDefault),
                 ),
-                'current' => $this->get('saveAllAsDraft', 'Survey', $surveyId, 1),
-                'help' => ($oSurvey->alloweditaftercompletion != "Y") ? "<div class='text-danger'>" . $this->translate("Survey participant settings, allow multiple responses is off : survey is set as draft when opened") . "</div>" : "",
+                'current' => $this->get('actionDeletedManaged', 'Survey', $surveyId, ''),
             ),
         );
+        if (floatval(App()->getConfig('RelatedSurveyManagementApiVersion')) < 0.9) {
+            unset($aSettings[$this->translate('Survey behaviour')]['actionDeletedManaged']);
+        }
+
         $aData['pluginClass'] = get_class($this);
         $aData['surveyId'] = $surveyId;
         $aData['form'] = array(
@@ -1280,6 +1317,8 @@ class responseListAndManage extends PluginBase
         $mResponse->filterDatestamp = (int) $this->get('filterDatestamp', 'Survey', $surveyId, 0);
 
         $surveyNeededValues = $this->getAttributesColumn($surveyId, 'NeededValues');
+
+
         if (empty($surveyNeededValues)) {
             $surveyNeededValues = array();
         }
@@ -1293,6 +1332,19 @@ class responseListAndManage extends PluginBase
                 $criteria->addCondition("$surveyNeededValue <>'' AND $surveyNeededValue IS NOT NULL");
             }
             $mResponse->searchCriteria = $criteria;
+        }
+
+        if (App()->getConfig('RelatedSurveyManagementApiVersion') >= 0.9) {
+            $hideDeletedManaged = $this->get(
+                'hideDeletedManaged',
+                'Survey',
+                $surveyId,
+                $this->get('hideDeletedManaged', null, null, $this->settings['hideDeletedManaged']['default'])
+            );
+            if ($hideDeletedManaged) {
+                $RelatedSurveysHelper = \RelatedSurveyManagement\RelatedSurveysHelper::getInstance($surveyId);
+                $mResponse->searchCriteria = $RelatedSurveysHelper->addFilterDeletedCriteria($mResponse->searchCriteria);
+            }
         }
 
         $filters = Yii::app()->request->getParam('ResponseExtended');
@@ -1685,9 +1737,28 @@ class responseListAndManage extends PluginBase
         if (!$allowed) {
             throw new CHttpException(401, $this->translate('No right to delete this reponse.'));
         }
-        if (!Response::model($surveyId)->deleteByPk($srid)) {
-            throw new CHttpException(500, CHtml::errorSummary(Response::model($surveyId)));
+
+        if (App()->getConfig('RelatedSurveyManagementApiVersion') >= 0.9) {
+            $actionDeletedManaged = $this->get(
+                'actionDeletedManaged',
+                'Survey',
+                $surveyId,
+                $this->get(
+                    'actionDeletedManaged',
+                    null,
+                    null,
+                    $this->settings['actionDeletedManaged']['default']
+                )
+            );
+            if ($actionDeletedManaged) {
+                $criteria = new CDbCriteria();
+                $criteria->compare('id', $srid);
+                $RelatedSurveysHelper = \RelatedSurveyManagement\RelatedSurveysHelper::getInstance($surveyId);
+                $RelatedSurveysHelper->deleteResponse($criteria);
+                return;
+            }
         }
+        Response::model($surveyId)->deleteByPk($srid);
         return;
     }
 

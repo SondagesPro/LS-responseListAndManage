@@ -2,14 +2,18 @@
 if(!empty($description)) {
     echo CHtml::tag("div",array("class"=>"clearfix"),$description);
 }
+$ajaxUpdate = 'responses-grid';
+if(App()->getConfig('debug') && App()->getConfig('debugsql')){
+    $ajaxUpdate = false;
+}
+
 $this->widget('bootstrap.widgets.TbGridView', array(
     'dataProvider'=>$model->search(),
     'columns'=>$columns,
     'filter'=>$model,
     'itemsCssClass'=>'table-condensed',
     'id'            => 'responses-grid',
-    'ajaxUpdate'    => 'responses-grid',
-    //'ajaxUpdate' => false,
+    'ajaxUpdate'    => $ajaxUpdate,
     //~ 'htmlOptions'   => array('class'=>'grid-view table-responsive'),
     'ajaxType'      => 'POST',
     'template'      => "{items}\n<div class='row'><div class='col-sm-4 tools-form text-left'>{$adminAction}{$addNew}{$addUserButton}</div><div class='col-sm-4 text-center'>{pager}</div><div class='col-sm-4 text-right'>{summary}</div></div>",

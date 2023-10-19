@@ -6,7 +6,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2023 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 2.10.0
+ * @version 2.10.1
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -439,6 +439,9 @@ class responseListAndManage extends PluginBase
             if ($manageTokenAttributeGroup) {
                 $this->set('tokenAttributeGroup', App()->getRequest()->getPost('tokenAttributeGroup'), 'Survey', $surveyId);
                 $this->set('tokenAttributeGroupManager', App()->getRequest()->getPost('tokenAttributeGroupManager'), 'Survey', $surveyId);
+            } else {
+                $this->set('tokenAttributeGroup', \TokenUsersListAndManagePlugin\Utilities::getTokenAttributeGroup($surveyId));
+                $this->set('tokenAttributeGroupManager', \TokenUsersListAndManagePlugin\Utilities::getTokenAttributeGroupManager($surveyId));
             }
             $languageSettings = array('description');
             foreach ($languageSettings as $setting) {
@@ -659,7 +662,7 @@ class responseListAndManage extends PluginBase
                 'current' => $this->get('showFooter', 'Survey', $surveyId, 0)
             ),
         );
-        if (floatval(App()->getConfig('RelatedSurveyManagementApiVersion')) < 0.9) {
+        if (version_compare(App()->getConfig('RelatedSurveyManagementApiVersion', "0.0"), "0.9" , "<")) {
             unset($aSettings[$this->translate('Survey behaviour')]['hideDeletedManaged']);
         }
 
@@ -1003,7 +1006,7 @@ class responseListAndManage extends PluginBase
                 'current' => $this->get('actionDeletedManaged', 'Survey', $surveyId, ''),
             ),
         );
-        if (floatval(App()->getConfig('RelatedSurveyManagementApiVersion')) < 0.9) {
+        if (version_compare(App()->getConfig('RelatedSurveyManagementApiVersion', "0.0"), "0.9" , "<")) {
             unset($aSettings[$this->translate('Survey behaviour')]['actionDeletedManaged']);
         }
 
@@ -1334,7 +1337,7 @@ class responseListAndManage extends PluginBase
             $mResponse->searchCriteria = $criteria;
         }
 
-        if (App()->getConfig('RelatedSurveyManagementApiVersion') >= 0.9) {
+        if (version_compare(App()->getConfig('RelatedSurveyManagementApiVersion', "0.0"), "0.9" , ">=")) {
             $hideDeletedManaged = $this->get(
                 'hideDeletedManaged',
                 'Survey',
@@ -1738,18 +1741,11 @@ class responseListAndManage extends PluginBase
             throw new CHttpException(401, $this->translate('No right to delete this reponse.'));
         }
 
-        if (App()->getConfig('RelatedSurveyManagementApiVersion') >= 0.9) {
-            $actionDeletedManaged = $this->get(
-                'actionDeletedManaged',
-                'Survey',
-                $surveyId,
-                $this->get(
-                    'actionDeletedManaged',
-                    null,
-                    null,
-                    $this->settings['actionDeletedManaged']['default']
-                )
-            );
+        if (version_compare(App()->getConfig('RelatedSurveyManagementApiVersion', "0.0"), "0.9" , ">=")) {
+            $actionDeletedManaged = $this->get('actionDeletedManaged', 'Survey', $surveyId, '');
+            if ($actionDeletedManaged === '') {
+                $actionDeletedManaged = $this->get('actionDeletedManaged', null, null, $this->settings['actionDeletedManaged']['default']);
+            }
             if ($actionDeletedManaged) {
                 $criteria = new CDbCriteria();
                 $criteria->compare('id', $srid);
@@ -2744,5 +2740,28 @@ class responseListAndManage extends PluginBase
             $this->set($surveyAttributeSetting, $newSetting, 'Survey', $surveyId);
         }
         $this->set('SettingsVersion', self::SettingsVersion, 'Survey', $surveyId);
+    }
+
+    /**
+     * @inheritdoc
+     * Use to replace tokenAttributeGroup and tokenAttributeGroupManager if needed
+     */
+    protected function get($key = null, $model = null, $id = null, $default = null)
+    {
+        if ($model != 'Survey' || empty($id)) {
+            return parent::get($key, $model, $id, $default);
+        }
+        if (
+            in_array($key, ['tokenAttributeGroup', 'tokenAttributeGroupManager'])
+            && version_compare(App()->getConfig('TokenUsersListAndManageAPI'), "0.5", ">=")
+        ) {
+            switch ($key) {
+                case 'tokenAttributeGroup':
+                    return \TokenUsersListAndManagePlugin\Utilities::getTokenAttributeGroup($id);
+                case 'tokenAttributeGroupManager':
+                    return \TokenUsersListAndManagePlugin\Utilities::getTokenAttributeGroupManager($id);
+            }
+        }
+        return parent::get($key, $model, $id, $default);
     }
 }

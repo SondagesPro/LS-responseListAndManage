@@ -11,10 +11,9 @@ $this->widget('bootstrap.widgets.TbGridView', array(
     'dataProvider'=>$model->search(),
     'columns'=>$columns,
     'filter'=>$model,
-    'itemsCssClass'=>'table-condensed',
+    'itemsCssClass' => 'table table-condensed table-hover table-striped',
     'id'            => 'responses-grid',
     'ajaxUpdate'    => $ajaxUpdate,
-    //~ 'htmlOptions'   => array('class'=>'grid-view table-responsive'),
     'ajaxType'      => 'POST',
     'template'      => "{items}\n<div class='row'><div class='col-sm-4 tools-form text-left'>{$adminAction}{$addNew}{$addUserButton}</div><div class='col-sm-4 text-center'>{pager}</div><div class='col-sm-4 text-right'>{summary}</div></div>",
     'summaryText'   => gT('Displaying {start}-{end} of {count} result(s).').' '.

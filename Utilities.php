@@ -6,7 +6,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2020-2023 Denis Chenu <http://www.sondages.pro>
  * @license AGPL v3
- * @version 2.9.4
+ * @version 2.10.1
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -109,6 +109,18 @@ class Utilities
         );
         if (!$oPlugin || !$oPlugin->active) {
             return null;
+        }
+        /* tokenAttributeGroup and tokenAttributeGroupManager moved to TokenUsersListAndManage if exist */
+        if (
+            in_array($sSetting, ['tokenAttributeGroup', 'tokenAttributeGroupManager'])
+            && version_compare(App()->getConfig('TokenUsersListAndManageAPI'), "0.5", ">=")
+        ) {
+            switch ($sSetting) {
+                case 'tokenAttributeGroup':
+                    return \TokenUsersListAndManagePlugin\Utilities::getTokenAttributeGroup($surveyId);
+                case 'tokenAttributeGroupManager':
+                    return \TokenUsersListAndManagePlugin\Utilities::getTokenAttributeGroupManager($surveyId);
+            }
         }
         $oSetting = \PluginSetting::model()->find(
             'plugin_id = :pluginid AND ' . App()->getDb()->quoteColumnName('key') . ' = :key AND model = :model AND model_id = :surveyid',

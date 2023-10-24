@@ -6,7 +6,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2020-2023 Denis Chenu <http://www.sondages.pro>
  * @license AGPL v3
- * @version 2.10.1
+ * @version 2.10.2
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -28,8 +28,8 @@ use CDbCriteria;
 
 class Utilities
 {
-    /* @var float $API version */
-    const API = 2.5;
+    /* @var string $API version */
+    const API = "2.10.2";
 
     /* var string[] settings with global part and default value */
     const DefaultSettings = array(
@@ -97,11 +97,13 @@ class Utilities
 
     /**
      * Get a DB setting from a plugin
-     * @param integer survey id
-     * @param string setting name
+     * @since 2.10.2 Added the $checkTokenUsersListAndManage argument.
+     * @param integer $surveyId survey id
+     * @param string $sSetting setting name
+     * @param boolean $checkTokenUsersListAndManage : did need to check TokenUsersListAndManage plugin
      * @return mixed
      */
-    public static function getSetting($surveyId, $sSetting)
+    public static function getSetting($surveyId, $sSetting, $checkTokenUsersListAndManage = true)
     {
         $oPlugin = \Plugin::model()->find(
             "name = :name",
@@ -112,7 +114,8 @@ class Utilities
         }
         /* tokenAttributeGroup and tokenAttributeGroupManager moved to TokenUsersListAndManage if exist */
         if (
-            in_array($sSetting, ['tokenAttributeGroup', 'tokenAttributeGroupManager'])
+            $checkTokenUsersListAndManage
+            && in_array($sSetting, ['tokenAttributeGroup', 'tokenAttributeGroupManager'])
             && version_compare(App()->getConfig('TokenUsersListAndManageAPI'), "0.5", ">=")
         ) {
             switch ($sSetting) {

@@ -6,7 +6,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2023 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 2.10.1
+ * @version 2.10.3
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -1311,6 +1311,7 @@ class responseListAndManage extends PluginBase
         Yii::app()->session['responseListAndManage'] = $aResponseListAndManage;
         Yii::import(get_class($this) . '.models.ResponseExtended');
 
+        /* @var ResponseExtended::model model for grid */
         $mResponse = ResponseExtended::model($surveyId);
         $mResponse->setScenario('search');
         $mResponse->showFooter = $this->get('showFooter', 'Survey', $surveyId, false);
@@ -1319,24 +1320,18 @@ class responseListAndManage extends PluginBase
         $mResponse->filterStartdate = (int) $this->get('filterStartdate', 'Survey', $surveyId, 0);
         $mResponse->filterDatestamp = (int) $this->get('filterDatestamp', 'Survey', $surveyId, 0);
 
+        /* @var CDbCriteria base criteria for filtering */
+        $criteria = new CDbCriteria();
         $surveyNeededValues = $this->getAttributesColumn($surveyId, 'NeededValues');
-
-
-        if (empty($surveyNeededValues)) {
-            $surveyNeededValues = array();
-        }
-        if (is_string($surveyNeededValues)) {
-            $surveyNeededValues = array($surveyNeededValues);
-        }
         if (!empty($surveyNeededValues)) {
-            $criteria = new CDbCriteria();
-            foreach ($surveyNeededValues as $surveyNeededValue) {
-                $surveyNeededValue = Yii::app()->getDb()->quoteColumnName($surveyNeededValue);
-                $criteria->addCondition("$surveyNeededValue <>'' AND $surveyNeededValue IS NOT NULL");
+            if (is_string($surveyNeededValues)) {
+                $surveyNeededValues = array($surveyNeededValues);
             }
-            $mResponse->searchCriteria = $criteria;
+            foreach ($surveyNeededValues as $surveyNeededValue) {
+                $surveyNeededValue = App()->getDb()->quoteColumnName($surveyNeededValue);
+                $criteria->addCondition("$surveyNeededValue <> '' AND $surveyNeededValue IS NOT NULL");
+            }
         }
-
         if (version_compare(App()->getConfig('RelatedSurveyManagementApiVersion', "0.0"), "0.9" , ">=")) {
             $hideDeletedManaged = $this->get(
                 'hideDeletedManaged',
@@ -1346,9 +1341,10 @@ class responseListAndManage extends PluginBase
             );
             if ($hideDeletedManaged) {
                 $RelatedSurveysHelper = \RelatedSurveyManagement\RelatedSurveysHelper::getInstance($surveyId);
-                $mResponse->searchCriteria = $RelatedSurveysHelper->addFilterDeletedCriteria($mResponse->searchCriteria);
+                $criteria = $RelatedSurveysHelper->addFilterDeletedCriteria($criteria);
             }
         }
+        $mResponse->searchCriteria = $criteria;
 
         $filters = Yii::app()->request->getParam('ResponseExtended');
         if (!empty($filters)) {
@@ -1361,6 +1357,7 @@ class responseListAndManage extends PluginBase
         if (!empty($tokensFilter)) {
             $mResponse->setTokenAttributes($tokensFilter);
         }
+
         /* Access with token */
         $isManager = false;
         $tokenAttributeGroup = $this->get('tokenAttributeGroup', 'Survey', $surveyId);
@@ -2134,8 +2131,8 @@ class responseListAndManage extends PluginBase
                 $addUser["attributeGroup"]['caption'] = ($aSurveyInfo['attributecaptions'][$tokenAttributeGroup] ? $aSurveyInfo['attributecaptions'][$tokenAttributeGroup] : ($aAllAttributes[$tokenAttributeGroup]['description'] ? $aAllAttributes[$tokenAttributeGroup]['description'] : $this->translate("Is a group manager")));
             }
             if ($tokenAttributeGroupManager) {
-                $addUser["tokenAttributeGroupManager"] = $aAllAttributes[$tokenAttributeGroup];
-                $addUser["tokenAttributeGroupManager"]['attribute'] = $tokenAttributeGroup;
+                $addUser["tokenAttributeGroupManager"] = $aAllAttributes[$tokenAttributeGroupManager];
+                $addUser["tokenAttributeGroupManager"]['attribute'] = $tokenAttributeGroupManager;
                 $addUser["tokenAttributeGroupManager"]['caption'] = ($aSurveyInfo['attributecaptions'][$tokenAttributeGroupManager] ? $aSurveyInfo['attributecaptions'][$tokenAttributeGroupManager] : ($aAllAttributes[$tokenAttributeGroupManager]['description'] ? $aAllAttributes[$tokenAttributeGroupManager]['description'] : $this->translate("Is a group manager")));
             }
         }

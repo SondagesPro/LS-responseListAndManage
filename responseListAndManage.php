@@ -6,7 +6,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2023 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 2.10.3
+ * @version 2.10.4
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -2128,12 +2128,12 @@ class responseListAndManage extends PluginBase
             if ($tokenAttributeGroup) {
                 $addUser["attributeGroup"] = $aAllAttributes[$tokenAttributeGroup];
                 $addUser["attributeGroup"]['attribute'] = $tokenAttributeGroup;
-                $addUser["attributeGroup"]['caption'] = ($aSurveyInfo['attributecaptions'][$tokenAttributeGroup] ? $aSurveyInfo['attributecaptions'][$tokenAttributeGroup] : ($aAllAttributes[$tokenAttributeGroup]['description'] ? $aAllAttributes[$tokenAttributeGroup]['description'] : $this->translate("Is a group manager")));
+                $addUser["attributeGroup"]['caption'] = (!empty($aSurveyInfo['attributecaptions'][$tokenAttributeGroup]) ? $aSurveyInfo['attributecaptions'][$tokenAttributeGroup] : ($aAllAttributes[$tokenAttributeGroup]['description'] ? $aAllAttributes[$tokenAttributeGroup]['description'] : $this->translate("Is a group manager")));
             }
             if ($tokenAttributeGroupManager) {
                 $addUser["tokenAttributeGroupManager"] = $aAllAttributes[$tokenAttributeGroupManager];
                 $addUser["tokenAttributeGroupManager"]['attribute'] = $tokenAttributeGroupManager;
-                $addUser["tokenAttributeGroupManager"]['caption'] = ($aSurveyInfo['attributecaptions'][$tokenAttributeGroupManager] ? $aSurveyInfo['attributecaptions'][$tokenAttributeGroupManager] : ($aAllAttributes[$tokenAttributeGroupManager]['description'] ? $aAllAttributes[$tokenAttributeGroupManager]['description'] : $this->translate("Is a group manager")));
+                $addUser["tokenAttributeGroupManager"]['caption'] = (!empty($aSurveyInfo['attributecaptions'][$tokenAttributeGroupManager]) ? $aSurveyInfo['attributecaptions'][$tokenAttributeGroupManager] : ($aAllAttributes[$tokenAttributeGroupManager]['description'] ? $aAllAttributes[$tokenAttributeGroupManager]['description'] : $this->translate("Is a group manager")));
             }
         }
         $emailType = 'register';

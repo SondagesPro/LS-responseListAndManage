@@ -4,6 +4,7 @@
  * @see SurveyDynamic
  * @since 0.1.0
  * @since 2.10.0 allow parent
+ * @since 2.11.0 : parent link
  */
 //~ namespace responseListAndManage\models;
 //~ use Yii;
@@ -71,7 +72,8 @@ class ResponseExtended extends LSActiveRecord
     public $showEdit = false;
     /* @var boolean */
     public $showDelete = false;
-
+    /* @var boolean : replace id of parent by a link */
+    public $parentLinkUpdate = false;
     /**
      * @inheritdoc
      * @return self
@@ -117,6 +119,7 @@ class ResponseExtended extends LSActiveRecord
             }
             if ($this->getHaveParent()) {
                 $oParent = ResponseParent::model($this->parentId);
+                $oParent->currentToken = $this->currentToken;
                 $this->parentRelated = $oParent;
             }
         }
@@ -584,10 +587,14 @@ class ResponseExtended extends LSActiveRecord
         $aColumns['parent.id'] = array(
             'header' => $htmlParentDescription .'<strong>[id]</strong> <small>' . gT('Identifier') . '</small>',
             'name' => 'parent.id',
+            'type' => 'raw',
             'value' => 'empty($data->parent) ? "" : $data->parent->id;',
             'htmlOptions' => array('class' => 'data-column column-id'),
             'filter' => CHtml::activeTextField($this->parentRelated, "id", array('class' => 'form-control input-sm filter-parent-id')),
         );
+        if ($this->parentLinkUpdate) {
+            $aColumns['parent.id']['value'] = 'empty($data->parent) ? "" : $data->parent->getIdButtonUrl("' . $this->currentToken . '");';
+        }
         $surveyParentColumnsInformation = new \getQuestionInformation\helpers\surveyColumnsInformation($this->parentId, App()->getLanguage());
         $surveyParentColumnsInformation->relation = 'parent';
         $surveyParentColumnsInformation->relatedObjectName = 'parentRelated';

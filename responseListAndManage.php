@@ -8,6 +8,7 @@
  * @license GPL v3
  * @since 0.1.0
  * @since 2.10.0 : settings for parent
+ * @since 2.11.0 : parent link
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -220,7 +221,7 @@ class responseListAndManage extends PluginBase
         if (empty($oSurvey)) {
             return;
         }
-        if (empty(Yii::app()->session['responseListAndManage'][$surveyId])) {
+        if (empty(App()->session['responseListAndManage'][$surveyId])) {
             return;
         }
         $this->surveyId = $surveyId;
@@ -263,7 +264,7 @@ class responseListAndManage extends PluginBase
         }
         $afterSurveyCompleteEvent = $this->getEvent(); // because update in twig renderPartial
         $surveyId = $afterSurveyCompleteEvent->get('surveyId');
-        if (empty(Yii::app()->session['responseListAndManage'][$surveyId])) {
+        if (empty(App()->session['responseListAndManage'][$surveyId])) {
             return;
         }
         if (empty($afterSurveyCompleteEvent->get('responseId'))) {
@@ -426,7 +427,7 @@ class responseListAndManage extends PluginBase
                 'hideDeletedManaged',
                 'surveyNeededValues',
                 'tokenAttributesHideToUser','surveyAttributesHideToUser',
-                'parentPrimaryAttributes', 'parentAttributes', 'parentDescription',
+                'parentPrimaryAttributes', 'parentAttributes', 'parentDescription', 'parentLinkUpdate',
                 'allowAccess','allowSee','allowEdit','allowDelete', 'allowAdd','allowAddSelf','allowAddUser',
                 'template',
                 'showFooter',
@@ -729,6 +730,12 @@ class responseListAndManage extends PluginBase
                             'class' => 'select2-withover ',
                         ),
                         'current' => $this->get('parentAttributes', 'Survey', $surveyId)
+                    ),
+                    'parentLinkUpdate' => array(
+                        'type' => 'boolean',
+                        'label' => $this->translate('Add a link to edit to the id of the parent.'),
+                        'help' => $this->translate('Link is added only if current user have editition permission.'),
+                        'current' => $this->get('parentLinkUpdate', 'Survey', $surveyId, 0)
                     ),
                     'parentDescription' => array(
                         'type' => 'string',
@@ -1390,7 +1397,7 @@ class responseListAndManage extends PluginBase
         $oSurvey = Survey::model()->findByPk($surveyId);
         $this->aRenderData['aSurveyInfo'] = getSurveyInfo($surveyId, $language);
 
-        $aResponseListAndManage = (array) Yii::app()->session['responseListAndManage'];
+        $aResponseListAndManage = (array) App()->session['responseListAndManage'];
         $aResponseListAndManage[$surveyId] = $surveyId;
         Yii::app()->session['responseListAndManage'] = $aResponseListAndManage;
         Yii::import(get_class($this) . '.models.ResponseExtended');
@@ -1438,11 +1445,11 @@ class responseListAndManage extends PluginBase
                 $mResponse->setAttribute('completed', $filters['completed']);
             }
         }
-        $tokensFilter = Yii::app()->request->getParam('TokenDynamic');
+        $tokensFilter = App()->request->getParam('TokenDynamic');
         if (!empty($tokensFilter)) {
             $mResponse->setTokenAttributes($tokensFilter);
         }
-        $parentFilter = Yii::app()->request->getParam('ResponseParent');
+        $parentFilter = App()->request->getParam('ResponseParent');
         if (!empty($parentFilter)) {
             $mResponse->setParentAttributes($parentFilter);
         }
@@ -1514,6 +1521,8 @@ class responseListAndManage extends PluginBase
         }
         $mResponse->showEdit = $allowEdit;
         $mResponse->showDelete = $allowDelete;
+        $mResponse->parentLinkUpdate = $this->get('parentLinkUpdate', 'Survey', $surveyId, 0);
+        $mResponse->currentToken = $currentToken;
         Yii::app()->user->setState('responseListAndManagePageSize', intval(Yii::app()->request->getParam('pageSize', Yii::app()->user->getState('responseListAndManagePageSize', 50))));
         // Check if allow check
         $selectableRows = 0;
@@ -2801,6 +2810,9 @@ class responseListAndManage extends PluginBase
         if (!$parentId) {
             return [];
         }
+        $aResponseListAndManage = (array) App()->session['responseListAndManage'];
+        $aResponseListAndManage[$parentId] = $parentId;
+        Yii::app()->session['responseListAndManage'] = $aResponseListAndManage;
         switch ($type) {
             case 'Primary':
             case 'parentPrimaryAttributes':

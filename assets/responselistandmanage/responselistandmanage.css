@@ -4,12 +4,11 @@
 .grid-view th small{display:block}
 .grid-view .table th > .sort-link {font-weight:normal}
 .grid-view .table th  {font-weight:normal}
-.grid-view .data-column{min-width:12rem;max-width:12rem;text-align:right}
+.grid-view .data-column{min-width:12rem;max-width:12rem;}
 .grid-view .column-yes-no{min-width:6rem}
-.grid-view .column-id{min-width:4rem}
+.grid-view .column-id{min-width:4rem;text-align:right}
 .grid-view .action-column{min-width:4rem;white-space: nowrap;text-align:center}
 .grid-view .column-completed{min-width:4rem;text-align:center}
-
 .grid-view tbody td{max-height:1.4em;}
 .grid-view {position:relative;}
 .grid-view > .row-fluid{position:relative;}
@@ -116,11 +115,5 @@
     background:#fff; /* can be updated in custom.css */
 }
 /* stikcey «columns» : left is set on JS */
-.responselistandmanage-sticky-header-column .grid-view .column-id,
-.responselistandmanage-sticky-header-column .grid-view .action-column,
-.responselistandmanage-sticky-header-column .grid-view .column-completed,
-.responselistandmanage-sticky-header-column .grid-view #responses-grid_cid,
-.responselistandmanage-sticky-header-column .grid-view #responses-grid_cbutton,
-.responselistandmanage-sticky-header-column .grid-view #responses-grid_ccompleted,
 .responselistandmanage-sticky-header-column .grid-view .sticky-column
-{position:sticky;background:#fff;background-clip: padding-box;}
+{position:sticky;}

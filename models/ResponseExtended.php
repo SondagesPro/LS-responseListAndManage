@@ -2,7 +2,8 @@
 /**
  * This file is part of reloadAnyResponse plugin
  * @see SurveyDynamic
- * @version 2.9.2
+ * @since 0.1.0
+ * @since 2.10.0 allow parent
  */
 //~ namespace responseListAndManage\models;
 //~ use Yii;
@@ -16,11 +17,26 @@ class ResponseExtended extends LSActiveRecord
     /** @var Survey $survey */
     protected static $survey;
 
-    /** @var  boolean $bHaveToken */
+    /** @var  boolean $haveToken */
     protected $haveToken;
+
+    /** @var  null|boolean $haveParent */
+    protected $haveParent;
+
+    /** @var  null|integer $haveParent */
+    protected $parentId;
+
+    /** @var  string $parentDescription */
+    public $parentDescription = "Parent";
+
+    /** @var null|string[] $relationWithParent : column of this survey related to column of parent survey */
+    protected $relationWithParent;
 
     /** @var  object */
     protected $tokenRelated;
+
+    /** @var  object */
+    protected $parentRelated;
 
     /** @var string $completed_filter */
     public $completed;
@@ -99,8 +115,13 @@ class ResponseExtended extends LSActiveRecord
                 $oToken = TokenDynamic::model(self::$sid);
                 $this->tokenRelated = $oToken;
             }
+            if ($this->getHaveParent()) {
+                $oParent = ResponseParent::model($this->parentId);
+                $this->parentRelated = $oParent;
+            }
         }
     }
+
     /**
      * Sets the survey ID for the next model
      *
@@ -130,6 +151,12 @@ class ResponseExtended extends LSActiveRecord
             TokenDynamic::sid(self::$sid);
             $relations['tokens'] = array(self::BELONGS_TO, 'TokenDynamic', array('token' => 'token'));
         }
+        if ($this->getHaveParent()) {
+            /* Add relation here too */
+            ResponseParent::sid($this->parentId);
+            // Unsure we have a BELONGS_TO relation, but keep it
+            $relations['parent'] = array(self::BELONGS_TO, 'ResponseParent', $this->relationWithParent);
+        }
         return $relations;
     }
 
@@ -143,7 +170,7 @@ class ResponseExtended extends LSActiveRecord
      * return if token column can be returned
      * @return bool
      */
-    private function getHaveToken()
+    public function getHaveToken()
     {
         if (!isset($this->haveToken)) {
             $this->haveToken = self::$survey->anonymized != "Y" && tableExists('tokens_' . self::$sid) && (Permission::model()->hasSurveyPermission(self::$sid, 'token', 'read') || Yii::app()->user->getState('disableTokenPermission')); // Boolean : show (or not) the token;
@@ -151,6 +178,36 @@ class ResponseExtended extends LSActiveRecord
         return $this->haveToken;
     }
 
+    /**
+     * return if parent column can be returned
+     * @return bool
+     */
+    public function getHaveParent()
+    {
+        if (!isset($this->haveParent)) {
+            $this->haveParent = false;
+            if (version_compare(App()->getConfig('RelatedSurveyManagementApiVersion'), "0.11.0", ">=")
+                && version_compare(App()->getConfig('getQuestionInformationAPI'), "3.1.0", ">=")
+            ) {
+                $RelatedSurveyManagementSettings = \RelatedSurveyManagement\Settings::getInstance();
+                $parentId = $RelatedSurveyManagementSettings->getParentId(self::$sid);
+                if ($parentId) {
+                    $this->haveParent = true;
+                    $this->parentId = $parentId;
+                    $this->relationWithParent = $RelatedSurveyManagementSettings->getParentRelation(self::$sid);
+                }
+            }
+        }
+        return $this->haveParent;
+    }
+
+    public function getRelationWithParent()
+    {
+        if ($this->getHaveParent()) {
+            return $this->relationWithParent;
+        }
+        return null;
+    }
     /**
      * Get the list of default columns for surveys
      * @return string[]
@@ -175,7 +232,10 @@ class ResponseExtended extends LSActiveRecord
 
         // Join the survey participants table and filter tokens if needed
         if ($this->haveToken && $this->survey->anonymized != 'Y') {
-            $criteria->with = 'tokens';
+            $criteria->with[] = 'tokens';
+        }
+        if ($this->getHaveParent()) {
+            $criteria->with[] = 'parent';
         }
         $sort = $this->getSort();
         $criteria->select = $this->restrictedColumns;
@@ -200,6 +260,10 @@ class ResponseExtended extends LSActiveRecord
         if ($this->getHaveToken()) {
             $this->filterTokenColumns($criteria);
         }
+        // Parent filters
+        if ($this->getHaveParent()) {
+            $this->filterParentColumns($criteria);
+        }
         $this->filterColumns($criteria);
         $dataProvider = new CActiveDataProvider('ResponseExtended', array(
             'sort' => $sort,
@@ -207,8 +271,7 @@ class ResponseExtended extends LSActiveRecord
             'pagination' => array(
                 'pageSize' => $pageSize,
             ),
-        )
-        );
+        ));
         return $dataProvider;
     }
 
@@ -273,14 +336,33 @@ class ResponseExtended extends LSActiveRecord
         }
     }
 
+    /**
+     * Add the filter to the token columns
+     * @param CDbCriteria $criteria
+     * @return CDbCriteria
+     */
     protected function filterTokenColumns(CDbCriteria $criteria)
     {
         $tokensAttributes = $this->tokenRelated->getAttributes();
-        //~ unset($tokensAttributes['token']);
         foreach ($tokensAttributes as $attribute => $value) {
             $criteria->compare('tokens.' . $attribute, $value, true);
         }
     }
+
+    /**
+     * Add the filter to the parent columns
+     * @param CDbCriteria $criteria
+     * @return CDbCriteria
+     */
+    protected function filterParentColumns(CDbCriteria $criteria)
+    {
+        $parentAttributes = $this->parentRelated->getAttributes();
+        foreach ($parentAttributes as $attribute => $value) {
+            $criteria->compare('parent.' . $attribute, $value, true);
+        }
+    }
+
+
     /**
      * get columns for grid
      * @return array
@@ -381,8 +463,10 @@ class ResponseExtended extends LSActiveRecord
                 $allQuestionsColumns
             );
         }
-
         $aColumns = array_merge($aColumns, $allQuestionsColumns);
+        if ($this->getHaveParent()) {
+            $aColumns = array_merge($aColumns, $this->getParentColumns());
+        }
         return $aColumns;
     }
 
@@ -473,6 +557,68 @@ class ResponseExtended extends LSActiveRecord
         $this->tokenRelated->setAttributes($tokens, false);
     }
 
+    public function setParentAttributes($attributes = array())
+    {
+        if (!$this->getHaveParent()) {
+            return;
+        }
+        $this->parentRelated->setAttributes($attributes, false);
+    }
+
+    /**
+    * Get the parent columns for grid
+    * @return [][]
+    */
+    public function getParentColumns()
+    {
+        if (!$this->getHaveParent()) {
+            return;
+        }
+        
+        $htmlParentDescription = "";
+        if(!empty($this->parentDescription)) {
+            
+            $htmlParentDescription = "<em class='parent-header'>" . viewHelper::purified($this->parentDescription) . "</em> ";
+        }
+        $aColumns = array();
+        $aColumns['parent.id'] = array(
+            'header' => $htmlParentDescription .'<strong>[id]</strong> <small>' . gT('Identifier') . '</small>',
+            'name' => 'parent.id',
+            'value' => 'empty($data->parent) ? "" : $data->parent->id;',
+            'htmlOptions' => array('class' => 'data-column column-id'),
+            'filter' => CHtml::activeTextField($this->parentRelated, "id", array('class' => 'form-control input-sm filter-parent-id')),
+        );
+        $surveyParentColumnsInformation = new \getQuestionInformation\helpers\surveyColumnsInformation($this->parentId, App()->getLanguage());
+        $surveyParentColumnsInformation->relation = 'parent';
+        $surveyParentColumnsInformation->relatedObjectName = 'parentRelated';
+        $surveyParentColumnsInformation->relatedDescrition = gT('Parent'); // @todo : allow set by user
+        $allParentQuestionsColumns = $surveyParentColumnsInformation->allQuestionsColumns();
+        $allFixedParentQuestionsColumns = [];
+        foreach ($allParentQuestionsColumns as $column => $data) {
+            /* @todo name it in plugin settings */
+            $name = $data['name'];
+            $data['header'] = $htmlParentDescription . $data['header'];
+            $data['name'] = 'parent.' .  $data['name'];
+            $filterInputOptions = $data['filterInputOptions'];
+            $filterInputOptions['class'] = $filterInputOptions['class'] . " filter-parent";
+            if (isset($data['filter']) && is_array($data['filter'])) {
+                $filterInputOptions['empty'] = "";
+                $data['filter'] = CHtml::activeDropDownList(
+                    $this->parentRelated, $name, $data['filter'], $filterInputOptions
+                );
+            } else {
+                $data['filter'] = CHtml::activeTextField($this->parentRelated, $name, $filterInputOptions);
+            }
+            $allFixedParentQuestionsColumns['parent.' . $column] = $data;
+        }
+        $aColumns = array_merge($aColumns, $allFixedParentQuestionsColumns);
+        return $aColumns;
+    }
+
+    /**
+    * Get the token columns for grid
+    * @return [][]
+    */
     public function getTokensColumns()
     {
         $aColumns = array();
@@ -531,6 +677,19 @@ class ResponseExtended extends LSActiveRecord
         $tokenAttributes = self::$survey->getTokenAttributes();
         foreach ($tokenAttributes as $attribute => $aDescrition) {
             $aSort[] = 'tokens.' . $attribute;
+        }
+        return $aSort;
+    }
+
+    public function getParentSort()
+    {
+        if (!$this->getHaveParent()) {
+            return array();
+        }
+        $parentAttributes = $this->parentRelated->getAttributes();
+        $aSort = [];
+        foreach ($parentAttributes as $columns => $value) {
+            $aSort[] = 'parent.' . $columns;
         }
         return $aSort;
     }
@@ -663,6 +822,9 @@ class ResponseExtended extends LSActiveRecord
         // Token sort
         if ($this->getHaveToken()) {
             $sort->attributes = array_merge($sort->attributes, $this->getTokensSort());
+        }
+        if ($this->getHaveParent()) {
+            $sort->attributes = array_merge($sort->attributes, $this->getParentSort());
         }
         $sort->attributes = array_merge(
             $sort->attributes,

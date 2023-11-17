@@ -6,7 +6,8 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2023 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 2.10.4
+ * @since 0.1.0
+ * @since 2.10.0 : settings for parent
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -425,6 +426,7 @@ class responseListAndManage extends PluginBase
                 'hideDeletedManaged',
                 'surveyNeededValues',
                 'tokenAttributesHideToUser','surveyAttributesHideToUser',
+                'parentPrimaryAttributes', 'parentAttributes', 'parentDescription',
                 'allowAccess','allowSee','allowEdit','allowDelete', 'allowAdd','allowAddSelf','allowAddUser',
                 'template',
                 'showFooter',
@@ -665,7 +667,77 @@ class responseListAndManage extends PluginBase
         if (version_compare(App()->getConfig('RelatedSurveyManagementApiVersion', "0.0"), "0.9" , "<")) {
             unset($aSettings[$this->translate('Survey behaviour')]['hideDeletedManaged']);
         }
-
+        /* Check if have parent */
+        if (
+            version_compare(App()->getConfig('RelatedSurveyManagementApiVersion', "0.0"), "0.11" , ">=")
+            && version_compare(App()->getConfig('getQuestionInformationAPI'), "3.1.0", ">=")
+        ) {
+            $RelatedSurveyManagementSettings = \RelatedSurveyManagement\Settings::getInstance();
+            $parentId = $RelatedSurveyManagementSettings->getParentId($surveyId);
+            if ($parentId) {
+                $parentSurveyColumnsInformation = new \getQuestionInformation\helpers\surveyColumnsInformation($parentId, App()->getLanguage());
+                $parentSurveyColumnsInformation->ByEmCode = true;
+                $aParentQuestionList = $parentSurveyColumnsInformation->allQuestionListData();
+                /* Add id */
+                $aParentQuestionList = [
+                    'data' => ['id' => $this->translate("Response id")] + $aParentQuestionList['data'],
+                    'options' => ['id' => [
+                        'data-html' => true,
+                        'data-trigger' => 'hover focus',
+                        'data-content' => $this->translate("Response id"),
+                        'data-title' => $this->translate("Response id"),
+                        'title' => $this->translate("Response id"),
+                        ]
+                    ] + $aParentQuestionList['options']
+                ];
+                $aSettings[$this->translate('Parent Response')] = array(
+                    'parentPrimaryAttributes' => array(
+                        'type' => 'select',
+                        'label' => $this->translate('Parent survey columns to be show in management at start'),
+                        'help' => $this->translate('Shown just after the primary columns of this survey'),
+                        'options' => $aParentQuestionList['data'],
+                        'htmlOptions' => array(
+                            'multiple' => true,
+                            'placeholder' => gT("None"),
+                            'unselectValue' => "",
+                            'options' => $aParentQuestionList['options'], // In dropdown, but not in select2
+                        ),
+                        'selectOptions' => array(
+                            'placeholder' => gT("None"),
+                            //~ 'templateResult'=>"formatQuestion",
+                        ),
+                        'controlOptions' => array(
+                            'class' => 'select2-withover ',
+                        ),
+                        'current' => $this->get('parentPrimaryAttributes', 'Survey', $surveyId)
+                    ),
+                    'parentAttributes' => array(
+                        'type' => 'select',
+                        'label' => $this->translate('Other arent survey columns to be show in management'),
+                        'options' => $aParentQuestionList['data'],
+                        'htmlOptions' => array(
+                            'multiple' => true,
+                            'placeholder' => gT("None"),
+                            'unselectValue' => "",
+                            'options' => $aParentQuestionList['options'], // In dropdown, but not in select2
+                        ),
+                        'selectOptions' => array(
+                            'placeholder' => gT("None"),
+                            //~ 'templateResult'=>"formatQuestion",
+                        ),
+                        'controlOptions' => array(
+                            'class' => 'select2-withover ',
+                        ),
+                        'current' => $this->get('parentAttributes', 'Survey', $surveyId)
+                    ),
+                    'parentDescription' => array(
+                        'type' => 'string',
+                        'label' => $this->translate('Prefix for the header for parent column'),
+                        'current' => $this->get('parentDescription', 'Survey', $surveyId, '')
+                    ),
+                );
+            }
+        }
         $aSettings[$this->translate('Date/time response management')] = array(
             'filterOnDate' => array(
                 'type' => 'boolean',
@@ -1293,8 +1365,10 @@ class responseListAndManage extends PluginBase
         if (!$userHaveRight) {
             if ($this->_allowTokenLink($oSurvey) && !Yii::app()->getRequest()->getParam('admin')) {
                 $this->_showTokenForm($surveyId);
+                App()->end();
             } else {
                 $this->_doLogin();
+                App()->end();
                 //throw new CHttpException(401,$this->translate("Sorry, no access on this survey."));
             }
         }
@@ -1304,12 +1378,23 @@ class responseListAndManage extends PluginBase
             $language = $oSurvey->language;
             App()->setLanguage($language);
         }
+        $this->doReponseListing($surveyId, $language, $currentToken);
+    }
+    
+    /**
+     * Do the response listing : the major function here
+     * @todo move to own class
+     * @return void
+     */
+    private function doReponseListing($surveyId, $language, $currentToken) {
+        $oSurvey = Survey::model()->findByPk($surveyId);
         $this->aRenderData['aSurveyInfo'] = getSurveyInfo($surveyId, $language);
 
         $aResponseListAndManage = (array) Yii::app()->session['responseListAndManage'];
         $aResponseListAndManage[$surveyId] = $surveyId;
         Yii::app()->session['responseListAndManage'] = $aResponseListAndManage;
         Yii::import(get_class($this) . '.models.ResponseExtended');
+        Yii::import(get_class($this) . '.models.ResponseParent');
 
         /* @var ResponseExtended::model model for grid */
         $mResponse = ResponseExtended::model($surveyId);
@@ -1357,7 +1442,10 @@ class responseListAndManage extends PluginBase
         if (!empty($tokensFilter)) {
             $mResponse->setTokenAttributes($tokensFilter);
         }
-
+        $parentFilter = Yii::app()->request->getParam('ResponseParent');
+        if (!empty($parentFilter)) {
+            $mResponse->setParentAttributes($parentFilter);
+        }
         /* Access with token */
         $isManager = false;
         $tokenAttributeGroup = $this->get('tokenAttributeGroup', 'Survey', $surveyId);
@@ -1488,7 +1576,6 @@ class responseListAndManage extends PluginBase
 
         $adminAction = $this->_getAdminMenu($surveyId);
         $this->aRenderData['adminAction'] = empty($adminAction) ? "" : $adminAction . " ";
-        ;
 
         $addNew = '';
         if (Permission::model()->hasSurveyPermission($surveyId, 'responses', 'create') && !$this->_surveyHasTokens($oSurvey)) {
@@ -1589,17 +1676,45 @@ class responseListAndManage extends PluginBase
         if ($oSurvey->datestamp && $this->get('showDatestamp', 'Survey', $surveyId, 0)) {
             $baseColumns[] = 'datestamp';
         }
-        $aRestrictedColumns = array_merge($baseColumns, $tokenAttributes, $surveyAttributes, $surveyAttributesPrimary);
+        /* Parent columns */
+        $parentPrimaryAttributes = $this->getParentAttributesColumn($surveyId, 'Primary');
+        $parentAttributes = array_diff($this->getParentAttributesColumn($surveyId), $parentPrimaryAttributes);
+        $parentDescription = $this->get('parentDescription', 'Survey', $surveyId, '');
+        if ($parentDescription) {
+            $mResponse->parentDescription = trim($parentDescription);
+        }
+        /* Add token at specific place */
         switch ($this->get('tokenColumnOrder', 'Survey', $surveyId, 'default')) {
             case "start":
-                $aRestrictedColumns = array_merge($baseColumns, $tokenAttributes, $surveyAttributesPrimary, $surveyAttributes);
+                $aRestrictedColumns = array_merge(
+                    $baseColumns,
+                    $tokenAttributes,
+                    array_values($surveyAttributesPrimary),
+                    array_values($parentPrimaryAttributes),
+                    array_values($surveyAttributes),
+                    array_values($parentAttributes)
+                );
                 break;
             case "end":
-                $aRestrictedColumns = array_merge($baseColumns, $surveyAttributesPrimary, $surveyAttributes, $tokenAttributes);
+                $aRestrictedColumns = array_merge(
+                    $baseColumns,
+                    array_values($surveyAttributesPrimary),
+                    array_values($parentPrimaryAttributes),
+                    array_values($surveyAttributes),
+                    array_values($parentAttributes),
+                    $tokenAttributes,
+                );
                 break;
             case "default":
             default:
-                $aRestrictedColumns = array_merge($baseColumns, $surveyAttributesPrimary, $tokenAttributes, $surveyAttributes);
+                $aRestrictedColumns = array_merge(
+                    $baseColumns,
+                    array_values($surveyAttributesPrimary),
+                    array_values($parentPrimaryAttributes),
+                    $tokenAttributes,
+                    array_values($surveyAttributes),
+                    array_values($parentAttributes),
+                );
         }
         if ($currentToken) {
             $tokenAttributesHideToUser = $this->get('tokenAttributesHideToUser', 'Survey', $surveyId);
@@ -2669,6 +2784,47 @@ class responseListAndManage extends PluginBase
         /* We get the columln with intersect with surveyCodeHelper */
         $intersect = array_intersect(getQuestionInformation\helpers\surveyCodeHelper::getAllQuestions($surveyId), $attributes);
         return array_flip($intersect);
+    }
+
+    /**
+     * Get the attributes selected by column name
+     * @param specific attribute type
+     * @return array
+     */
+    private function getParentAttributesColumn($surveyId, $type = "")
+    {
+        if (version_compare(App()->getConfig('RelatedSurveyManagementApiVersion', "0.0"), "0.11" , "<")) {
+            return [];
+        }
+        $RelatedSurveyManagementSettings = \RelatedSurveyManagement\Settings::getInstance();
+        $parentId = $RelatedSurveyManagementSettings->getParentId($surveyId);
+        if (!$parentId) {
+            return [];
+        }
+        switch ($type) {
+            case 'Primary':
+            case 'parentPrimaryAttributes':
+                $attributes = $this->get('parentPrimaryAttributes', 'Survey', $surveyId);
+                break;
+            case '':
+            default:
+                $attributes = $this->get('parentAttributes', 'Survey', $surveyId);
+        }
+        if (empty($attributes)) {
+            return [];
+        }
+        if (is_string($attributes)) {
+            $attributes = array($attributes);
+        }
+        /* We get the column with intersect with surveyCodeHelper with id more */
+        $intersect = array_intersect(['id' => 'id'] + getQuestionInformation\helpers\surveyCodeHelper::getAllQuestions($parentId), $attributes);
+        /* flip */
+        $intersect = array_flip($intersect);
+        /* add parent. */
+        array_walk($intersect, function(&$column, $code) {
+            $column = 'parent.' . $column;
+        });
+        return $intersect;
     }
 
     /**

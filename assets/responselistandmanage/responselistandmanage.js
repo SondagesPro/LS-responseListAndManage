@@ -260,35 +260,33 @@ function responseListAndManageSetFixedHeader() {
   if((".responselistandmanage-sticky-header-column").length) {
       var currentLeft = 0;
       var currentIndex = 0;
-
       if($("#responses-grid #responses-grid_cid").length) {
-          currentLeft = $("#responses-grid #responses-grid_cid").offset().left;
-          $("#responses-grid #responses-grid_cid").css('left',currentLeft + "px");
+          currentLeft = $("#responses-grid").offset().left;
+          $("#responses-grid #responses-grid_cid").addClass("sticky-column").css('left',currentLeft + "px");
           $("#responses-grid tr.filters td").eq(0).addClass("sticky-column").css('left',currentLeft + "px");
+          $("#responses-grid tbody tr td:nth-child(1)").addClass("sticky-column").css('left',currentLeft + "px");
           $("#responses-grid tfoot tr td").eq(0).addClass("sticky-column").css('left',currentLeft + "px");
-          $("#responses-grid tbody td.column-id").css('left',currentLeft + "px");
           currentIndex++;
-          currentLeft = currentLeft + $("#responses-grid #responses-grid_cid").width() + 2;
+          currentLeft = currentLeft + $("#responses-grid #responses-grid_cid").outerWidth();
       }
       if($("#responses-grid #responses-grid_cbutton").length) {
-          currentLeft = $("#responses-grid #responses-grid_cbutton").offset().left;
-          $("#responses-grid #responses-grid_cbutton").css('left',currentLeft + "px");
+          $("#responses-grid #responses-grid_cbutton").addClass("sticky-column").css('left',currentLeft + "px");
           $("#responses-grid tr.filters td").eq(currentIndex).addClass("sticky-column").css('left',currentLeft + "px");
           $("#responses-grid tfoot tr td").eq(currentIndex).addClass("sticky-column").css('left',currentLeft + "px");
-          $("#responses-grid tbody td.action-column").css('left',currentLeft + "px");
+          $("#responses-grid tbody td.action-column").addClass("sticky-column").css('left',currentLeft + "px");
           currentIndex++;
-          currentLeft = currentLeft + $("#responses-grid #responses-grid_cbutton").width() + 2;
+          currentLeft = currentLeft + $("#responses-grid #responses-grid_cbutton").outerWidth() + 2;
       }
       
-      if($("#responses-grid #responses-grid_ccompleted").length) {
-          currentLeft = $("#responses-grid #responses-grid_ccompleted").offset().left;
-          $("#responses-grid #responses-grid_ccompleted").css('left',currentLeft + "px");
-          $("#responses-grid tr.filters td").eq(currentIndex).addClass("sticky-column").css('left',currentLeft + "px");
-          $("#responses-grid tfoot tr td").eq(currentIndex).addClass("sticky-column").css('left',currentLeft + "px");
-          $("#responses-grid tbody td.column-completed").css('left',currentLeft + "px");
-          currentIndex++;
-          currentLeft = currentLeft + $("#responses-grid #responses-grid_cbutton").width() + 2;
-      }
+      //~ if($("#responses-grid #responses-grid_ccompleted").length) {
+          //~ currentLeft = $("#responses-grid #responses-grid_ccompleted").offset().left;
+          //~ $("#responses-grid #responses-grid_ccompleted").css('left',currentLeft + "px");
+          //~ $("#responses-grid tr.filters td").eq(currentIndex).addClass("sticky-column").css('left',currentLeft + "px");
+          //~ $("#responses-grid tfoot tr td").eq(currentIndex).addClass("sticky-column").css('left',currentLeft + "px");
+          //~ $("#responses-grid tbody td.column-completed").css('left',currentLeft + "px");
+          //~ currentIndex++;
+          //~ currentLeft = currentLeft + $("#responses-grid #responses-grid_cbutton").width() + 2;
+      //~ }
   }
 }
 /* html(parser rules */

@@ -5,6 +5,7 @@
  * @since 0.1.0
  * @since 2.10.0 allow parent
  * @since 2.11.0 : parent link
+ * @since 2.11.2 : Fix for dual scale
  */
 //~ namespace responseListAndManage\models;
 //~ use Yii;
@@ -714,7 +715,7 @@ class ResponseExtended extends LSActiveRecord
         $attributes = $this->getAttributes();
         foreach ($columns as $column) {
             if (array_key_exists($column, $attributes) && !in_array($column, $restrictedColumns)) {
-                $restrictedColumns[] = $column;
+                $restrictedColumns[] = App()->db->quoteColumnName($column);
             }
         }
         $this->restrictedColumns = $restrictedColumns;

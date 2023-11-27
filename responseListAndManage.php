@@ -9,6 +9,7 @@
  * @since 0.1.0
  * @since 2.10.0 : settings for parent
  * @since 2.11.0 : parent link
+ * @since 2.11.1 : fix default template
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -823,16 +824,16 @@ class responseListAndManage extends PluginBase
         } else {
             $aTemplates = array_keys(Template::getTemplateList());
         }
-        $default = $this->get('template', null, null, App()->getConfig('defaulttheme', App()->getConfig('defaulttemplate')));
         $aSettings[$this->translate('Template to be used')] = array(
             'template' => array(
                 'type' => 'select',
                 'label' => $this->translate('Template to be used'),
                 'options' => $aTemplates,
                 'htmlOptions' => array(
-                    'empty' => sprintf($this->translate("Leave default (%s)"), $default),
+                    'empty' => $this->translate("Use same than survey"),
                 ),
                 'current' => $this->get('template', 'Survey', $surveyId),
+                'help' => $this->translate("Using other template is currently not recommended.")
             )
         );
         /* Token attribute usage */
@@ -2405,11 +2406,9 @@ class responseListAndManage extends PluginBase
         /* Get the template name */
         $templateName = Template::templateNameFilter($this->get('template', null, null, Yii::app()->getConfig('defaulttheme')));
         if ($surveyId) {
+            $templateName = Template::templateNameFilter(Survey::model()->findByPk($surveyId)->template);
             if ($this->get('template', 'Survey', $surveyId)) {
                 $templateName = Template::templateNameFilter($this->get('template', 'Survey', $surveyId));
-                if ($templateName == Yii::app()->getConfig('defaulttheme')) {
-                    $templateName = Template::templateNameFilter($this->get('template', null, null, Yii::app()->getConfig('defaulttheme')));
-                }
             }
         }
         /* reset to get last option : plugin can update theme option*/

@@ -6,6 +6,7 @@
  * @since 2.10.0 allow parent
  * @since 2.11.0 : parent link
  * @since 2.11.2 : Fix for dual scale
+ * @since 2.11.3 : Fix for mssql
  */
 //~ namespace responseListAndManage\models;
 //~ use Yii;
@@ -713,9 +714,15 @@ class ResponseExtended extends LSActiveRecord
             'submitdate',
         );
         $attributes = $this->getAttributes();
+        $ismssql = in_array(App()->db->driverName, ['sqlsrv', 'dblib', 'mssql']);
         foreach ($columns as $column) {
             if (array_key_exists($column, $attributes) && !in_array($column, $restrictedColumns)) {
-                $restrictedColumns[] = App()->db->quoteColumnName($column);
+                if ($ismssql) {
+                    $restrictedColumns[] = $column;
+                } else {
+                    /* broke with mssql , needed for pgsql, needed for dual scale with mariadb */
+                    $restrictedColumns[] = App()->db->quoteColumnName($column);
+                }
             }
         }
         $this->restrictedColumns = $restrictedColumns;

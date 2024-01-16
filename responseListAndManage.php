@@ -6,10 +6,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2023 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @since 0.1.0
- * @since 2.10.0 : settings for parent
- * @since 2.11.0 : parent link
- * @since 2.11.1 : fix default template
+ * @since 2.12.0
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -486,6 +483,18 @@ class responseListAndManage extends PluginBase
         $surveyColumnsInformation = new \getQuestionInformation\helpers\surveyColumnsInformation($surveyId, App()->getLanguage());
         $surveyColumnsInformation->ByEmCode = true;
         $aQuestionList = $surveyColumnsInformation->allQuestionListData();
+        /* Add the id */
+        $aQuestionList = [
+            'data' => ['id' => $this->translate("Response id")] + $aQuestionList['data'],
+            'options' => ['id' => [
+                'data-html' => true,
+                'data-trigger' => 'hover focus',
+                'data-content' => $this->translate("Response id"),
+                'data-title' => $this->translate("Response id"),
+                'title' => $this->translate("Response id"),
+                ]
+            ] + $aQuestionList['options']
+        ];
         $accesUrl = Yii::app()->createUrl("plugins/direct", array('plugin' => get_class(),'sid' => $surveyId));
         $linkManagement = CHtml::link(
             $this->translate("Link to response alternate management"),
@@ -552,7 +561,9 @@ class responseListAndManage extends PluginBase
             ),
             'surveyAttributes' => array(
                 'type' => 'select',
-                'label' => $this->translate('Survey columns to be show in management'),
+                'label' => $this->translate('Survey columns to be show on default position'),
+                'help' => $this->translate('Select the survey columns to be shown at the default position (after token attributes).').
+                    $this->translate('Adding response id add a column with edit button (with permission) but are shown only if not activated by previous setting.'),
                 'options' => $aQuestionList['data'],
                 'htmlOptions' => array(
                     'multiple' => true,
@@ -572,7 +583,10 @@ class responseListAndManage extends PluginBase
             'surveyAttributesPrimary' => array(
                 'type' => 'select',
                 'label' => $this->translate('Survey columns to be show at first'),
-                'help' => $this->translate('This question are shown at first, just after the id of the reponse.'),
+                'help' => $this->translate('This question are shown at first.'),
+                'help' => $this->translate('Select the survey columns to be shown at the beginning (just after the id of the reponse). ') .
+                    $this->translate('If selected here, you don\'t have to select at default position. Each columln are shown only one time. ') .
+                    $this->translate('Adding response id add a column with edit button (with permission) but are shown only if not activated by previous setting.'),
                 'options' => $aQuestionList['data'],
                 'htmlOptions' => array(
                     'multiple' => true,
@@ -938,7 +952,7 @@ class responseListAndManage extends PluginBase
                 'htmlOptions' => array(
                     'empty' => gT("No"),
                 ),
-                'help' => $this->translate('Need view rights.'),
+                'help' => $this->translate('Need view rights. The link are shown only if current user have right on reponse using reloadAnyResponse settings.'),
                 'current' => $this->get('allowEdit', 'Survey', $surveyId, 'admin')
             ),
             'allowDelete' => array(
@@ -952,7 +966,7 @@ class responseListAndManage extends PluginBase
                 'htmlOptions' => array(
                     'empty' => gT("No"),
                 ),
-                'help' => $this->translate('Need view rights.'),
+                'help' => $this->translate('Need view rights. No other test are done when try to delete.'),
                 'current' => $this->get('allowDelete', 'Survey', $surveyId, 'admin')
             ),
             'allowAdd' => array(
@@ -1670,7 +1684,12 @@ class responseListAndManage extends PluginBase
         $baseColumns = array();
         if ($this->get('showId', 'Survey', $surveyId, 1)) {
             $baseColumns[] = 'id';
+        } elseif (in_array('id', $surveyAttributes) || in_array('id', $surveyAttributesPrimary)) {
+            $mResponse->idAsLink = true;
         }
+        tracevar([
+            $mResponse->idAsLink
+        ]);
         if ($allowEdit || $allowDelete) {
             $baseColumns[] = 'button';
         }
@@ -1736,8 +1755,11 @@ class responseListAndManage extends PluginBase
                 $aRestrictedColumns = array_diff($aRestrictedColumns, $surveyAttributesHideToUser);
             }
         }
+        tracevar($aRestrictedColumns);
+        tracevar($aRestrictedColumns);
         $mResponse->setRestrictedColumns($aRestrictedColumns);
         $aColumns = $mResponse->getGridColumns($disableTokenPermission);
+        
         /* Get columns by order now … */
         $aOrderedColumn = array();
         if ($selectableRows) {
@@ -2790,7 +2812,7 @@ class responseListAndManage extends PluginBase
             return $attributes;
         }
         /* We get the columln with intersect with surveyCodeHelper */
-        $intersect = array_intersect(getQuestionInformation\helpers\surveyCodeHelper::getAllQuestions($surveyId), $attributes);
+        $intersect = array_intersect(['id' => 'id'] + getQuestionInformation\helpers\surveyCodeHelper::getAllQuestions($surveyId), $attributes);
         return array_flip($intersect);
     }
 

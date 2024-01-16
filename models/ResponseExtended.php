@@ -2,11 +2,7 @@
 /**
  * This file is part of reloadAnyResponse plugin
  * @see SurveyDynamic
- * @since 0.1.0
- * @since 2.10.0 allow parent
- * @since 2.11.0 : parent link
- * @since 2.11.2 : Fix for dual scale
- * @since 2.11.3 : Fix for mssql
+ * @since 2.12.0
  */
 //~ namespace responseListAndManage\models;
 //~ use Yii;
@@ -72,6 +68,8 @@ class ResponseExtended extends LSActiveRecord
     public $currentToken = "";
     /* @var boolean */
     public $showEdit = false;
+    /* @var boolean show id as link */
+    public $idAsLink = false;
     /* @var boolean */
     public $showDelete = false;
     /* @var boolean : replace id of parent by a link */
@@ -391,10 +389,14 @@ class ResponseExtended extends LSActiveRecord
         $aColumns['id'] = array(
             'header' => '<strong>[id]</strong><small>' . gT('Identifier') . '</small>',
             'name' => 'id',
+            'type' => 'raw',
             'htmlOptions' => array('class' => 'data-column column-id'),
             'filterInputOptions' => array('class' => 'form-control input-sm filter-id'),
             'footer' => ($this->showFooter && isset($aFooter['id'])) ? $aFooter['id'] : null,
         );
+        if ($this->idAsLink) {
+            $aColumns['id']['value'] = '$data->getIdButtonUrl("' . $this->currentToken . '");';
+        }
         if ($this->showEdit || $this->showDelete) {
             $template = '';
             if ($this->showEdit) {
@@ -408,8 +410,8 @@ class ResponseExtended extends LSActiveRecord
                 'class' => 'bootstrap.widgets.TbButtonColumn',
                 'template' => $template,
                 //'buttons'=> $this->getGridButtons(),
-                'updateButtonUrl' => '$data->getUdateButton("' . $this->currentToken . '")',
-                'deleteButtonUrl' => '$data->getDeleteButton("' . $this->currentToken . '")',
+                'updateButtonUrl' => '$data->getUdateUrl("' . $this->currentToken . '")',
+                'deleteButtonUrl' => '$data->getDeleteUrl("' . $this->currentToken . '")',
                 'footer' => $this->showFooter ? \responseListAndManage\Utilities::translate("Answered count and sum") : null,
             );
         }
@@ -479,7 +481,7 @@ class ResponseExtended extends LSActiveRecord
      * get the update url for the current response
      * @param string|null token to be used
      */
-    public function getUdateButton($token = null)
+    public function getUdateUrl($token = null)
     {
         if (empty($token)) {
             $token = $this->currentToken;
@@ -492,10 +494,23 @@ class ResponseExtended extends LSActiveRecord
     }
 
     /**
+     * get the update url for the current response
+     * @param string|null token to be used
+     */
+    public function getIdButtonUrl($token = null)
+    {
+        $updateUrl = $this->getUdateUrl($token);
+        if ($updateUrl === "") {
+            return '<span class="link-id">' . $this->id .'</span> <span class="fa fa-pencil text-muted" aria-hidden="true"> </span>';
+        }
+        return '<a class="update btn btn-link" href="' . $updateUrl . '"><span class="link-id">' . $this->id .'</span> <span class="fa fa-pencil" aria-hidden="true"> </span></a>';
+    }
+
+    /**
      * get the delete url for the current response
      * @param string|null token to be used
      */
-    public function getDeleteButton($token = null)
+    public function getDeleteUrl($token = null)
     {
         if (empty($token)) {
             $token = $this->currentToken;

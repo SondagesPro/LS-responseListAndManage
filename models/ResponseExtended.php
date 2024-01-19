@@ -2,7 +2,7 @@
 /**
  * This file is part of reloadAnyResponse plugin
  * @see SurveyDynamic
- * @since 2.12.0
+ * @version 2.13.0
  */
 //~ namespace responseListAndManage\models;
 //~ use Yii;
@@ -19,14 +19,23 @@ class ResponseExtended extends LSActiveRecord
     /** @var  boolean $haveToken */
     protected $haveToken;
 
+    /** @var  string $surveyPrefix */
+    public $surveyPrefix = "";
+
+    /** @var  string $tokenPrefix */
+    public $tokenPrefix = "";
+
+    /** @var string $htmlPrefix */
+    private $htmlPrefix = "";
+
     /** @var  null|boolean $haveParent */
     protected $haveParent;
 
     /** @var  null|integer $haveParent */
     protected $parentId;
 
-    /** @var  string $parentDescription */
-    public $parentDescription = "Parent";
+    /** @var  string $parentPrefix */
+    public $parentPrefix = "Parent";
 
     /** @var null|string[] $relationWithParent : column of this survey related to column of parent survey */
     protected $relationWithParent;
@@ -375,6 +384,10 @@ class ResponseExtended extends LSActiveRecord
         if ($this->showFooter) {
             $aFooter = $this->getFooters();
         }
+        $htmlPrefix = "";
+        if(!empty($this->surveyPrefix)) {
+            $this->htmlPrefix = $htmlPrefix = "<em class='responselist-prefix survey-prefix'>" . viewHelper::purified($this->surveyPrefix) . "</em> ";
+        }
         $surveyColumnsInformation = new \getQuestionInformation\helpers\surveyColumnsInformation(self::$sid, App()->getLanguage());
         $surveyColumnsInformation->model = $this;
         $surveyColumnsInformation->downloadUrl = array(
@@ -387,7 +400,7 @@ class ResponseExtended extends LSActiveRecord
         $aColumns = array();
         /* Basic columns */
         $aColumns['id'] = array(
-            'header' => '<strong>[id]</strong><small>' . gT('Identifier') . '</small>',
+            'header' => $htmlPrefix . '<strong>[id]</strong><small>' . gT('Identifier') . '</small>',
             'name' => 'id',
             'type' => 'raw',
             'htmlOptions' => array('class' => 'data-column column-id'),
@@ -416,7 +429,7 @@ class ResponseExtended extends LSActiveRecord
             );
         }
         $aColumns['completed'] = array(
-            'header' => '<strong>[completed]</strong><small>' . gT('Completed'),
+            'header' => $htmlPrefix . '<strong>[completed]</strong><small>' . gT('Completed'),
             'name' => 'completed',
             'htmlOptions' => array('class' => 'data-column column-completed'),
             'type' => 'raw',
@@ -430,7 +443,7 @@ class ResponseExtended extends LSActiveRecord
             $dateFormatData = getDateFormatData(\SurveyLanguageSetting::model()->getDateFormat(self::$sid, Yii::app()->getLanguage()));
             $dateFormat = $dateFormatData['phpdate'];
             $aColumns['startdate'] = array(
-                'header' => '<strong>[startdate]</strong><small>' . gT('Start date') . '</small>',
+                'header' => $htmlPrefix . '<strong>[startdate]</strong><small>' . gT('Start date') . '</small>',
                 'name' => 'startdate',
                 'htmlOptions' => array('class' => 'data-column column-startdate'),
                 'value' => 'ResponseExtended::getDateValue($data,"startdate","' . $dateFormat . ($this->filterStartdate > 1 ? " H:m:i" : "") . '")',
@@ -439,7 +452,7 @@ class ResponseExtended extends LSActiveRecord
                 'footer' => ($this->showFooter && isset($aFooter['startdate'])) ? $aFooter['startdate'] : null,
             );
             $aColumns['submitdate'] = array(
-                'header' => '<strong>[submitdate]</strong><small>' . gT('Submit date') . '</small>',
+                'header' => $htmlPrefix . '<strong>[submitdate]</strong><small>' . gT('Submit date') . '</small>',
                 'name' => 'submitdate',
                 'htmlOptions' => array('class' => 'data-column column-submitdate'),
                 'value' => 'ResponseExtended::getDateValue($data,"submitdate","' . $dateFormat . ($this->filterSubmitDate > 1 ? " H:m:i" : "") . '")',
@@ -448,7 +461,7 @@ class ResponseExtended extends LSActiveRecord
                 'footer' => ($this->showFooter && isset($aFooter['submitdate'])) ? $aFooter['submitdate'] : null,
             );
             $aColumns['datestamp'] = array(
-                'header' => '<strong>[datestamp]</strong><small>' . gT('Date stamp') . '</small>',
+                'header' => $htmlPrefix . '<strong>[datestamp]</strong><small>' . gT('Date stamp') . '</small>',
                 'name' => 'datestamp',
                 'htmlOptions' => array('class' => 'data-column column-datestamp'),
                 'value' => 'ResponseExtended::getDateValue($data,"datestamp","' . $dateFormat . ($this->filterDatestamp > 1 ? " H:m:i" : "") . '")',
@@ -461,6 +474,15 @@ class ResponseExtended extends LSActiveRecord
             $aColumns = array_merge($aColumns, $this->getTokensColumns());
         }
         $allQuestionsColumns = $surveyColumnsInformation->allQuestionsColumns();
+        if (!empty($htmlPrefix)) {
+            $allQuestionsColumns = array_map(
+                function ($questionsColumn) use ($htmlPrefix) {
+                    $questionsColumn['header'] = $htmlPrefix . $questionsColumn['header'];
+                    return $questionsColumn;
+                },
+                $allQuestionsColumns
+            );
+        }
         if (!empty($aFooter)) {
             $allQuestionsColumns = array_map(
                 function ($questionsColumn) use ($aFooter) {
@@ -595,18 +617,17 @@ class ResponseExtended extends LSActiveRecord
             return;
         }
         
-        $htmlParentDescription = "";
-        if(!empty($this->parentDescription)) {
-            
-            $htmlParentDescription = "<em class='parent-header'>" . viewHelper::purified($this->parentDescription) . "</em> ";
+        $htmlParentPrefix = "";
+        if(!empty($this->parentPrefix)) {
+            $htmlParentPrefix = "<em class='responselist-prefix parent-prefix'>" . viewHelper::purified($this->parentPrefix) . "</em> ";
         }
         $aColumns = array();
         $aColumns['parent.id'] = array(
-            'header' => $htmlParentDescription .'<strong>[id]</strong> <small>' . gT('Identifier') . '</small>',
+            'header' => $htmlParentPrefix . '<strong>[id]</strong> <small>' . gT('Identifier') . '</small>',
             'name' => 'parent.id',
             'type' => 'raw',
             'value' => 'empty($data->parent) ? "" : $data->parent->id;',
-            'htmlOptions' => array('class' => 'data-column column-id'),
+            'htmlOptions' => array('class' => 'data-column column-parent-id'),
             'filter' => CHtml::activeTextField($this->parentRelated, "id", array('class' => 'form-control input-sm filter-parent-id')),
         );
         if ($this->parentLinkUpdate) {
@@ -621,7 +642,7 @@ class ResponseExtended extends LSActiveRecord
         foreach ($allParentQuestionsColumns as $column => $data) {
             /* @todo name it in plugin settings */
             $name = $data['name'];
-            $data['header'] = $htmlParentDescription . $data['header'];
+            $data['header'] = $htmlParentPrefix . $data['header'];
             $data['name'] = 'parent.' .  $data['name'];
             $filterInputOptions = $data['filterInputOptions'];
             $filterInputOptions['class'] = $filterInputOptions['class'] . " filter-parent";
@@ -645,23 +666,27 @@ class ResponseExtended extends LSActiveRecord
     */
     public function getTokensColumns()
     {
+        $tokenPrefix = "";
+        if(!empty($this->tokenPrefix)) {
+            $tokenPrefix = "<em class='responselist-prefix token-prefix'>" . viewHelper::purified($this->tokenPrefix) . "</em> ";
+        }
         $aColumns = array();
         $aColumns['tokens.token'] = array(
-            'header' => '<strong>[token]</strong><small>' . gT('Token') . '</small>',
+            'header' => $tokenPrefix . '<strong>[token]</strong><small>' . gT('Token') . '</small>',
             'name' => 'tokens.token',
             'value' => 'empty($data->tokens) ? "" : $data->tokens->token;',
             'htmlOptions' => array('class' => 'data-column column-token-token'),
             'filter' => CHtml::activeTextField($this->tokenRelated, "token", array('class' => 'form-control input-sm filter-token-token')),
         );
         $aColumns['tokens.email'] = array(
-            'header' => '<strong>[email]</strong><small>' . gT('Email') . '</small>',
+            'header' => $tokenPrefix . '<strong>[email]</strong><small>' . gT('Email') . '</small>',
             'name' => 'tokens.email',
             'value' => 'empty($data->tokens) ? "" : $data->tokens->email;',
             'htmlOptions' => array('class' => 'data-column column-token-email'),
             'filter' => CHtml::activeTextField($this->tokenRelated, "email", array('class' => 'form-control input-sm filter-token-email')),
         );
         $aColumns['tokens.firstname'] = array(
-            'header' => '<strong>[firstname]</strong><small>' . gT('First name') . '</small>',
+            'header' => $tokenPrefix . '<strong>[firstname]</strong><small>' . gT('First name') . '</small>',
             'name' => 'tokens.firstname',
             'type' => 'raw',
             'value' => 'empty($data->tokens) ? "" : "<div class=\'tokenattribute-value\'>".$data->tokens->firstname."</div>";',
@@ -669,7 +694,7 @@ class ResponseExtended extends LSActiveRecord
             'filter' => CHtml::activeTextField($this->tokenRelated, "firstname", array('class' => 'form-control input-sm filter-token-firstname')),
         );
         $aColumns['tokens.lastname'] = array(
-            'header' => '<strong>[lastname]</strong><small>' . gT('Last name') . '</small>',
+            'header' => $tokenPrefix . '<strong>[lastname]</strong><small>' . gT('Last name') . '</small>',
             'name' => 'tokens.lastname',
             'value' => 'empty($data->tokens) ? "" : "<div class=\'tokenattribute-value\'>".CHtml::encode($data->tokens->lastname)."</div>";',
             'type' => 'raw',
@@ -679,7 +704,7 @@ class ResponseExtended extends LSActiveRecord
         $tokenAttributes = self::$survey->getTokenAttributes();
         foreach ($tokenAttributes as $attribute => $aDescrition) {
             $aColumns['tokens.' . $attribute] = array(
-                'header' => '<strong>[' . $attribute . ']</strong><small>' . $aDescrition['description'] . '</small>',
+                'header' => $tokenPrefix . '<strong>[' . $attribute . ']</strong><small>' . $aDescrition['description'] . '</small>',
                 'name' => 'tokens.' . $attribute,
                 'value' => 'empty($data->tokens->' . $attribute . ') ? "" : "<div class=\'tokenattribute-value\'>".$data->tokens->' . $attribute . '."</div>";',
                 'type' => 'raw',

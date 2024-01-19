@@ -6,7 +6,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2023 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @since 2.12.0
+ * @version 2.13.0
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -425,7 +425,8 @@ class responseListAndManage extends PluginBase
                 'hideDeletedManaged',
                 'surveyNeededValues',
                 'tokenAttributesHideToUser','surveyAttributesHideToUser',
-                'parentPrimaryAttributes', 'parentAttributes', 'parentDescription', 'parentLinkUpdate',
+                'surveyPrefix', 'tokenPrefix',
+                'parentPrimaryAttributes', 'parentAttributes', 'parentPrefix', 'parentLinkUpdate',
                 'allowAccess','allowSee','allowEdit','allowDelete', 'allowAdd','allowAddSelf','allowAddUser',
                 'template',
                 'showFooter',
@@ -603,6 +604,16 @@ class responseListAndManage extends PluginBase
                 ),
                 'current' => $this->get('surveyAttributesPrimary', 'Survey', $surveyId)
             ),
+            'surveyPrefix' => array(
+                'type' => 'string',
+                'label' => $this->translate('Prefix for the header for this survey column'),
+                'current' => $this->get('surveyPrefix', 'Survey', $surveyId, '')
+            ),
+            'tokenPrefix' => array(
+                'type' => 'string',
+                'label' => $this->translate('Prefix for the header for the token attributes'),
+                'current' => $this->get('tokenPrefix', 'Survey', $surveyId, '')
+            ),
             'tokenAttributesHideToUser' => array(
                 'type' => 'select',
                 'label' => $this->translate('Token columns to be hidden to user (include group administrator)'),
@@ -674,6 +685,7 @@ class responseListAndManage extends PluginBase
                 ),
                 'current' => $this->get('surveyNeededValues', 'Survey', $surveyId)
             ),
+
             'showFooter' => array(
                 'type' => 'boolean',
                 'label' => $this->translate('Show footer with count and sum.'),
@@ -752,10 +764,10 @@ class responseListAndManage extends PluginBase
                         'help' => $this->translate('Link is added only if current user have editition permission.'),
                         'current' => $this->get('parentLinkUpdate', 'Survey', $surveyId, 0)
                     ),
-                    'parentDescription' => array(
+                    'parentPrefix' => array(
                         'type' => 'string',
                         'label' => $this->translate('Prefix for the header for parent column'),
-                        'current' => $this->get('parentDescription', 'Survey', $surveyId, '')
+                        'current' => $this->get('parentPrefix', 'Survey', $surveyId, '')
                     ),
                 );
             }
@@ -1687,9 +1699,6 @@ class responseListAndManage extends PluginBase
         } elseif (in_array('id', $surveyAttributes) || in_array('id', $surveyAttributesPrimary)) {
             $mResponse->idAsLink = true;
         }
-        tracevar([
-            $mResponse->idAsLink
-        ]);
         if ($allowEdit || $allowDelete) {
             $baseColumns[] = 'button';
         }
@@ -1705,12 +1714,20 @@ class responseListAndManage extends PluginBase
         if ($oSurvey->datestamp && $this->get('showDatestamp', 'Survey', $surveyId, 0)) {
             $baseColumns[] = 'datestamp';
         }
+        $surveyPrefix = trim($this->get('surveyPrefix', 'Survey', $surveyId, ''));
+        if ($surveyPrefix) {
+            $mResponse->surveyPrefix = trim($surveyPrefix);
+        }
+        $tokenPrefix = trim($this->get('tokenPrefix', 'Survey', $surveyId, ''));
+        if ($tokenPrefix) {
+            $mResponse->tokenPrefix = trim($tokenPrefix);
+        }
         /* Parent columns */
         $parentPrimaryAttributes = $this->getParentAttributesColumn($surveyId, 'Primary');
         $parentAttributes = array_diff($this->getParentAttributesColumn($surveyId), $parentPrimaryAttributes);
-        $parentDescription = $this->get('parentDescription', 'Survey', $surveyId, '');
-        if ($parentDescription) {
-            $mResponse->parentDescription = trim($parentDescription);
+        $parentPrefix = $this->get('parentPrefix', 'Survey', $surveyId, '');
+        if ($parentPrefix) {
+            $mResponse->parentPrefix = trim($parentPrefix);
         }
         /* Add token at specific place */
         switch ($this->get('tokenColumnOrder', 'Survey', $surveyId, 'default')) {
@@ -1755,8 +1772,6 @@ class responseListAndManage extends PluginBase
                 $aRestrictedColumns = array_diff($aRestrictedColumns, $surveyAttributesHideToUser);
             }
         }
-        tracevar($aRestrictedColumns);
-        tracevar($aRestrictedColumns);
         $mResponse->setRestrictedColumns($aRestrictedColumns);
         $aColumns = $mResponse->getGridColumns($disableTokenPermission);
         

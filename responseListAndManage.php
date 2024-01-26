@@ -6,7 +6,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2023 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 2.13.0
+ * @version 2.14.0
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -481,21 +481,8 @@ class responseListAndManage extends PluginBase
         }
 
         $stateInfo .= "</ul>";
-        $surveyColumnsInformation = new \getQuestionInformation\helpers\surveyColumnsInformation($surveyId, App()->getLanguage());
-        $surveyColumnsInformation->ByEmCode = true;
-        $aQuestionList = $surveyColumnsInformation->allQuestionListData();
-        /* Add the id */
-        $aQuestionList = [
-            'data' => ['id' => $this->translate("Response id")] + $aQuestionList['data'],
-            'options' => ['id' => [
-                'data-html' => true,
-                'data-trigger' => 'hover focus',
-                'data-content' => $this->translate("Response id"),
-                'data-title' => $this->translate("Response id"),
-                'title' => $this->translate("Response id"),
-                ]
-            ] + $aQuestionList['options']
-        ];
+
+        $aQuestionList = $this->getQuestionListDataForSettings($surveyId);
         $accesUrl = Yii::app()->createUrl("plugins/direct", array('plugin' => get_class(),'sid' => $surveyId));
         $linkManagement = CHtml::link(
             $this->translate("Link to response alternate management"),
@@ -563,7 +550,7 @@ class responseListAndManage extends PluginBase
             'surveyAttributes' => array(
                 'type' => 'select',
                 'label' => $this->translate('Survey columns to be show on default position'),
-                'help' => $this->translate('Select the survey columns to be shown at the default position (after token attributes).').
+                'help' => $this->translate('Select the survey columns to be shown at the default position (after token attributes).') .
                     $this->translate('Adding response id add a column with edit button (with permission) but are shown only if not activated by previous setting.'),
                 'options' => $aQuestionList['data'],
                 'htmlOptions' => array(
@@ -692,32 +679,18 @@ class responseListAndManage extends PluginBase
                 'current' => $this->get('showFooter', 'Survey', $surveyId, 0)
             ),
         );
-        if (version_compare(App()->getConfig('RelatedSurveyManagementApiVersion', "0.0"), "0.9" , "<")) {
+        if (version_compare(App()->getConfig('RelatedSurveyManagementApiVersion', "0.0"), "0.9", "<")) {
             unset($aSettings[$this->translate('Survey behaviour')]['hideDeletedManaged']);
         }
         /* Check if have parent */
         if (
-            version_compare(App()->getConfig('RelatedSurveyManagementApiVersion', "0.0"), "0.11" , ">=")
+            version_compare(App()->getConfig('RelatedSurveyManagementApiVersion', "0.0"), "0.11", ">=")
             && version_compare(App()->getConfig('getQuestionInformationAPI'), "3.1.0", ">=")
         ) {
             $RelatedSurveyManagementSettings = \RelatedSurveyManagement\Settings::getInstance();
             $parentId = $RelatedSurveyManagementSettings->getParentId($surveyId);
             if ($parentId) {
-                $parentSurveyColumnsInformation = new \getQuestionInformation\helpers\surveyColumnsInformation($parentId, App()->getLanguage());
-                $parentSurveyColumnsInformation->ByEmCode = true;
-                $aParentQuestionList = $parentSurveyColumnsInformation->allQuestionListData();
-                /* Add id */
-                $aParentQuestionList = [
-                    'data' => ['id' => $this->translate("Response id")] + $aParentQuestionList['data'],
-                    'options' => ['id' => [
-                        'data-html' => true,
-                        'data-trigger' => 'hover focus',
-                        'data-content' => $this->translate("Response id"),
-                        'data-title' => $this->translate("Response id"),
-                        'title' => $this->translate("Response id"),
-                        ]
-                    ] + $aParentQuestionList['options']
-                ];
+                $aParentQuestionList = $this->getQuestionListDataForSettings($surveyId);
                 $aSettings[$this->translate('Parent Response')] = array(
                     'parentPrimaryAttributes' => array(
                         'type' => 'select',
@@ -1112,7 +1085,7 @@ class responseListAndManage extends PluginBase
                 'current' => $this->get('actionDeletedManaged', 'Survey', $surveyId, ''),
             ),
         );
-        if (version_compare(App()->getConfig('RelatedSurveyManagementApiVersion', "0.0"), "0.9" , "<")) {
+        if (version_compare(App()->getConfig('RelatedSurveyManagementApiVersion', "0.0"), "0.9", "<")) {
             unset($aSettings[$this->translate('Survey behaviour')]['actionDeletedManaged']);
         }
 
@@ -1414,13 +1387,14 @@ class responseListAndManage extends PluginBase
         }
         $this->doReponseListing($surveyId, $language, $currentToken);
     }
-    
+
     /**
      * Do the response listing : the major function here
      * @todo move to own class
      * @return void
      */
-    private function doReponseListing($surveyId, $language, $currentToken) {
+    private function doReponseListing($surveyId, $language, $currentToken)
+    {
         $oSurvey = Survey::model()->findByPk($surveyId);
         $this->aRenderData['aSurveyInfo'] = getSurveyInfo($surveyId, $language);
 
@@ -1451,7 +1425,7 @@ class responseListAndManage extends PluginBase
                 $criteria->addCondition("$surveyNeededValue <> '' AND $surveyNeededValue IS NOT NULL");
             }
         }
-        if (version_compare(App()->getConfig('RelatedSurveyManagementApiVersion', "0.0"), "0.9" , ">=")) {
+        if (version_compare(App()->getConfig('RelatedSurveyManagementApiVersion', "0.0"), "0.9", ">=")) {
             $hideDeletedManaged = $this->get(
                 'hideDeletedManaged',
                 'Survey',
@@ -1479,6 +1453,9 @@ class responseListAndManage extends PluginBase
         $parentFilter = App()->request->getParam('ResponseParent');
         if (!empty($parentFilter)) {
             $mResponse->setParentAttributes($parentFilter);
+            if (!empty($parentFilter['completed'])) {
+                $mResponse->setParentAttribute('completed', $parentFilter['completed']);
+            }
         }
         /* Access with token */
         $isManager = false;
@@ -1774,7 +1751,6 @@ class responseListAndManage extends PluginBase
         }
         $mResponse->setRestrictedColumns($aRestrictedColumns);
         $aColumns = $mResponse->getGridColumns($disableTokenPermission);
-        
         /* Get columns by order now … */
         $aOrderedColumn = array();
         if ($selectableRows) {
@@ -1900,7 +1876,7 @@ class responseListAndManage extends PluginBase
             throw new CHttpException(401, $this->translate('No right to delete this reponse.'));
         }
 
-        if (version_compare(App()->getConfig('RelatedSurveyManagementApiVersion', "0.0"), "0.9" , ">=")) {
+        if (version_compare(App()->getConfig('RelatedSurveyManagementApiVersion', "0.0"), "0.9", ">=")) {
             $actionDeletedManaged = $this->get('actionDeletedManaged', 'Survey', $surveyId, '');
             if ($actionDeletedManaged === '') {
                 $actionDeletedManaged = $this->get('actionDeletedManaged', null, null, $this->settings['actionDeletedManaged']['default']);
@@ -2826,8 +2802,15 @@ class responseListAndManage extends PluginBase
         if ($this->get('SettingsVersion', 'Survey', $surveyId, 0) < 2) {
             return $attributes;
         }
-        /* We get the columln with intersect with surveyCodeHelper */
-        $intersect = array_intersect(['id' => 'id'] + getQuestionInformation\helpers\surveyCodeHelper::getAllQuestions($surveyId), $attributes);
+        /* We get the column with intersect with surveyCodeHelper */
+        $intersect = array_intersect(
+            [
+                'id' => 'id',
+                'completed' => 'completed',
+            ]
+            + getQuestionInformation\helpers\surveyCodeHelper::getAllQuestions($surveyId),
+            $attributes
+        );
         return array_flip($intersect);
     }
 
@@ -2838,7 +2821,7 @@ class responseListAndManage extends PluginBase
      */
     private function getParentAttributesColumn($surveyId, $type = "")
     {
-        if (version_compare(App()->getConfig('RelatedSurveyManagementApiVersion', "0.0"), "0.11" , "<")) {
+        if (version_compare(App()->getConfig('RelatedSurveyManagementApiVersion', "0.0"), "0.11", "<")) {
             return [];
         }
         $RelatedSurveyManagementSettings = \RelatedSurveyManagement\Settings::getInstance();
@@ -2865,11 +2848,18 @@ class responseListAndManage extends PluginBase
             $attributes = array($attributes);
         }
         /* We get the column with intersect with surveyCodeHelper with id more */
-        $intersect = array_intersect(['id' => 'id'] + getQuestionInformation\helpers\surveyCodeHelper::getAllQuestions($parentId), $attributes);
+        $intersect = array_intersect(
+            [
+                'id' => 'id',
+                'completed' => 'completed',
+            ]
+            + getQuestionInformation\helpers\surveyCodeHelper::getAllQuestions($parentId),
+            $attributes
+        );
         /* flip */
         $intersect = array_flip($intersect);
         /* add parent. */
-        array_walk($intersect, function(&$column, $code) {
+        array_walk($intersect, function (&$column, $code) {
             $column = 'parent.' . $column;
         });
         return $intersect;
@@ -2964,5 +2954,54 @@ class responseListAndManage extends PluginBase
             }
         }
         return parent::get($key, $model, $id, $default);
+    }
+
+    /**
+     * Get the question list data for settings
+     * @param integer $surveyId
+     * @param string $language
+     * @return array[]
+     */
+    private function getQuestionListDataForSettings($surveyId)
+    {
+        /* The id */
+        $aQuestionList = [
+           'data' => [
+               'id' => "[id] " . $this->translate("Response id"),
+               'completed' => "[completed] " . $this->translate("Completed"),
+           ],
+           'options' => [
+               'id' => [
+                   'data-html' => true,
+                   'data-trigger' => 'hover focus',
+                   'data-content' => $this->translate("Response id"),
+                   'data-title' => $this->translate("Response id"),
+                   'title' => $this->translate("Response id"),
+               ],
+               'completed' => [
+                   'data-html' => true,
+                   'data-trigger' => 'hover focus',
+                   'data-content' => $this->translate("Completed"),
+                   'data-title' => $this->translate("Completed"),
+                   'title' => $this->translate("Completed"),
+               ],
+           ]
+        ];
+        $surveyColumnsInformation = new \getQuestionInformation\helpers\surveyColumnsInformation($surveyId, App()->getLanguage());
+        $surveyColumnsInformation->ByEmCode = true;
+        $allQuestionListData = $surveyColumnsInformation->allQuestionListData();
+        $aQuestionList['data'] = $aQuestionList['data'] + $allQuestionListData['data'];
+        $aQuestionList['options'] = $aQuestionList['options'] + $allQuestionListData['options'];
+        return $aQuestionList;
+    }
+
+    /**
+     * Get all the the question code
+     * @param integer $surveyId
+     * @param string $language
+     * @return array[]
+     */
+    private function getQuestionCode($surveyId)
+    {
     }
 }

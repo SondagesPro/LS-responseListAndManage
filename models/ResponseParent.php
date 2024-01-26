@@ -3,7 +3,7 @@
 /**
  * This file is part of reloadAnyResponse plugin
  * Minimal system for parent
- * @since 2.11.0
+ * @since 2.14.0
  */
 //~ namespace responseListAndManage\models;
 //~ use Yii;
@@ -17,6 +17,9 @@ class ResponseParent extends LSActiveRecord
 
     /* @var string|null */
     public $currentToken = "";
+
+    /** @var string $completed_filter */
+    public $completed;
 
     /**
      * @inheritdoc
@@ -70,6 +73,21 @@ class ResponseParent extends LSActiveRecord
     }
 
     /**
+     * Set defaults
+     * @inheritdoc
+     */
+    public function init()
+    {
+        /** @inheritdoc */
+        $this->attachEventHandler("onAfterFind", array($this, 'afterFind'));
+    }
+
+    public function afterFind()
+    {
+        $this->completed = $this->getCompleted();
+    }
+
+    /**
      * @inheritdoc adding string, by default current event
      * @param string
      * @param string \CLogger const
@@ -108,5 +126,21 @@ class ResponseParent extends LSActiveRecord
             return '<span class="link-parent-id">' . $this->id .'</span> <span class="fa fa-pencil text-muted" aria-hidden="true"> </span>';
         }
         return '<a class="update btn btn-link" href="' . $updateUrl . '"><span class="link-parent-id">' . $this->id .'</span> <span class="fa fa-pencil" aria-hidden="true"> </span></a>';
+    }
+
+    public function getCompleted()
+    {
+        return (bool) $this->submitdate;
+    }
+
+    public function getCompletedGrid()
+    {
+        if ($this->submitdate) {
+            if (self::$survey->datestamp == "Y") {
+                return "<span class='text-success fa fa-check' title='{$this->submitdate}'></span>";
+            }
+            return "<span class='text-success fa fa-check'></span>";
+        }
+        return "<span class='text-warning fa fa-times'></span>";
     }
 }

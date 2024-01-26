@@ -3,7 +3,7 @@
 /**
  * This file is part of reloadAnyResponse plugin
  * @see SurveyDynamic
- * @version 2.13.1
+ * @version 2.14.0
  */
 //~ namespace responseListAndManage\models;
 //~ use Yii;
@@ -225,14 +225,6 @@ class ResponseExtended extends LSActiveRecord
         }
         return null;
     }
-    /**
-     * Get the list of default columns for surveys
-     * @return string[]
-     */
-    public function getBaseColumns()
-    {
-        return array('id', 'token', 'completed');
-    }
 
     /**
      * @return CActiveDataProvider
@@ -256,16 +248,7 @@ class ResponseExtended extends LSActiveRecord
         }
         $sort = $this->getSort();
         $criteria->select = $this->restrictedColumns;
-        // Completed filters
-        if ($this->completed == "Y") {
-            $criteria->addCondition('t.submitdate IS NOT NULL');
-        }
-        if ($this->completed == "N") {
-            $criteria->addCondition('t.submitdate IS NULL');
-        }
-        if ($this->id) {
-            $criteria->compare('t.id', $this->id, true);
-        }
+
         if (self::$survey->anonymized != "Y" && $this->token) {
             if (is_array($this->token)) {
                 $criteria->addInCondition('t.token', $this->token);
@@ -300,54 +283,62 @@ class ResponseExtended extends LSActiveRecord
      */
     protected function filterColumns(CDbCriteria $criteria)
     {
+        // Completed filters
+        if ($this->completed == "Y") {
+            $criteria->addCondition('t.submitdate IS NOT NULL');
+        }
+        if ($this->completed == "N") {
+            $criteria->addCondition('t.submitdate IS NULL');
+        }
         // Filters for responses
         foreach ($this->metaData->columns as $column) {
-            if (!in_array($column->name, $this->baseColumns)) {
-                $columnName = (string) $column->name;
-                if (!empty($this->$columnName)) {
-                    $dbType = $column->dbType;
-                    $precision = $column->precision;
-                    $isDatetime = strpos($dbType, 'timestamp') !== false || strpos($dbType, 'datetime') !== false;
-                    if ($isDatetime) {
-                        if (is_array($this->$columnName)) {
-                            $date = $this->$columnName;
-                            $dateFormat = empty($date['format']) ? 'Y-m-d' : $date['format'];
-                            if (!empty($date['min'])) {
-                                $minDate = DateTime::createFromFormat('!' . $dateFormat, trim($date['min']));
-                                if ($minDate === false) {
-                                    continue;
-                                }
-                                $minDate = $minDate->format("Y-m-d H:i");
-                                $criteria->addCondition(App()->db->quoteColumnName('t.' . $columnName) . ' >= ' . App()->db->quoteValue($minDate));
+            $columnName = (string) $column->name;
+            if ($columnName == 'token') {
+                continue;
+            }
+            if (!empty($this->$columnName)) {
+                $dbType = $column->dbType;
+                $precision = $column->precision;
+                $isDatetime = strpos($dbType, 'timestamp') !== false || strpos($dbType, 'datetime') !== false;
+                if ($isDatetime) {
+                    if (is_array($this->$columnName)) {
+                        $date = $this->$columnName;
+                        $dateFormat = empty($date['format']) ? 'Y-m-d' : $date['format'];
+                        if (!empty($date['min'])) {
+                            $minDate = DateTime::createFromFormat('!' . $dateFormat, trim($date['min']));
+                            if ($minDate === false) {
+                                continue;
                             }
-                            if (!empty($date['max'])) {
-                                $maxDate = DateTime::createFromFormat('!' . $dateFormat, trim($date['max']));
-                                if ($maxDate === false) {
-                                    continue;
-                                }
-                                $maxDate = $maxDate->format("Y-m-d H:i");
-                                $criteria->addCondition(App()->db->quoteColumnName('t.' . $columnName) . ' < ' . App()->db->quoteValue($maxDate));
+                            $minDate = $minDate->format("Y-m-d H:i");
+                            $criteria->addCondition(App()->db->quoteColumnName('t.' . $columnName) . ' >= ' . App()->db->quoteValue($minDate));
+                        }
+                        if (!empty($date['max'])) {
+                            $maxDate = DateTime::createFromFormat('!' . $dateFormat, trim($date['max']));
+                            if ($maxDate === false) {
+                                continue;
                             }
-                            continue;
+                            $maxDate = $maxDate->format("Y-m-d H:i");
+                            $criteria->addCondition(App()->db->quoteColumnName('t.' . $columnName) . ' < ' . App()->db->quoteValue($maxDate));
                         }
-                        /* Else : single date : use as day */
-                        $s = DateTime::createFromFormat("Y-m-d", $this->$columnName);
-                        if ($s === false) {
-                            // This happens when date is in wrong format
-                            continue;
-                        }
-                        $value = $s->format('Y-m-d');
-                        $criteria->addCondition('cast(' . App()->db->quoteColumnName('t.' . $columnName) . ' as date) = ' . Yii::app()->db->quoteValue($value));
                         continue;
                     }
-                    /* Is dropdown : precison is set to 5 (choice) or 20 (language) **/
-                    if ($precision == 5 || $precision == 20) {
-                        $criteria->compare(App()->db->quoteColumnName('t.' . $columnName), $this->$columnName, false);
+                    /* Else : single date : use as day */
+                    $s = DateTime::createFromFormat("Y-m-d", $this->$columnName);
+                    if ($s === false) {
+                        // This happens when date is in wrong format
                         continue;
                     }
-                    /* Default compare */
-                    $criteria->compare(App()->db->quoteColumnName('t.' . $columnName), $this->$columnName, true);
+                    $value = $s->format('Y-m-d');
+                    $criteria->addCondition('cast(' . App()->db->quoteColumnName('t.' . $columnName) . ' as date) = ' . Yii::app()->db->quoteValue($value));
+                    continue;
                 }
+                /* Is dropdown : precison is set to 5 (choice) or 20 (language) **/
+                if ($precision == 5 || $precision == 20) {
+                    $criteria->compare(App()->db->quoteColumnName('t.' . $columnName), $this->$columnName, false);
+                    continue;
+                }
+                /* Default compare */
+                $criteria->compare(App()->db->quoteColumnName('t.' . $columnName), $this->$columnName, true);
             }
         }
     }
@@ -372,8 +363,19 @@ class ResponseExtended extends LSActiveRecord
      */
     protected function filterParentColumns(CDbCriteria $criteria)
     {
+        tracevar($this);
+        // Completed filters
+        if ($this->parentRelated->completed == "Y") {
+            $criteria->addCondition('parent.submitdate IS NOT NULL');
+        }
+        if ($this->parentRelated->completed == "N") {
+            $criteria->addCondition('parent.submitdate IS NULL');
+        }
         foreach ($this->parentRelated->metaData->columns as $column) {
             $columnName = (string) $column->name;
+            if ($columnName == 'token') {
+                continue;
+            }
             if (!empty($this->parentRelated->$columnName)) {
                 $dbType = $column->dbType;
                 $precision = $column->precision;
@@ -517,6 +519,10 @@ class ResponseExtended extends LSActiveRecord
         $this->parentRelated->setAttributes($attributes, false);
     }
 
+    public function setParentAttribute($attribute, $value)
+    {
+        $this->parentRelated->setAttribute($attribute, $value);
+    }
     /**
     * Get the survey columns for grid
     * @return [][]
@@ -546,8 +552,8 @@ class ResponseExtended extends LSActiveRecord
             'header' => $htmlPrefix . '<strong>[id]</strong><small>' . gT('Identifier') . '</small>',
             'name' => 'id',
             'type' => 'raw',
+            'filter' => CHtml::activeTextField($this, "id", array('class' => 'form-control input-sm filter-parent-id', 'size' => 6)),
             'htmlOptions' => array('class' => 'data-column column-id'),
-            'filterInputOptions' => array('class' => 'form-control input-sm filter-id'),
             'footer' => ($this->showFooter && isset($aFooter['id'])) ? $aFooter['id'] : null,
         );
         if ($this->idAsLink) {
@@ -656,7 +662,20 @@ class ResponseExtended extends LSActiveRecord
             'type' => 'raw',
             'value' => 'empty($data->parent) ? "" : $data->parent->id;',
             'htmlOptions' => array('class' => 'data-column column-parent-id'),
-            'filter' => CHtml::activeTextField($this->parentRelated, "id", array('class' => 'form-control input-sm filter-parent-id')),
+            'filter' => CHtml::activeTextField($this->parentRelated, "id", array('class' => 'form-control input-sm filter-parent-id', 'size' => 6)),
+        );
+        $aColumns['parent.completed'] = array(
+            'header' => $htmlParentPrefix . '<strong>[completed]</strong><small>' . gT('Completed') . '</small>',
+            'name' => 'parent.completed',
+            'htmlOptions' => array('class' => 'data-column column-parent-completed'),
+            'type' => 'raw',
+            'value' => 'empty($data->parent) ? "" : $data->parent->getCompletedGrid();',
+            'filter' => CHtml::activeDropDownList(
+                $this->parentRelated, 
+                'completed', 
+                ['Y' => gT('Yes'), 'N' => gT('No')],
+                ['class' => 'form-control input-sm filter-completed', 'empty' => '']
+            )
         );
         if ($this->parentLinkUpdate) {
             $aColumns['parent.id']['value'] = 'empty($data->parent) ? "" : $data->parent->getIdButtonUrl("' . $this->currentToken . '");';
@@ -771,6 +790,16 @@ class ResponseExtended extends LSActiveRecord
         foreach ($parentAttributes as $columns => $value) {
             $aSort[] = 'parent.' . $columns;
         }
+        $aSort = array_merge(
+            $aSort,
+            array(
+                'parent.completed' =>
+                array(
+                    'asc' => Yii::app()->db->quoteColumnName('parent.submitdate') . ' ASC',
+                    'desc' => Yii::app()->db->quoteColumnName('parent.submitdate') . ' DESC',
+                )
+            )
+        );
         return $aSort;
     }
 

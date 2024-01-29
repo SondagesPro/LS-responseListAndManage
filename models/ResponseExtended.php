@@ -363,7 +363,6 @@ class ResponseExtended extends LSActiveRecord
      */
     protected function filterParentColumns(CDbCriteria $criteria)
     {
-        tracevar($this);
         // Completed filters
         if ($this->parentRelated->completed == "Y") {
             $criteria->addCondition('parent.submitdate IS NOT NULL');

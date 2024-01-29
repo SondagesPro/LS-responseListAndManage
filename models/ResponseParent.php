@@ -3,7 +3,7 @@
 /**
  * This file is part of reloadAnyResponse plugin
  * Minimal system for parent
- * @since 2.14.0
+ * @since 2.14.1
  */
 //~ namespace responseListAndManage\models;
 //~ use Yii;
@@ -123,7 +123,7 @@ class ResponseParent extends LSActiveRecord
     {
         $updateUrl = $this->getUdateUrl($token);
         if ($updateUrl === "") {
-            return '<span class="link-parent-id">' . $this->id .'</span> <span class="fa fa-pencil text-muted" aria-hidden="true"> </span>';
+            return '<span class="btn btn-link disabled"><span class="link-parent-id">' . $this->id .'</span> <span class="fa fa-pencil text-muted" aria-hidden="true"> </span></span>';
         }
         return '<a class="update btn btn-link" href="' . $updateUrl . '"><span class="link-parent-id">' . $this->id .'</span> <span class="fa fa-pencil" aria-hidden="true"> </span></a>';
     }

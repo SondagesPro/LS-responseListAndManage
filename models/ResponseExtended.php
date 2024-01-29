@@ -3,7 +3,7 @@
 /**
  * This file is part of reloadAnyResponse plugin
  * @see SurveyDynamic
- * @version 2.14.0
+ * @version 2.14.1
  */
 //~ namespace responseListAndManage\models;
 //~ use Yii;
@@ -346,7 +346,7 @@ class ResponseExtended extends LSActiveRecord
     /**
      * Add the filter to the token columns
      * @param CDbCriteria $criteria
-     * @return CDbCriteria
+     * @return @void
      */
     protected function filterTokenColumns(CDbCriteria $criteria)
     {
@@ -359,7 +359,7 @@ class ResponseExtended extends LSActiveRecord
     /**
      * Add the filter to the parent columns
      * @param CDbCriteria $criteria
-     * @return CDbCriteria
+     * @return @void
      */
     protected function filterParentColumns(CDbCriteria $criteria)
     {
@@ -435,7 +435,7 @@ class ResponseExtended extends LSActiveRecord
     {
         $updateUrl = $this->getUdateUrl($token);
         if ($updateUrl === "") {
-            return '<span class="link-id">' . $this->id . '</span> <span class="fa fa-pencil text-muted" aria-hidden="true"> </span>';
+            return '<span class="btn btn-link disabled"><span class="link-id">' . $this->id . '</span> <span class="fa fa-pencil text-muted" aria-hidden="true"> </span></span>';
         }
         return '<a class="update btn btn-link" href="' . $updateUrl . '"><span class="link-id">' . $this->id . '</span> <span class="fa fa-pencil" aria-hidden="true"> </span></a>';
     }
@@ -671,8 +671,8 @@ class ResponseExtended extends LSActiveRecord
             'type' => 'raw',
             'value' => 'empty($data->parent) ? "" : $data->parent->getCompletedGrid();',
             'filter' => CHtml::activeDropDownList(
-                $this->parentRelated, 
-                'completed', 
+                $this->parentRelated,
+                'completed',
                 ['Y' => gT('Yes'), 'N' => gT('No')],
                 ['class' => 'form-control input-sm filter-completed', 'empty' => '']
             )

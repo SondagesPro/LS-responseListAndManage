@@ -4,9 +4,9 @@
  * Responses List And Manage
  *
  * @author Denis Chenu <denis@sondages.pro>
- * @copyright 2018-2023 Denis Chenu <http://www.sondages.pro>
+ * @copyright 2018-2024 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 2.14.0
+ * @version 2.14.2
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -690,7 +690,7 @@ class responseListAndManage extends PluginBase
             $RelatedSurveyManagementSettings = \RelatedSurveyManagement\Settings::getInstance();
             $parentId = $RelatedSurveyManagementSettings->getParentId($surveyId);
             if ($parentId) {
-                $aParentQuestionList = $this->getQuestionListDataForSettings($surveyId);
+                $aParentQuestionList = $this->getQuestionListDataForSettings($parentId);
                 $aSettings[$this->translate('Parent Response')] = array(
                     'parentPrimaryAttributes' => array(
                         'type' => 'select',

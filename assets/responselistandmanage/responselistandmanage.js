@@ -1,6 +1,6 @@
 /**
  * @todo : move to js class
- * @version 2.9.3
+ * @version 2.14.3
  */
 
 $(window).scroll(function(){
@@ -289,6 +289,14 @@ function responseListAndManageSetFixedHeader() {
       //~ }
   }
 }
+
+/* questionExtraSurvey compatibility */
+$(document).on('modaliniframe:on', function(event) {
+  $('#modal-responseListAndManage button').addClass('invisible');
+});
+$(document).on('modaliniframe:off', function(event) {
+  $('#modal-responseListAndManage button').removeClass('invisible');
+});
 /* html(parser rules */
 var wysihtml5ParserRules = {
   tags: {

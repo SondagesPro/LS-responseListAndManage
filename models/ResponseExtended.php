@@ -3,7 +3,7 @@
 /**
  * This file is part of reloadAnyResponse plugin
  * @see SurveyDynamic
- * @version 2.14.1
+ * @version 2.14.4
  */
 //~ namespace responseListAndManage\models;
 //~ use Yii;
@@ -844,26 +844,29 @@ class ResponseExtended extends LSActiveRecord
         /* Always add submitdate */
         $cloneCriteria = clone $baseCriteria;
         $cloneCriteria->addCondition("submitdate != '' and submitdate IS NOT null");
-        $aFooters['completed'] = self::model()->count($baseCriteria);
+        $aFooters['completed'] = self::model(self::$sid)->count($baseCriteria);
         /* All DB columns */
-        $aDbColumns = self::model()->getTableSchema()->columns;
+        $aDbColumns = self::model(self::$sid)->getTableSchema()->columns;
         foreach ($aDbColumns as $column => $data) {
             $footer = null;
             /* Specific one */
             if ($column == 'id') {
-                $aFooters['id'] = self::model()->count($baseCriteria);
-                continue;
-            }
-            if (!empty($this->restrictedColumns) && !in_array($column, $this->restrictedColumns)) {
+                $aFooters['id'] = self::model(self::$sid)->count($baseCriteria);
                 continue;
             }
             $quoteColumn = Yii::app()->db->quoteColumnName($column);
+            if (!empty($this->restrictedColumns) && (!in_array($column, $this->restrictedColumns) && !in_array($quoteColumn, $this->restrictedColumns))) {
+                continue;
+            }
             $cloneCriteria = clone $baseCriteria;
             $cloneCriteria->addCondition("$quoteColumn != '' and $quoteColumn IS NOT null");
-            $footer = self::model()->count($cloneCriteria);
+            $footer = self::model(self::$sid)->count($cloneCriteria);
+            /* broken : $this->search()->getData() take page, not only filter */
             if (isset($allQuestionsType[$column])) {
                 if (in_array($allQuestionsType[$column], array('decimal', 'float', 'integer', 'number'))) {
-                    $sum = array_sum(Chtml::listData($this->search()->getData(), 'id', $column));
+                    $countCriteria = $this->search()->getCountCriteria();
+                    $countCriteria->select = ['id', $column];
+                    $sum = array_sum(Chtml::listData(self::model(self::$sid)->findAll($countCriteria), 'id', $column));
                     $footer .= " / " . $sum;
                 }
             }

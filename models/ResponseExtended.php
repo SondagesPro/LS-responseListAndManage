@@ -3,7 +3,7 @@
 /**
  * This file is part of reloadAnyResponse plugin
  * @see SurveyDynamic
- * @version 2.14.4
+ * @version 2.14.5
  */
 //~ namespace responseListAndManage\models;
 //~ use Yii;
@@ -189,7 +189,7 @@ class ResponseExtended extends LSActiveRecord
     public function getHaveToken()
     {
         if (!isset($this->haveToken)) {
-            $this->haveToken = self::$survey->anonymized != "Y" && tableExists('tokens_' . self::$sid) && (Permission::model()->hasSurveyPermission(self::$sid, 'token', 'read') || Yii::app()->user->getState('disableTokenPermission')); // Boolean : show (or not) the token;
+            $this->haveToken = self::$survey->anonymized != "Y" && tableExists('tokens_' . self::$sid) && (Permission::model()->hasSurveyPermission(self::$sid, 'tokens', 'read') || Yii::app()->user->getState('disableTokenPermission')); // Boolean : show (or not) the token;
         }
         return $this->haveToken;
     }

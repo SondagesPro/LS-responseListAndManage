@@ -6,7 +6,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2024 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 2.14.2
+ * @version 2.14.5
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -1480,13 +1480,13 @@ class responseListAndManage extends PluginBase
         if (empty($currentToken) && $this->_isLsAdmin()) {
             $allowAccess = Permission::model()->hasSurveyPermission($surveyId, 'responses', 'read');
             if ($this->_surveyHasTokens($oSurvey)) {
-                $allowAccess = $settingAllowAccess && Permission::model()->hasSurveyPermission($surveyId, 'token', 'read');
+                $allowAccess = $settingAllowAccess && Permission::model()->hasSurveyPermission($surveyId, 'tokens', 'read');
             }
             $allowSee = $allowAccess && $settingAllowSee && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'read');
             $allowEdit = $allowSee && $settingAllowEdit && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'update');
             $allowDelete = $allowSee && $settingAllowDelete && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'delete');
             $allowAdd = $settingAllowAdd && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'create');
-            $allowAddUser = $this->_allowTokenLink($oSurvey) && $settingAllowAddUser && Permission::model()->hasSurveyPermission($surveyId, 'token', 'create');
+            $allowAddUser = $this->_allowTokenLink($oSurvey) && $settingAllowAddUser && Permission::model()->hasSurveyPermission($surveyId, 'tokens', 'create');
             if ($allowEdit) {
                 \reloadAnyResponse\Utilities::setForcedAllowedSettings($surveyId, 'allowAdminUser');
             }
@@ -1531,7 +1531,7 @@ class responseListAndManage extends PluginBase
         // Check if allow check
         $selectableRows = 0;
         if ($this->get('exportType', 'Survey', $surveyId) && $this->get('showExportLink', 'Survey', $surveyId, $this->get('showExportLink', null, null, 'limesurvey'))) {
-            if (Permission::model()->hasSurveyPermission($surveyId, 'response', 'export')) {
+            if (Permission::model()->hasSurveyPermission($surveyId, 'responses', 'export')) {
                 $selectableRows = 2;
             }
             if ($selectableRows == 0 && $currentToken && $this->get('showExportLink', 'Survey', $surveyId) == 'all') {
@@ -1840,7 +1840,7 @@ class responseListAndManage extends PluginBase
         }
         $allowed = false;
         /* Is an admin */
-        if ($this->get('allowDelete', 'Survey', $surveyId, 'admin') && Permission::model()->hasSurveyPermission($surveyId, 'response', 'delete')) {
+        if ($this->get('allowDelete', 'Survey', $surveyId, 'admin') && Permission::model()->hasSurveyPermission($surveyId, 'responses', 'delete')) {
             $allowed = true;
         }
         /* Is not an admin */
@@ -1924,7 +1924,7 @@ class responseListAndManage extends PluginBase
             $allowAddUser = ($allowAddUserSetting == 'all' || ($allowAddUserSetting == 'admin' && $isAdmin));
         }
 
-        if (!Permission::model()->hasSurveyPermission($surveyId, 'token', 'create')) {
+        if (!Permission::model()->hasSurveyPermission($surveyId, 'tokens', 'create')) {
             if (!$allowAddUser) {
                 throw new CHttpException(403, $this->translate('No right to create new token in this survey.'));
             }
@@ -2603,7 +2603,7 @@ class responseListAndManage extends PluginBase
             if (!$userId && $showExportLink == 'all') {
                 $actionLinks[] = $actionExportLink;
             }
-            if (Permission::model()->hasSurveyPermission($surveyId, 'response', 'export')) {
+            if (Permission::model()->hasSurveyPermission($surveyId, 'responses', 'export')) {
                 unset($actionExportLink['link']['currenttoken']);
                 $actionLinks[] = $actionExportLink;
             }

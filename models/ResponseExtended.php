@@ -3,7 +3,7 @@
 /**
  * This file is part of reloadAnyResponse plugin
  * @see SurveyDynamic
- * @version 2.14.5
+ * @version 2.15.0-beta1
  */
 //~ namespace responseListAndManage\models;
 //~ use Yii;
@@ -83,6 +83,8 @@ class ResponseExtended extends LSActiveRecord
     public $showDelete = false;
     /* @var boolean : replace id of parent by a link */
     public $parentLinkUpdate = false;
+    /* @var string defulat sort order */
+    public $defaultSortOrder = 'id ASC';
 
     /**
      * @inheritdoc
@@ -933,7 +935,7 @@ class ResponseExtended extends LSActiveRecord
     public function getSort()
     {
         $sort = new CSort();
-        $sort->defaultOrder = Yii::app()->db->quoteColumnName($this->tableAlias . '.id') . ' ASC';
+        $sort->defaultOrder = $this->defaultSortOrder;
         $sort->multiSort = true;
         $sort->attributes = array();
         // Token sort

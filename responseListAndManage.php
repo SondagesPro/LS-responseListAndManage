@@ -6,7 +6,7 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2018-2024 Denis Chenu <http://www.sondages.pro>
  * @license GPL v3
- * @version 2.14.5
+ * @version 2.15.0-beta1
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE as published by
@@ -428,6 +428,7 @@ class responseListAndManage extends PluginBase
                 'surveyPrefix', 'tokenPrefix',
                 'parentPrimaryAttributes', 'parentAttributes', 'parentPrefix', 'parentLinkUpdate',
                 'allowAccess','allowSee','allowEdit','allowDelete', 'allowAdd','allowAddSelf','allowAddUser',
+                'defaultOrder', 'defaultFilter',
                 'template',
                 'showFooter',
                 'filterOnDate','filterSubmitdate','filterStartdate','filterDatestamp',
@@ -800,6 +801,30 @@ class responseListAndManage extends PluginBase
                 ),
                 'label' => $this->translate('Show filter on start date.'),
                 'current' => $this->get('filterDatestamp', 'Survey', $surveyId, 0)
+            ),
+        );
+        /* Filter and order */
+        $helpOrder = $this->translate('You can use only single question or SGQA separated by ,. For the order default is ASC, you can use DESC.');
+        $helpFilter = $this->translate('One field by line, field must be single question (ingle choice, short text, equation …). Field and value are separated by colon (<code>:</code>). ');
+        if (Yii::getPathOfAlias('getQuestionInformation')) {
+            $helpOrder = $this->translate('You can use expression manager variables (question title for example) for the value to be ordered separated by ,.  For the order default is ASC, you can use DESC.');
+            $helpFilter = $this->translate('One field by line, You can use expression manager variables (question title for example). Field and value are separated by colon (<code>:</code>). ');
+        }
+        $aSettings[$this->translate('Default order and filter')] = array(
+            'defaultOrder' => array(
+                'type' => 'string',
+                'label' => $this->translate('Defalt order to be set when load response table.'),
+                'help' => $helpOrder,
+                'htmlOptions' => [
+                    'placeholder' => 'id ASC'
+                ],
+                'current' => $this->get('defaultOrder', 'Survey', $surveyId, '')
+            ),
+            'defaultFilter' => array(
+                'type' => 'text',
+                'label' => $this->translate('Default filter to be set when load response table.'),
+                'help' => $helpFilter,
+                'current' => $this->get('defaultFilter', 'Survey', $surveyId, '')
             ),
         );
         /* Descrition by lang */
@@ -1438,8 +1463,58 @@ class responseListAndManage extends PluginBase
             }
         }
         $mResponse->searchCriteria = $criteria;
-
+        /** @var array all columns */
+        $availableColumns = SurveyDynamic::model($surveyId)->getAttributes();
+        /** @var null|array question code as key, column as value */
+        $aEmToColumns = [];
+        if (Yii::getPathOfAlias('getQuestionInformation')) {
+            $aEmToColumns = array_flip(\getQuestionInformation\helpers\surveyCodeHelper::getAllQuestions($surveyId));
+        }
+        $defaultOrder = $this->get('defaultOrder', 'Survey', $surveyId, '');
+        if (!empty($defaultOrder)) {
+            $aOrdersBy = explode(",", $defaultOrder);
+            $aOrderByFinal = array();
+            foreach ($aOrdersBy as $sOrderBy) {
+                $sOrderBy = trim($sOrderBy);
+                $aOrderBy = explode(" ", trim($sOrderBy));
+                $arrangement = "ASC";
+                if (!empty($aOrderBy[1]) and strtoupper($aOrderBy[1]) == 'DESC') {
+                    $arrangement = "DESC";
+                }
+                if (!empty($aOrderBy[0])) {
+                    $orderColumn = null;
+                    if (array_key_exists($aOrderBy[0], $availableColumns)) {
+                        $aOrderByFinal[] = Yii::app()->db->quoteColumnName($aOrderBy[0]) . " " . $arrangement;
+                    } elseif ($aEmToColumns) {
+                        if (isset($aEmToColumns[$aOrderBy[0]])) {
+                            $aOrderByFinal[] = App()->db->quoteColumnName($aEmToColumns[$aOrderBy[0]]) . " " . $arrangement;
+                        }
+                    }
+                }
+            }
+            $mResponse->defaultSortOrder = implode(",", $aOrderByFinal);
+        }
         $filters = Yii::app()->request->getParam('ResponseExtended');
+        if (is_null($filters)) {
+            $defaultFilter = $this->get('defaultFilter', 'Survey', $surveyId, '');
+            if (!empty($defaultFilter)) {
+                $aDefaultFilterLines = preg_split('/\r\n|\r|\n/', $defaultFilter, -1, PREG_SPLIT_NO_EMPTY);
+                $aDefaultFilters = array();
+                foreach ($aDefaultFilterLines as $aDefaultFilterLine) {
+                    if (!strpos($aDefaultFilterLine, ":")) {
+                        continue; // Invalid line
+                    }
+                    $questionCode = substr($aDefaultFilterLine, 0, strpos($aDefaultFilterLine, ":"));
+                    $value = substr($aDefaultFilterLine, strpos($aDefaultFilterLine, ":") + 1);
+                    if (array_key_exists($questionCode, $availableColumns)) {
+                        $filters[$questionCode] = $value;
+                    } elseif (array_key_exists($questionCode, $aEmToColumns)) {
+                        $qCode = $aEmToColumns[$questionCode];
+                        $filters[$qCode] = $value;
+                    }                    
+                }
+            }
+        }
         if (!empty($filters)) {
             $mResponse->setAttributes($filters, false);
             if (!empty($filters['completed'])) {
@@ -2383,15 +2458,7 @@ class responseListAndManage extends PluginBase
         }
         global $maildebug, $maildebugbody;
         Yii::app()->setConfig("emailsmtpdebug", 0);
-        if (false) { /* for event */
-            $this->sMessage = $event->get('message', $this->sMailMessage); // event can send is own message
-            if ($event->get('error') == null) {
-                $today = dateShift(date("Y-m-d H:i:s"), "Y-m-d H:i", Yii::app()->getConfig('timeadjust'));
-                $oToken->sent = $today;
-                $oToken->save();
-                return true;
-            }
-        } elseif (SendEmailMessage($aMail['message'], $aMail['subject'], $sTo, $sFrom, $sitename, $useHtmlEmail, $sBounce, $aRelevantAttachments)) {
+        if (SendEmailMessage($aMail['message'], $aMail['subject'], $sTo, $sFrom, $sitename, $useHtmlEmail, $sBounce, $aRelevantAttachments)) {
             $today = dateShift(date("Y-m-d H:i:s"), "Y-m-d H:i", Yii::app()->getConfig('timeadjust'));
             $oToken->sent = $today;
             $oToken->save();

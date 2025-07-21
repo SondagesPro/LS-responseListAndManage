@@ -919,7 +919,7 @@ class responseListAndManage extends PluginBase
                     CHtml::tag("li", array(), $this->translate("Currently, for LimeSurvey admin user, for survey with token, need token read right.")) .
                     CHtml::tag("li", array(), $this->translate("For user, except for No : they always have same rights than other, for example if you allow delete to admin user, an user with token can delete his response with token.")) .
                     CHtml::tag("li", array(), $this->translate("To disable access for user with token you can set this settings to No or only for LimeSurvey admin.")) .
-                    CHtml::tag("li", array('class' => 'text-warning'), sprintf("<strong>%s</strong>%s", $this->translate("Warning"), $this->translate(": you need to update reloadAnyResponse settings and right. This was not fixed here."))) .
+                    CHtml::tag("li", array('class' => 'text-warning'), sprintf($this->translate("%sWarning%s : you need to update reloadAnyResponse settings and right. This was not fixed here."), '<strong>', '</strong')) .
                     ""
                 ),
             ),

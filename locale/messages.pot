@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: responseListAndManage\n"
-"POT-Creation-Date: 2025-07-21 15:22+0200\n"
+"POT-Creation-Date: 2025-07-21 15:45+0200\n"
 "PO-Revision-Date: 2018-06-21 16:36+0200\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -367,11 +367,8 @@ msgid "To disable access for user with token you can set this settings to No or 
 msgstr ""
 
 #: responseListAndManage.php:922
-msgid "Warning"
-msgstr ""
-
-#: responseListAndManage.php:922
-msgid ": you need to update reloadAnyResponse settings and right. This was not fixed here."
+#, php-format
+msgid "%sWarning%s : you need to update reloadAnyResponse settings and right. This was not fixed here."
 msgstr ""
 
 #: responseListAndManage.php:928

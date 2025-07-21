@@ -673,7 +673,6 @@ class responseListAndManage extends PluginBase
                 ),
                 'current' => $this->get('surveyNeededValues', 'Survey', $surveyId)
             ),
-
             'showFooter' => array(
                 'type' => 'boolean',
                 'label' => $this->translate('Show footer with count and sum.'),
@@ -813,7 +812,7 @@ class responseListAndManage extends PluginBase
         $aSettings[$this->translate('Default order and filter')] = array(
             'defaultOrder' => array(
                 'type' => 'string',
-                'label' => $this->translate('Defalt order to be set when load response table.'),
+                'label' => $this->translate('Default order to be set when load response table.'),
                 'help' => $helpOrder,
                 'htmlOptions' => [
                     'placeholder' => 'id ASC'
